@@ -34,7 +34,11 @@ export default function CloseControls({
   if (!isAdmin) {
     return (
       <div className="text-xs">
-        {isClosed ? <span className="text-accent">{labels.closed}</span> : missingCount > 0 && <span className="text-muted">{labels.missing}</span>}
+        {isClosed ? (
+          <span className="badge badge-success">{labels.closed}</span>
+        ) : (
+          missingCount > 0 && <span className="badge badge-warning">{labels.missing}</span>
+        )}
       </div>
     );
   }
@@ -57,9 +61,9 @@ export default function CloseControls({
         </form>
       )}
 
-      {isClosed && <span className="text-accent">{labels.closed}</span>}
-      {!isClosed && missingCount > 0 && <span className="text-muted">{labels.missing}</span>}
-      {state?.ok === true && <span className="text-accent">{labels.success}</span>}
+      {isClosed && <span className="badge badge-success">{labels.closed}</span>}
+      {!isClosed && missingCount > 0 && <span className="text-warning max-w-[260px] text-end">{labels.missing}</span>}
+      {state?.ok === true && <span className="text-success">{labels.success}</span>}
       {state?.ok === false && (
         <span className="text-danger">
           {state.error === "missingOperations" ? labels.missing : state.error === "forbidden" ? labels.forbidden : labels.generic}

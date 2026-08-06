@@ -92,18 +92,19 @@ export default function OperationRow({
   const feedback = message(saveState, labels) ?? message(clearState, labels);
 
   const obligationTone =
-    row.obligation === "required" ? "text-foreground" : row.obligation === "conditional" ? "text-accent" : "text-muted";
+    row.obligation === "required" ? "text-muted" : row.obligation === "conditional" ? "text-warning" : "text-faint";
 
   return (
     <tr
       className={[
-        row.editable ? "" : "bg-[#fbfbfc]",
+        row.editable ? "" : "bg-surface-muted",
+        // The route hands over to the next station here.
         newStationGroup ? "border-t-2 border-t-[color:var(--accent)]" : "",
       ].join(" ")}
     >
-      <td className="text-muted text-center tabular-nums">{row.seq}</td>
+      <td className="text-faint text-center tabular-nums">{row.seq}</td>
       <td>
-        <div>{row.name}</div>
+        <div className="font-medium">{row.name}</div>
         <div className={`text-[11px] ${obligationTone}`}>{row.obligationText}</div>
       </td>
       <td className="text-muted whitespace-nowrap text-xs">{row.stationName}</td>
@@ -171,7 +172,7 @@ export default function OperationRow({
 
       <td className="text-muted text-[11px]">
         {feedback ? (
-          <span className={feedback.ok ? "text-accent" : "text-danger"}>{feedback.text}</span>
+          <span className={feedback.ok ? "text-success" : "text-danger"}>{feedback.text}</span>
         ) : row.editable ? (
           (row.recordedByName ?? "")
         ) : (

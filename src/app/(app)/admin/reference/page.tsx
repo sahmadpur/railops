@@ -19,13 +19,13 @@ export default async function AdminReferencePage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">{t("admin.reference.title")}</h1>
+      <h1 className="page-title">{t("admin.reference.title")}</h1>
 
       <ActionForm
         action={saveReferenceValue}
         submitText={t("admin.reference.create")}
         messages={messages}
-        className="border-line bg-surface flex flex-wrap items-end gap-2 rounded border p-3 text-xs"
+        className="filter-bar"
       >
         <label className="flex flex-col gap-1">
           <span className="text-muted">{t("admin.reference.kind")}</span>
@@ -53,54 +53,56 @@ export default async function AdminReferencePage() {
         const kindRows = rows.filter((r) => r.kind === kind);
         return (
           <section key={kind} className="space-y-1">
-            <h2 className="text-sm font-medium">{t(`admin.reference.kinds.${kind}`)}</h2>
-            <table className="data-table text-xs">
-              <thead>
-                <tr>
-                  <th className="w-28">{t("admin.reference.code")}</th>
-                  <th>{t("admin.reference.label")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {kindRows.length === 0 && (
+            <h2 className="card-title">{t(`admin.reference.kinds.${kind}`)}</h2>
+            <div className="table-card overflow-x-auto">
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <td colSpan={2} className="text-muted text-center">
-                      {t("common.empty")}
-                    </td>
+                    <th className="w-28">{t("admin.reference.code")}</th>
+                    <th>{t("admin.reference.label")}</th>
                   </tr>
-                )}
-                {kindRows.map((row) => (
-                  <tr key={row.id}>
-                    <td colSpan={2} className="p-0">
-                      <ActionForm
-                        action={saveReferenceValue}
-                        submitText={t("common.save")}
-                        messages={messages}
-                        compact
-                        className="flex flex-wrap items-center gap-2 px-2 py-1"
-                      >
-                        <input type="hidden" name="id" value={row.id} />
-                        <input type="hidden" name="kind" value={row.kind} />
-                        <input name="code" defaultValue={row.code} required className="field w-24" />
-                        {locales.map((locale) => (
-                          <input
-                            key={locale}
-                            name={`label_${locale}`}
-                            defaultValue={row.label[locale] ?? ""}
-                            aria-label={locale}
-                            className="field w-36"
-                          />
-                        ))}
-                        <select name="isActive" defaultValue={String(row.isActive)} className="field w-auto">
-                          <option value="true">{t("common.active")}</option>
-                          <option value="false">{t("common.inactive")}</option>
-                        </select>
-                      </ActionForm>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {kindRows.length === 0 && (
+                    <tr>
+                      <td colSpan={2} className="text-muted text-center">
+                        {t("common.empty")}
+                      </td>
+                    </tr>
+                  )}
+                  {kindRows.map((row) => (
+                    <tr key={row.id}>
+                      <td colSpan={2} className="p-0">
+                        <ActionForm
+                          action={saveReferenceValue}
+                          submitText={t("common.save")}
+                          messages={messages}
+                          compact
+                          className="flex flex-wrap items-center gap-2 px-3 py-2"
+                        >
+                          <input type="hidden" name="id" value={row.id} />
+                          <input type="hidden" name="kind" value={row.kind} />
+                          <input name="code" defaultValue={row.code} required className="field w-24" />
+                          {locales.map((locale) => (
+                            <input
+                              key={locale}
+                              name={`label_${locale}`}
+                              defaultValue={row.label[locale] ?? ""}
+                              aria-label={locale}
+                              className="field w-36"
+                            />
+                          ))}
+                          <select name="isActive" defaultValue={String(row.isActive)} className="field w-auto">
+                            <option value="true">{t("common.active")}</option>
+                            <option value="false">{t("common.inactive")}</option>
+                          </select>
+                        </ActionForm>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         );
       })}

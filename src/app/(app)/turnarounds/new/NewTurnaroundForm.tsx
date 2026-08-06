@@ -22,10 +22,10 @@ export default function NewTurnaroundForm({
   }, [state, router]);
 
   return (
-    <form action={action} className="border-line bg-surface space-y-3 rounded border p-4">
+    <form action={action} className="card space-y-4 p-6">
       <label className="block">
-        <span className="text-muted text-xs">{labels.locomotive}</span>
-        <select name="locomotiveId" required defaultValue="" className="field mt-1">
+        <span className="text-muted mb-1.5 block text-xs font-medium">{labels.locomotive}</span>
+        <select name="locomotiveId" required defaultValue="" className="field">
           <option value="" disabled>
             —
           </option>
@@ -38,8 +38,8 @@ export default function NewTurnaroundForm({
       </label>
 
       <label className="block">
-        <span className="text-muted text-xs">{labels.cycleDate}</span>
-        <input type="date" name="cycleDate" required defaultValue={today} className="field mt-1" />
+        <span className="text-muted mb-1.5 block text-xs font-medium">{labels.cycleDate}</span>
+        <input type="date" name="cycleDate" required defaultValue={today} className="field" />
       </label>
 
       {state?.ok === false && (

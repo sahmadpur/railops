@@ -4,6 +4,7 @@
     "subtitle": "Locomotive turnaround log and registry"
   },
   "nav": {
+    "menu": "Menu",
     "dashboard": "Dashboard",
     "turnarounds": "Turnarounds",
     "journal": "Journal",

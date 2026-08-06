@@ -2,6 +2,7 @@ import { and, count, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
+import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
 import { locomotives, turnaroundOperations, turnarounds, users } from "@/db/schema";
 import { getFormOptions } from "@/lib/catalogue";
@@ -57,9 +58,14 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold">{t("turnarounds.title")}</h1>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="page-title">{t("turnarounds.title")}</h1>
+          <p className="text-muted mt-1 text-sm">
+            {t("common.total")}: <span className="tabular-nums">{rows.length}</span>
+          </p>
+        </div>
         <div className="flex gap-2">
           <a href={`/api/export/turnarounds?${exportParams}`} className="btn text-xs">
             {t("common.exportExcel")}
@@ -70,7 +76,7 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
         </div>
       </div>
 
-      <form className="border-line bg-surface flex flex-wrap items-end gap-2 rounded border p-3 text-xs">
+      <form className="filter-bar">
         <label className="flex flex-col gap-1">
           <span className="text-muted">{t("common.from")}</span>
           <input type="date" name="from" defaultValue={from} className="field w-auto" />
@@ -109,7 +115,7 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
         </Link>
       </form>
 
-      <div className="overflow-x-auto">
+      <div className="table-card overflow-x-auto">
         <table className="data-table">
           <thead>
             <tr>
@@ -138,15 +144,27 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
               return (
                 <tr key={row.id}>
                   <td>
-                    <Link href={`/turnarounds/${row.id}`} className="text-accent hover:underline">
+                    <Link href={`/turnarounds/${row.id}`} className="text-accent font-medium hover:underline">
                       {row.id}
                     </Link>
                   </td>
                   <td className="whitespace-nowrap">{formatDate(row.cycleDate, locale)}</td>
-                  <td>{row.locomotiveNumber}</td>
-                  <td>{statusLabel.get(row.statusCode) ?? row.statusCode}</td>
-                  <td className="tabular-nums">
-                    {row.filled}/{totalOperations}
+                  <td className="font-medium">{row.locomotiveNumber}</td>
+                  <td>
+                    <StatusBadge code={row.statusCode} text={statusLabel.get(row.statusCode) ?? row.statusCode} />
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-surface-muted h-1.5 w-16 overflow-hidden rounded-full">
+                        <span
+                          className={`block h-full rounded-full ${row.closedAt ? "bg-success" : "bg-accent"}`}
+                          style={{ width: `${Math.min(100, Math.round((row.filled / totalOperations) * 100))}%` }}
+                        />
+                      </span>
+                      <span className="tabular-nums">
+                        {row.filled}/{totalOperations}
+                      </span>
+                    </div>
                   </td>
                   <td className="tabular-nums">
                     {minutes === null
