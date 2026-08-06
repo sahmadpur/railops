@@ -29,7 +29,8 @@ services:
       TZ: ${TZ:-Asia/Baku}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@ady.az}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-railops}
-      # Sample locomotives, train numbers and per-station operators. Off in the prod overlay.
+      # One operator account per station, all sharing a known password. Set SEED_DEMO=0 to skip
+      # them; the locomotive and train-number registries are real data and seed either way.
       SEED_DEMO: ${SEED_DEMO:-1}
     command: sh -c "npm run db:migrate && npm run db:seed"
     depends_on:

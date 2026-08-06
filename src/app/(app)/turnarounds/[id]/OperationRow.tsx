@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState } from "react";
 
 import type { OperationField } from "@/db/schema";
 import { clearOperation, saveOperation, type ActionResult } from "@/actions/turnaround";
@@ -10,6 +10,7 @@ export type Option = { id: number | string; text: string };
 
 export type RowLabels = {
   save: string;
+  saving: string;
   clear: string;
   saved: string;
   readOnly: string;
@@ -28,6 +29,8 @@ export type RowData = {
   obligation: "required" | "optional" | "conditional";
   fields: OperationField[];
   editable: boolean;
+  /** True once the step has a row in the database, as opposed to merely being open for entry. */
+  recorded: boolean;
   occurredAtValue: string;
   trainNumberId: number | null;
   locomotiveId: number | null;
@@ -92,14 +95,13 @@ export default function OperationRow({
   const [clearState, clear, clearing] = useActionState(clearOperation, undefined);
   const feedback = message(saveState, labels) ?? message(clearState, labels);
 
-  // An unrecorded step is stamped with the moment the operator opens it, so the usual case is
-  // pressing Save. Filling it here rather than on the server keeps the value in the browser's
-  // own timezone and avoids a hydration mismatch. React clears an uncontrolled form once its
-  // action resolves, so refill after a rejected save too rather than leaving the field empty.
-  const occurredAt = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (occurredAt.current && !occurredAt.current.value) occurredAt.current.value = toLocalInputValue(new Date());
-  }, [saveState, clearState]);
+  // The operator never types a time: an empty field is stamped with the current moment the
+  // first time it is touched, and `saveOperation` stamps it server-side if the form is
+  // submitted while still blank. Filling on focus rather than on mount keeps an unrecorded
+  // step visibly empty, so it cannot be mistaken for one that is already saved.
+  const stampNow = (event: React.FocusEvent<HTMLInputElement>) => {
+    if (!event.target.value) event.target.value = toLocalInputValue(new Date());
+  };
 
   const obligationTone =
     row.obligation === "required" ? "text-muted" : row.obligation === "conditional" ? "text-warning" : "text-faint";
@@ -114,21 +116,58 @@ export default function OperationRow({
     >
       <td className="text-faint text-center tabular-nums">{row.seq}</td>
       <td>
-        <div className="font-medium">{row.name}</div>
+        <div className="flex items-center gap-1.5">
+          {/* A recorded step is marked, so it never reads as one that is merely open for entry. */}
+          {row.recorded && (
+            <svg
+              viewBox="0 0 24 24"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-success shrink-0"
+              role="img"
+              aria-label={labels.saved}
+            >
+              <path d="m5 13 4 4L19 7" />
+            </svg>
+          )}
+          <span className="font-medium">{row.name}</span>
+        </div>
         <div className={`text-[11px] ${obligationTone}`}>{row.obligationText}</div>
       </td>
       <td className="text-muted whitespace-nowrap text-xs">{row.stationName}</td>
 
       <td colSpan={row.editable ? 1 : 2}>
-        <form action={save} id={`save-${row.operationTypeId}`} className="flex flex-wrap items-center gap-1">
+        {/* React resets an uncontrolled form once its action resolves, and a reset restores the
+            defaults the inputs mounted with — the pre-save ones. Keying the form on the saved
+            values remounts just the inputs against the revalidated data, while the row itself
+            stays mounted so the action result survives to be shown. */}
+        <form
+          key={[
+            row.occurredAtValue,
+            row.trainNumberId,
+            row.locomotiveId,
+            row.detachReasonCode,
+            row.maintenanceReasonCode,
+            row.maintenanceTypeCode,
+            row.note,
+          ].join("|")}
+          action={save}
+          id={`save-${row.operationTypeId}`}
+          className="flex flex-wrap items-center gap-1"
+        >
           <input type="hidden" name="turnaroundId" value={row.turnaroundId} />
           <input type="hidden" name="operationTypeId" value={row.operationTypeId} />
           <input
-            ref={occurredAt}
             type="datetime-local"
             name="occurredAt"
             defaultValue={row.occurredAtValue}
             disabled={!row.editable}
+            onFocus={stampNow}
             className="field w-[190px]"
           />
 
@@ -165,9 +204,9 @@ export default function OperationRow({
         <td className="whitespace-nowrap">
           <div className="flex items-center gap-1">
             <button type="submit" form={`save-${row.operationTypeId}`} disabled={saving} className="btn btn-primary px-2 py-1 text-xs">
-              {labels.save}
+              {saving ? labels.saving : labels.save}
             </button>
-            {row.occurredAtValue && (
+            {row.recorded && (
               <form action={clear}>
                 <input type="hidden" name="turnaroundId" value={row.turnaroundId} />
                 <input type="hidden" name="operationTypeId" value={row.operationTypeId} />
@@ -177,13 +216,19 @@ export default function OperationRow({
               </form>
             )}
           </div>
+          {feedback && (
+            <div
+              role="status"
+              className={`mt-1 text-[11px] ${feedback.ok ? "text-success" : "text-danger"}`}
+            >
+              {feedback.text}
+            </div>
+          )}
         </td>
       )}
 
       <td className="text-muted text-[11px]">
-        {feedback ? (
-          <span className={feedback.ok ? "text-success" : "text-danger"}>{feedback.text}</span>
-        ) : row.editable ? (
+        {row.editable ? (
           (row.recordedByName ?? "")
         ) : (
           <span title={labels.readOnly}>{row.recordedByName ?? labels.readOnly}</span>

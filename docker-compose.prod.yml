@@ -1,19 +1,57 @@
 # Production overlay:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
-# Requires a real .env with POSTGRES_PASSWORD and AUTH_SECRET set.
+#
+# Requires a real .env with at least:
+#   APP_HOST=railops.ady.az        the hostname Traefik routes, and the tunnel points at
+#   POSTGRES_PASSWORD=…
+#   DATABASE_URL=postgres://railops:<POSTGRES_PASSWORD>@db:5432/railops
+#   AUTH_SECRET=…                  openssl rand -base64 32
+#   ADMIN_PASSWORD=…
+#
+# Nothing is published to the host: Traefik reaches the app over the external `proxy`
+# network, and Cloudflare's tunnel reaches Traefik. TLS terminates at Cloudflare, so the
+# router sits on the plain `web` entrypoint — the browser still speaks HTTPS, which is what
+# the session cookie's `secure` flag needs.
 services:
   db:
-    ports: []
+    ports: !reset []
+    environment:
+      # `:?` makes compose refuse to start rather than fall back to the dev defaults.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set a real password in .env}
 
   migrate:
     build:
       target: dev
     environment:
-      SEED_DEMO: "0"
-    volumes: []
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set the first administrator password in .env}
+      # One operator account per station, all sharing a known password — set SEED_DEMO=0 in
+      # .env once real accounts exist. The locomotive and train-number registries are real
+      # data and seed either way.
+      SEED_DEMO: ${SEED_DEMO:-1}
+    # `[]` alone would merge with the base list, not replace it — the source would still be
+    # bind-mounted over the image.
+    volumes: !reset []
 
   app:
     build:
       target: runner
     environment:
       NODE_ENV: production
-    volumes: []
+      AUTH_SECRET: ${AUTH_SECRET:?generate one with openssl rand -base64 32}
+      # Next's standalone server binds to localhost unless told otherwise, which would leave
+      # it unreachable from Traefik in the neighbouring container.
+      HOSTNAME: 0.0.0.0
+    ports: !reset []
+    volumes: !reset []
+    networks:
+      - default
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=proxy
+      - traefik.http.routers.railops.rule=Host(`${APP_HOST}`)
+      - traefik.http.routers.railops.entrypoints=web
+      - traefik.http.services.railops.loadbalancer.server.port=3000
+
+networks:
+  proxy:
+    external: true

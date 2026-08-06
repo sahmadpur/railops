@@ -92,6 +92,28 @@ export function segmentStats(segments: Segment[], rows: Row[]): SegmentStats[] {
   });
 }
 
+/**
+ * Time on the move between two consecutive legs: from the last operation recorded at one
+ * station to the first recorded at the next. One entry per gap, so `segments.length - 1`.
+ */
+export function transitStats(segments: Segment[], rows: Row[]): (number | null)[] {
+  const byTurnaround = groupByTurnaround(rows);
+
+  return segments.slice(0, -1).map((segment, index) => {
+    const leaving = new Set(segment.operations.map((o) => o.id));
+    const arriving = new Set(segments[index + 1].operations.map((o) => o.id));
+    const gaps: number[] = [];
+
+    for (const entries of byTurnaround.values()) {
+      const departure = entries.filter((e) => leaving.has(e.operationTypeId)).at(-1);
+      const arrival = entries.find((e) => arriving.has(e.operationTypeId));
+      if (departure && arrival) gaps.push(minutesBetween(departure.occurredAt, arrival.occurredAt));
+    }
+
+    return mean(gaps);
+  });
+}
+
 /** Per-operation detail for one leg: how often it was recorded and how long the step took. */
 export function operationStats(segment: Segment, rows: Row[]): OperationStats[] {
   const byTurnaround = groupByTurnaround(rows);

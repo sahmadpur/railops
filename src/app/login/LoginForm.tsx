@@ -39,7 +39,7 @@ export default function LoginForm({ labels }: { labels: Labels }) {
       <button type="submit" disabled={pending} className="btn btn-primary w-full justify-center">
         {labels.submit}
       </button>
-      <p className="text-muted text-xs">{labels.hint}</p>
+      <p className="text-muted border-line border-t pt-4 text-xs">{labels.hint}</p>
     </form>
   );
 }
