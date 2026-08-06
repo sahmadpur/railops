@@ -122,14 +122,19 @@ export const operationTypes = pgTable("operation_types", {
   isActive: boolean("is_active").notNull().default(true),
 });
 
-/** One locomotive turnaround: Böyük Kəsik → Gardabani → Tbilisi → Gardabani → Böyük Kəsik. */
+/**
+ * One train turnaround: Böyük Kəsik → Gardabani → Tbilisi → Gardabani → Böyük Kəsik.
+ * A turnaround opens when the train arrives; the locomotive is null until an operation
+ * that carries a `locomotive` field records the attachment.
+ */
 export const turnarounds = pgTable(
   "turnarounds",
   {
     id: serial("id").primaryKey(),
-    locomotiveId: integer("locomotive_id")
+    trainNumberId: integer("train_number_id")
       .notNull()
-      .references(() => locomotives.id),
+      .references(() => trainNumbers.id),
+    locomotiveId: integer("locomotive_id").references(() => locomotives.id),
     cycleDate: date("cycle_date").notNull(),
     statusCode: text("status_code").notNull().default("open"),
     openedBy: integer("opened_by")
@@ -143,8 +148,8 @@ export const turnarounds = pgTable(
   (t) => [
     index("turnarounds_cycle_date_idx").on(t.cycleDate),
     index("turnarounds_status_idx").on(t.statusCode),
-    // A locomotive runs at most one turnaround per calendar date.
-    uniqueIndex("turnarounds_loco_date_key").on(t.locomotiveId, t.cycleDate),
+    // A train runs at most one turnaround per calendar date. A locomotive may serve several.
+    uniqueIndex("turnarounds_train_date_key").on(t.trainNumberId, t.cycleDate),
   ],
 );
 
@@ -229,6 +234,7 @@ export const operationTypesRelations = relations(operationTypes, ({ one }) => ({
 }));
 
 export const turnaroundsRelations = relations(turnarounds, ({ one, many }) => ({
+  trainNumber: one(trainNumbers, { fields: [turnarounds.trainNumberId], references: [trainNumbers.id] }),
   locomotive: one(locomotives, { fields: [turnarounds.locomotiveId], references: [locomotives.id] }),
   openedByUser: one(users, { fields: [turnarounds.openedBy], references: [users.id] }),
   operations: many(turnaroundOperations),

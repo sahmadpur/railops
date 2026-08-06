@@ -54,6 +54,22 @@ export function canEdit(actor: ActorLike, operation: OperationTypeLike): boolean
 }
 
 /**
+ * Which train parity a station may open a turnaround with: Böyük Kəsik starts the outbound leg
+ * with an even train, Tbilisi the return leg with an odd one. Gardabani never opens a turnaround,
+ * and neither does an operator without a station.
+ */
+const OPENING_PARITY = { BK: "even", TBS: "odd" } as const;
+
+/** `parity: null` means every parity is allowed — admins only. */
+export type Opening = { allowed: false } | { allowed: true; parity: "even" | "odd" | null };
+
+export function openingRule(role: ActorLike["role"], stationCode: string | null): Opening {
+  if (role === "admin") return { allowed: true, parity: null };
+  const parity = stationCode ? OPENING_PARITY[stationCode as keyof typeof OPENING_PARITY] : undefined;
+  return parity ? { allowed: true, parity } : { allowed: false };
+}
+
+/**
  * Operations that run simultaneously are exempt from ordering against each other.
  * The link is declared on one side only, so treat it as symmetric.
  */

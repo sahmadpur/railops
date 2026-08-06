@@ -74,7 +74,8 @@ export default async function JournalPage({ searchParams }: PageProps<"/reports/
                 {journal.columns.map((column) => (
                   <th key={column.turnaroundId} className="whitespace-nowrap text-center">
                     <div>{Number(column.cycleDate.slice(8, 10))}</div>
-                    <div className="text-muted font-normal">{column.locomotiveNumber}</div>
+                    <div className="font-normal">{column.trainNumber}</div>
+                    <div className="text-muted font-normal">{column.locomotiveNumber ?? "—"}</div>
                   </th>
                 ))}
               </tr>

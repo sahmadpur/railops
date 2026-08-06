@@ -95,7 +95,8 @@
     "missingOperations": "Bağlamaq mümkün deyil: {count} mütləq əməliyyat qeyd olunmayıb.",
     "closeSuccess": "Dövriyyə bağlandı.",
     "notYourStation": "Başqa stansiyanın əməliyyatı — yalnız oxumaq üçün.",
-    "alreadyExists": "Bu lokomotivin həmin tarixə artıq dövriyyəsi var.",
+    "alreadyExists": "Bu qatarın həmin tarixə artıq dövriyyəsi var.",
+    "cannotOpenHere": "Sizin stansiyanızda dövriyyə açılmır.",
     "operationsFilled": "{total} əməliyyatdan {filled} qeyd olunub"
   },
   "errors": {

@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 
 import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
-import { locomotives, turnaroundOperations, turnarounds, users, type OperationField } from "@/db/schema";
+import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users, type OperationField } from "@/db/schema";
 import { getFormOptions } from "@/lib/catalogue";
 import { formatDate, label, toLocalInputValue } from "@/lib/format";
 import { requireSession } from "@/lib/session";
@@ -24,8 +24,12 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
   const [turnaround] = await db.select().from(turnarounds).where(eq(turnarounds.id, id)).limit(1);
   if (!turnaround) notFound();
 
-  const [[locomotive], entries, options] = await Promise.all([
-    db.select().from(locomotives).where(eq(locomotives.id, turnaround.locomotiveId)).limit(1),
+  const [[train], [locomotive], entries, options] = await Promise.all([
+    db.select().from(trainNumbers).where(eq(trainNumbers.id, turnaround.trainNumberId)).limit(1),
+    // Null until an attachment step records the locomotive.
+    turnaround.locomotiveId
+      ? db.select().from(locomotives).where(eq(locomotives.id, turnaround.locomotiveId)).limit(1)
+      : [],
     db.select().from(turnaroundOperations).where(eq(turnaroundOperations.turnaroundId, id)),
     getFormOptions(),
   ]);
@@ -130,6 +134,10 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
 
       <div className="card card-pad flex flex-wrap items-start justify-between gap-6">
         <dl className="grid flex-1 grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+          <div>
+            <dt className="text-muted text-xs">{t("common.trainNumber")}</dt>
+            <dd className="mt-0.5 font-medium">{train?.number ?? "—"}</dd>
+          </div>
           <div>
             <dt className="text-muted text-xs">{t("common.locomotive")}</dt>
             <dd className="mt-0.5 font-medium">{locomotive?.number ?? "—"}</dd>

@@ -6,13 +6,13 @@ import { useActionState, useEffect } from "react";
 import { createTurnaround } from "@/actions/turnaround";
 
 export default function NewTurnaroundForm({
-  locomotives,
+  trains,
   today,
   labels,
 }: {
-  locomotives: { id: number; text: string }[];
+  trains: { id: number; text: string }[];
   today: string;
-  labels: { locomotive: string; cycleDate: string; submit: string; alreadyExists: string; generic: string };
+  labels: { trainNumber: string; cycleDate: string; submit: string; alreadyExists: string; generic: string };
 }) {
   const [state, action, pending] = useActionState(createTurnaround, undefined);
   const router = useRouter();
@@ -24,14 +24,14 @@ export default function NewTurnaroundForm({
   return (
     <form action={action} className="card space-y-4 p-6">
       <label className="block">
-        <span className="text-muted mb-1.5 block text-xs font-medium">{labels.locomotive}</span>
-        <select name="locomotiveId" required defaultValue="" className="field">
+        <span className="text-muted mb-1.5 block text-xs font-medium">{labels.trainNumber}</span>
+        <select name="trainNumberId" required defaultValue="" className="field">
           <option value="" disabled>
             —
           </option>
-          {locomotives.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.text}
+          {trains.map((n) => (
+            <option key={n.id} value={n.id}>
+              {n.text}
             </option>
           ))}
         </select>

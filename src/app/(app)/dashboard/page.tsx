@@ -2,9 +2,17 @@ import { and, count, desc, eq, gte, isNotNull, isNull, sql } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
+import RowLink from "@/components/RowLink";
 import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
-import { locomotives, maintenanceRecords, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
+import {
+  locomotives,
+  maintenanceRecords,
+  operationTypes,
+  trainNumbers,
+  turnaroundOperations,
+  turnarounds,
+} from "@/db/schema";
 import { getReference, getStations } from "@/lib/catalogue";
 import { formatDate, label, todayIso } from "@/lib/format";
 import { requireSession } from "@/lib/session";
@@ -44,10 +52,10 @@ export default async function DashboardPage() {
           id: turnarounds.id,
           cycleDate: turnarounds.cycleDate,
           statusCode: turnarounds.statusCode,
-          number: locomotives.number,
+          number: trainNumbers.number,
         })
         .from(turnarounds)
-        .innerJoin(locomotives, eq(locomotives.id, turnarounds.locomotiveId))
+        .innerJoin(trainNumbers, eq(trainNumbers.id, turnarounds.trainNumberId))
         .orderBy(desc(turnarounds.cycleDate), desc(turnarounds.id))
         .limit(8),
       // Average span between first and last recorded operation, over the last 30 days.
@@ -165,7 +173,7 @@ export default async function DashboardPage() {
                 </tr>
               )}
               {recent.map((row) => (
-                <tr key={row.id}>
+                <RowLink key={row.id} href={`/turnarounds/${row.id}`}>
                   <td className="ps-5">
                     <Link href={`/turnarounds/${row.id}`} className="text-accent font-medium hover:underline">
                       #{row.id}
@@ -176,7 +184,7 @@ export default async function DashboardPage() {
                   <td className="pe-5 text-end">
                     <StatusBadge code={row.statusCode} text={statusLabel.get(row.statusCode)} />
                   </td>
-                </tr>
+                </RowLink>
               ))}
             </tbody>
           </table>

@@ -5,8 +5,10 @@ import { revalidatePath } from "next/cache";
 
 import { db } from "@/db";
 import { withActor } from "@/db/actor";
+import { isUniqueViolation } from "@/db/errors";
 import { maintenanceRecords, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
-import { canEdit, missingForClose, validateEntry, type EntryInput } from "@/lib/turnaround-rules";
+import { getActiveTrainNumbers, getStations } from "@/lib/catalogue";
+import { canEdit, missingForClose, openingRule, validateEntry, type EntryInput } from "@/lib/turnaround-rules";
 import { requireSession } from "@/lib/session";
 
 export type ActionResult = { ok: true } | { ok: false; error: string; seq?: number; field?: string };
@@ -37,16 +39,26 @@ async function loadContext(turnaroundId: number) {
 
 export async function createTurnaround(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const session = await requireSession();
-  const locomotiveId = optionalInt(formData.get("locomotiveId"));
+  const trainNumberId = optionalInt(formData.get("trainNumberId"));
   const cycleDate = optionalText(formData.get("cycleDate"));
-  if (!locomotiveId || !cycleDate) return { ok: false, error: "generic" };
+  if (!trainNumberId || !cycleDate) return { ok: false, error: "generic" };
+
+  // The filtered select is a convenience; the station rule is enforced here.
+  const [stations, trains] = await Promise.all([getStations(), getActiveTrainNumbers()]);
+  const stationCode = stations.find((s) => s.id === session.stationId)?.code ?? null;
+  const opening = openingRule(session.role, stationCode);
+  if (!opening.allowed) return { ok: false, error: "forbidden" };
+
+  const train = trains.find((n) => n.id === trainNumberId);
+  if (!train) return { ok: false, error: "generic" };
+  if (opening.parity && train.parity !== opening.parity) return { ok: false, error: "generic" };
 
   try {
     await withActor(session.userId, (tx) =>
-      tx.insert(turnarounds).values({ locomotiveId, cycleDate, openedBy: session.userId, statusCode: "open" }),
+      tx.insert(turnarounds).values({ trainNumberId, cycleDate, openedBy: session.userId, statusCode: "open" }),
     );
   } catch (error) {
-    if (String(error).includes("turnarounds_loco_date_key")) return { ok: false, error: "alreadyExists" };
+    if (isUniqueViolation(error, "turnarounds_train_date_key")) return { ok: false, error: "alreadyExists" };
     throw error;
   }
 
@@ -84,6 +96,17 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
 
   const note = optionalText(formData.get("note"));
 
+  // The turnaround itself carries no locomotive until one is attached, so ТОИР falls back to
+  // whatever an earlier step recorded.
+  const maintenanceLocomotiveId =
+    input.locomotiveId ??
+    context.turnaround.locomotiveId ??
+    context.entries.find((e) => e.locomotiveId)?.locomotiveId ??
+    null;
+  if (operation.maintenanceEffect && !maintenanceLocomotiveId) {
+    return { ok: false, error: "missing_field", seq: operation.seq, field: "locomotive" };
+  }
+
   await withActor(session.userId, async (tx) => {
     await tx
       .insert(turnaroundOperations)
@@ -114,11 +137,11 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
         },
       });
 
-    if (operation.maintenanceEffect) {
+    if (operation.maintenanceEffect && maintenanceLocomotiveId) {
       await syncMaintenance(tx, {
         effect: operation.maintenanceEffect,
         turnaroundId,
-        locomotiveId: input.locomotiveId ?? context.turnaround.locomotiveId,
+        locomotiveId: maintenanceLocomotiveId,
         occurredAt: input.occurredAt,
         typeCode: input.maintenanceTypeCode ?? null,
         reasonCode: input.maintenanceReasonCode ?? null,
@@ -126,10 +149,16 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
       });
     }
 
-    if (context.turnaround.statusCode === "open") {
+    // An attachment step is what gives the turnaround its locomotive; the latest one wins.
+    const attachedLocomotiveId = operation.fields.includes("locomotive") ? input.locomotiveId : null;
+    if (attachedLocomotiveId || context.turnaround.statusCode === "open") {
       await tx
         .update(turnarounds)
-        .set({ statusCode: "in_progress", updatedAt: new Date() })
+        .set({
+          ...(attachedLocomotiveId ? { locomotiveId: attachedLocomotiveId } : {}),
+          ...(context.turnaround.statusCode === "open" ? { statusCode: "in_progress" as const } : {}),
+          updatedAt: new Date(),
+        })
         .where(eq(turnarounds.id, turnaroundId));
     }
   });
