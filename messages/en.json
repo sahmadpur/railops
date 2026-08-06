@@ -95,7 +95,8 @@
     "missingOperations": "Cannot close: {count} mandatory operation(s) not recorded.",
     "closeSuccess": "Turnaround closed.",
     "notYourStation": "Recorded at another station — read only for you.",
-    "alreadyExists": "This locomotive already has a turnaround on that date.",
+    "alreadyExists": "This train already has a turnaround on that date.",
+    "cannotOpenHere": "Turnarounds are not opened at your station.",
     "operationsFilled": "{filled} of {total} operations recorded"
   },
   "errors": {

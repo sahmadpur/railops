@@ -2,9 +2,10 @@ import { and, count, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
+import RowLink from "@/components/RowLink";
 import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
-import { locomotives, turnaroundOperations, turnarounds, users } from "@/db/schema";
+import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users } from "@/db/schema";
 import { getFormOptions } from "@/lib/catalogue";
 import { formatDate, label } from "@/lib/format";
 import { requireSession } from "@/lib/session";
@@ -36,6 +37,8 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
       cycleDate: turnarounds.cycleDate,
       statusCode: turnarounds.statusCode,
       closedAt: turnarounds.closedAt,
+      trainNumber: trainNumbers.number,
+      // Null until an attachment step records the locomotive.
       locomotiveNumber: locomotives.number,
       openedByName: users.fullName,
       filled: count(turnaroundOperations.id),
@@ -43,11 +46,12 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
       lastAt: sql<Date | null>`max(${turnaroundOperations.occurredAt})`,
     })
     .from(turnarounds)
-    .innerJoin(locomotives, eq(locomotives.id, turnarounds.locomotiveId))
+    .innerJoin(trainNumbers, eq(trainNumbers.id, turnarounds.trainNumberId))
+    .leftJoin(locomotives, eq(locomotives.id, turnarounds.locomotiveId))
     .innerJoin(users, eq(users.id, turnarounds.openedBy))
     .leftJoin(turnaroundOperations, eq(turnaroundOperations.turnaroundId, turnarounds.id))
     .where(where)
-    .groupBy(turnarounds.id, locomotives.number, users.fullName)
+    .groupBy(turnarounds.id, trainNumbers.number, locomotives.number, users.fullName)
     .orderBy(desc(turnarounds.cycleDate), desc(turnarounds.id))
     .limit(200);
 
@@ -121,6 +125,7 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
             <tr>
               <th>#</th>
               <th>{t("turnarounds.cycleDate")}</th>
+              <th>{t("common.trainNumber")}</th>
               <th>{t("common.locomotive")}</th>
               <th>{t("common.status")}</th>
               <th>{t("turnarounds.progress")}</th>
@@ -131,7 +136,7 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="text-muted text-center">
+                <td colSpan={8} className="text-muted text-center">
                   {t("common.empty")}
                 </td>
               </tr>
@@ -142,14 +147,15 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
                   ? Math.round((new Date(row.lastAt).getTime() - new Date(row.firstAt).getTime()) / 60000)
                   : null;
               return (
-                <tr key={row.id}>
+                <RowLink key={row.id} href={`/turnarounds/${row.id}`}>
                   <td>
                     <Link href={`/turnarounds/${row.id}`} className="text-accent font-medium hover:underline">
                       {row.id}
                     </Link>
                   </td>
                   <td className="whitespace-nowrap">{formatDate(row.cycleDate, locale)}</td>
-                  <td className="font-medium">{row.locomotiveNumber}</td>
+                  <td className="font-medium">{row.trainNumber}</td>
+                  <td>{row.locomotiveNumber ?? "—"}</td>
                   <td>
                     <StatusBadge code={row.statusCode} text={statusLabel.get(row.statusCode) ?? row.statusCode} />
                   </td>
@@ -172,7 +178,7 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
                       : `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`}
                   </td>
                   <td className="text-muted">{row.openedByName}</td>
-                </tr>
+                </RowLink>
               );
             })}
           </tbody>

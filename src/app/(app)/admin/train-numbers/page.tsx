@@ -29,13 +29,6 @@ export default async function AdminTrainNumbersPage() {
           <input name="number" required className="field w-32" />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-muted">{t("admin.trainNumbers.parity")}</span>
-          <select name="parity" defaultValue="even" className="field w-auto">
-            <option value="even">{t("admin.trainNumbers.even")}</option>
-            <option value="odd">{t("admin.trainNumbers.odd")}</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
           <span className="text-muted">{t("admin.trainNumbers.country")}</span>
           <select name="country" defaultValue="AZ" className="field w-auto">
             <option value="AZ">AZ</option>
@@ -67,10 +60,10 @@ export default async function AdminTrainNumbersPage() {
                   >
                     <input type="hidden" name="id" value={row.id} />
                     <input name="number" defaultValue={row.number} required className="field w-28" />
-                    <select name="parity" defaultValue={row.parity} className="field w-auto">
-                      <option value="even">{t("admin.trainNumbers.even")}</option>
-                      <option value="odd">{t("admin.trainNumbers.odd")}</option>
-                    </select>
+                    {/* Derived from the number on save — shown, never chosen. */}
+                    <span className="text-muted w-16 text-xs">
+                      {t(row.parity === "even" ? "admin.trainNumbers.even" : "admin.trainNumbers.odd")}
+                    </span>
                     <select name="country" defaultValue={row.country} className="field w-auto">
                       <option value="AZ">AZ</option>
                       <option value="GR">GR</option>

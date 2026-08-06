@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, lte } from "drizzle-orm";
 
 import { db } from "@/db";
-import { locomotives, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
+import { locomotives, operationTypes, trainNumbers, turnaroundOperations, turnarounds } from "@/db/schema";
 import { formatTime } from "@/lib/format";
 import { elapsedMinutes, formatElapsed } from "@/lib/turnaround-rules";
 
@@ -13,7 +13,9 @@ import { elapsedMinutes, formatElapsed } from "@/lib/turnaround-rules";
 export type JournalColumn = {
   turnaroundId: number;
   cycleDate: string;
-  locomotiveNumber: string;
+  trainNumber: string;
+  /** Null until an attachment step records the locomotive. */
+  locomotiveNumber: string | null;
   statusCode: string;
   /** operationTypeId -> hh:mm */
   times: Map<number, string>;
@@ -46,10 +48,12 @@ export async function buildJournal(year: number, month: number, locomotiveId?: n
         id: turnarounds.id,
         cycleDate: turnarounds.cycleDate,
         statusCode: turnarounds.statusCode,
+        trainNumber: trainNumbers.number,
         locomotiveNumber: locomotives.number,
       })
       .from(turnarounds)
-      .innerJoin(locomotives, eq(locomotives.id, turnarounds.locomotiveId))
+      .innerJoin(trainNumbers, eq(trainNumbers.id, turnarounds.trainNumberId))
+      .leftJoin(locomotives, eq(locomotives.id, turnarounds.locomotiveId))
       .where(and(...conditions))
       .orderBy(asc(turnarounds.cycleDate), asc(turnarounds.id)),
   ]);
@@ -79,6 +83,7 @@ export async function buildJournal(year: number, month: number, locomotiveId?: n
     return {
       turnaroundId: column.id,
       cycleDate: column.cycleDate,
+      trainNumber: column.trainNumber,
       locomotiveNumber: column.locomotiveNumber,
       statusCode: column.statusCode,
       times: new Map(rows.map((r) => [r.operationTypeId, formatTime(r.occurredAt)])),

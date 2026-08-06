@@ -5,6 +5,7 @@ import { eq, isNull, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { withActor } from "@/db/actor";
+import { isUniqueViolation } from "@/db/errors";
 import {
   locomotives,
   maintenanceRecords,
@@ -41,7 +42,7 @@ function localized(formData: FormData, prefix: string): Localized {
 }
 
 function isDuplicate(error: unknown): boolean {
-  return String(error).includes("duplicate key");
+  return isUniqueViolation(error);
 }
 
 async function run(path: string, work: (actorId: number) => Promise<void>): Promise<ActionResult> {
@@ -132,10 +133,12 @@ export async function saveLocomotive(_prev: ActionResult | undefined, formData: 
 export async function saveTrainNumber(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const id = optionalNumber(formData, "id");
   const number = text(formData, "number");
-  const parity = text(formData, "parity") === "even" ? "even" : "odd";
   const country = text(formData, "country") === "GR" ? "GR" : "AZ";
   const isActive = text(formData, "isActive") !== "false";
-  if (!number) return { ok: false, error: "generic" };
+  // Parity is a property of the number, not a choice: the last digit decides it.
+  const lastDigit = number.replace(/\D/g, "").at(-1);
+  if (!number || !lastDigit) return { ok: false, error: "generic" };
+  const parity = Number(lastDigit) % 2 === 0 ? "even" : "odd";
 
   return run("/admin/train-numbers", async (actorId) => {
     await withActor(actorId, (tx) =>

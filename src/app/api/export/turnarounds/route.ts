@@ -3,7 +3,7 @@ import { and, asc, count, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm"
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { db } from "@/db";
-import { locomotives, turnaroundOperations, turnarounds, users } from "@/db/schema";
+import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users } from "@/db/schema";
 import { getReference } from "@/lib/catalogue";
 import { formatDate, label } from "@/lib/format";
 import { getSession } from "@/lib/session";
@@ -33,6 +33,7 @@ export async function GET(request: Request) {
         id: turnarounds.id,
         cycleDate: turnarounds.cycleDate,
         statusCode: turnarounds.statusCode,
+        trainNumber: trainNumbers.number,
         locomotiveNumber: locomotives.number,
         openedByName: users.fullName,
         filled: count(turnaroundOperations.id),
@@ -40,11 +41,12 @@ export async function GET(request: Request) {
         lastAt: sql<Date | null>`max(${turnaroundOperations.occurredAt})`,
       })
       .from(turnarounds)
-      .innerJoin(locomotives, eq(locomotives.id, turnarounds.locomotiveId))
+      .innerJoin(trainNumbers, eq(trainNumbers.id, turnarounds.trainNumberId))
+      .leftJoin(locomotives, eq(locomotives.id, turnarounds.locomotiveId))
       .innerJoin(users, eq(users.id, turnarounds.openedBy))
       .leftJoin(turnaroundOperations, eq(turnaroundOperations.turnaroundId, turnarounds.id))
       .where(filters.length ? and(...filters) : undefined)
-      .groupBy(turnarounds.id, locomotives.number, users.fullName)
+      .groupBy(turnarounds.id, trainNumbers.number, locomotives.number, users.fullName)
       .orderBy(desc(turnarounds.cycleDate), asc(turnarounds.id)),
   ]);
 
@@ -55,6 +57,7 @@ export async function GET(request: Request) {
   sheet.columns = [
     { header: "#", key: "id", width: 8 },
     { header: t("turnarounds.cycleDate"), key: "date", width: 14 },
+    { header: t("common.trainNumber"), key: "train", width: 14 },
     { header: t("common.locomotive"), key: "loco", width: 16 },
     { header: t("common.status"), key: "status", width: 16 },
     { header: t("turnarounds.progress"), key: "filled", width: 12 },
@@ -71,7 +74,8 @@ export async function GET(request: Request) {
     sheet.addRow({
       id: row.id,
       date: formatDate(row.cycleDate, locale),
-      loco: row.locomotiveNumber,
+      train: row.trainNumber,
+      loco: row.locomotiveNumber ?? "—",
       status: statusLabel.get(row.statusCode) ?? row.statusCode,
       filled: row.filled,
       elapsed: formatElapsed(minutes),

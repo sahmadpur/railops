@@ -44,7 +44,9 @@ export async function GET(request: Request) {
     "№",
     t("journal.operationColumn"),
     t("common.station"),
-    ...journal.columns.map((c) => `${Number(c.cycleDate.slice(8, 10))} · ${c.locomotiveNumber}`),
+    ...journal.columns.map(
+      (c) => `${Number(c.cycleDate.slice(8, 10))} · ${c.trainNumber} · ${c.locomotiveNumber ?? "—"}`,
+    ),
   ];
   header.font = { bold: true };
 

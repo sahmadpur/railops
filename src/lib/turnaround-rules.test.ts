@@ -6,6 +6,7 @@ import {
   elapsedMinutes,
   formatElapsed,
   missingForClose,
+  openingRule,
   validateEntry,
   type EntryLike,
   type OperationTypeLike,
@@ -50,6 +51,16 @@ test("operator may only write operations at their own station", () => {
 
   const error = validateEntry(bkOperator, catalogue[3], { occurredAt: at("2026-08-06T10:00:00Z") }, catalogue, []);
   assert.equal(error?.code, "wrong_station");
+});
+
+test("only Böyük Kəsik and Tbilisi open turnarounds, each with its own parity", () => {
+  assert.deepEqual(openingRule("operator", "BK"), { allowed: true, parity: "even" });
+  assert.deepEqual(openingRule("operator", "TBS"), { allowed: true, parity: "odd" });
+  assert.deepEqual(openingRule("operator", "GRD"), { allowed: false });
+  assert.deepEqual(openingRule("operator", "ZZZ"), { allowed: false });
+  assert.deepEqual(openingRule("operator", null), { allowed: false });
+  // Admins have no station and are never blocked.
+  assert.deepEqual(openingRule("admin", null), { allowed: true, parity: null });
 });
 
 test("an operation cannot be timed before an earlier recorded operation", () => {
