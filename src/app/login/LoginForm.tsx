@@ -17,17 +17,17 @@ export default function LoginForm({ labels }: { labels: Labels }) {
   const [state, action, pending] = useActionState(signIn, undefined);
 
   return (
-    <form action={action} className="border-line bg-surface space-y-3 rounded border p-4">
-      <h2 className="font-medium">{labels.title}</h2>
+    <form action={action} className="card space-y-4 p-6">
+      <h2 className="text-lg font-semibold">{labels.title}</h2>
 
       <label className="block">
-        <span className="text-muted text-xs">{labels.email}</span>
-        <input name="email" type="email" required autoComplete="username" autoFocus className="field mt-1" />
+        <span className="text-muted mb-1.5 block text-xs font-medium">{labels.email}</span>
+        <input name="email" type="email" required autoComplete="username" autoFocus className="field" />
       </label>
 
       <label className="block">
-        <span className="text-muted text-xs">{labels.password}</span>
-        <input name="password" type="password" required autoComplete="current-password" className="field mt-1" />
+        <span className="text-muted mb-1.5 block text-xs font-medium">{labels.password}</span>
+        <input name="password" type="password" required autoComplete="current-password" className="field" />
       </label>
 
       {state?.error && (
@@ -36,7 +36,7 @@ export default function LoginForm({ labels }: { labels: Labels }) {
         </p>
       )}
 
-      <button type="submit" disabled={pending} className="btn btn-primary w-full">
+      <button type="submit" disabled={pending} className="btn btn-primary w-full justify-center">
         {labels.submit}
       </button>
       <p className="text-muted text-xs">{labels.hint}</p>

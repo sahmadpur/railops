@@ -37,7 +37,7 @@ export default function ActionForm({
       >
         {submitText}
       </button>
-      {state?.ok === true && <span className="text-accent ms-2 text-xs">{messages.saved}</span>}
+      {state?.ok === true && <span className="text-success ms-2 text-xs">{messages.saved}</span>}
       {state?.ok === false && (
         <span role="alert" className="text-danger ms-2 text-xs">
           {messages[state.error] ?? messages.generic}

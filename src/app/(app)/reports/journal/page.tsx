@@ -30,8 +30,8 @@ export default async function JournalPage({ searchParams }: PageProps<"/reports/
   const exportParams = new URLSearchParams({ month: monthValue, ...(locomotiveId ? { locomotiveId: String(locomotiveId) } : {}) });
 
   return (
-    <div className="space-y-3">
-      <form className="border-line bg-surface no-print flex flex-wrap items-end gap-2 rounded border p-3 text-xs">
+    <div className="space-y-5">
+      <form className="filter-bar no-print">
         <label className="flex flex-col gap-1">
           <span className="text-muted">{t("common.month")}</span>
           <input type="month" name="month" defaultValue={monthValue} className="field w-auto" />
@@ -56,52 +56,54 @@ export default async function JournalPage({ searchParams }: PageProps<"/reports/
         <PrintButton text={t("common.print")} />
       </form>
 
-      <header>
-        <h1 className="text-center text-sm font-semibold uppercase">{t("journal.heading")}</h1>
-        <p className="text-muted text-center text-xs">
-          {t("journal.subheading", { station: corridor, month: monthLabel(year, month, locale) })}
-        </p>
-      </header>
+      <div className="card">
+        <header className="border-line border-b px-5 py-4 text-center">
+          <h1 className="text-base font-semibold tracking-wide uppercase">{t("journal.heading")}</h1>
+          <p className="text-muted mt-1 text-xs">
+            {t("journal.subheading", { station: corridor, month: monthLabel(year, month, locale) })}
+          </p>
+        </header>
 
-      <div className="overflow-x-auto">
-        <table className="data-table text-xs">
-          <thead>
-            <tr>
-              <th className="w-8">№</th>
-              <th className="min-w-[240px]">{t("journal.operationColumn")}</th>
-              <th>{t("common.station")}</th>
-              {journal.columns.map((column) => (
-                <th key={column.turnaroundId} className="whitespace-nowrap text-center">
-                  <div>{Number(column.cycleDate.slice(8, 10))}</div>
-                  <div className="text-muted font-normal">{column.locomotiveNumber}</div>
-                </th>
+        <div className="overflow-x-auto p-4">
+          <table className="data-table data-table-grid text-xs">
+            <thead>
+              <tr>
+                <th className="w-8">№</th>
+                <th className="min-w-[240px]">{t("journal.operationColumn")}</th>
+                <th>{t("common.station")}</th>
+                {journal.columns.map((column) => (
+                  <th key={column.turnaroundId} className="whitespace-nowrap text-center">
+                    <div>{Number(column.cycleDate.slice(8, 10))}</div>
+                    <div className="text-muted font-normal">{column.locomotiveNumber}</div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {journal.operations.map((operation) => (
+                <tr key={operation.id}>
+                  <td className="text-muted text-center tabular-nums">{operation.seq}</td>
+                  <td>{label(operation.label as never, locale)}</td>
+                  <td className="text-muted whitespace-nowrap">{stationName.get(operation.stationId) ?? "—"}</td>
+                  {journal.columns.map((column) => (
+                    <td key={column.turnaroundId} className="text-center tabular-nums">
+                      {column.times.get(operation.id) ?? "—"}
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {journal.operations.map((operation) => (
-              <tr key={operation.id}>
-                <td className="text-muted text-center tabular-nums">{operation.seq}</td>
-                <td>{label(operation.label as never, locale)}</td>
-                <td className="text-muted whitespace-nowrap">{stationName.get(operation.stationId) ?? "—"}</td>
+              <tr className="font-semibold">
+                <td />
+                <td colSpan={2}>{t("journal.totalRow")}</td>
                 {journal.columns.map((column) => (
                   <td key={column.turnaroundId} className="text-center tabular-nums">
-                    {column.times.get(operation.id) ?? "—"}
+                    {column.elapsed}
                   </td>
                 ))}
               </tr>
-            ))}
-            <tr className="font-semibold">
-              <td />
-              <td colSpan={2}>{t("journal.totalRow")}</td>
-              {journal.columns.map((column) => (
-                <td key={column.turnaroundId} className="text-center tabular-nums">
-                  {column.elapsed}
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {journal.columns.length === 0 && <p className="text-muted text-xs">{t("common.empty")}</p>}

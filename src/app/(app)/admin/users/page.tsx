@@ -38,13 +38,13 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">{t("admin.users.title")}</h1>
+      <h1 className="page-title">{t("admin.users.title")}</h1>
 
       <ActionForm
         action={saveUser}
         submitText={t("admin.users.create")}
         messages={messages}
-        className="border-line bg-surface flex flex-wrap items-end gap-2 rounded border p-3 text-xs"
+        className="filter-bar"
       >
         <label className="flex flex-col gap-1">
           <span className="text-muted">{t("admin.users.fullName")}</span>
@@ -78,70 +78,72 @@ export default async function AdminUsersPage() {
         </label>
       </ActionForm>
 
-      <table className="data-table text-xs">
-        <thead>
-          <tr>
-            <th>{t("admin.users.fullName")}</th>
-            <th>{t("login.email")}</th>
-            <th>{t("admin.users.role")}</th>
-            <th>{t("common.station")}</th>
-            <th>{t("admin.users.newPassword")}</th>
-            <th>{t("common.status")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.id}>
-              <td colSpan={5} className="p-0">
-                <ActionForm
-                  action={saveUser}
-                  submitText={t("common.save")}
-                  messages={messages}
-                  compact
-                  className="flex flex-wrap items-center gap-2 px-2 py-1"
-                >
-                  <input type="hidden" name="id" value={row.id} />
-                  <input name="fullName" defaultValue={row.fullName} required className="field w-44" />
-                  <input name="email" type="email" defaultValue={row.email} required className="field w-52" />
-                  <select name="role" defaultValue={row.role} className="field w-auto">
-                    <option value="operator">{t("admin.users.operator")}</option>
-                    <option value="admin">{t("admin.users.admin")}</option>
-                  </select>
-                  <select name="stationId" defaultValue={row.stationId ?? ""} className="field w-auto">
-                    <option value="">—</option>
-                    {stationRows.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {label(s.name, locale)}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    name="password"
-                    type="password"
-                    placeholder={t("admin.users.passwordHint")}
-                    className="field w-52"
-                  />
-                </ActionForm>
-              </td>
-              <td className="whitespace-nowrap">
-                <ActionForm
-                  action={toggleUser}
-                  submitText={row.isActive ? t("common.deactivate") : t("common.activate")}
-                  messages={messages}
-                  compact
-                  className="flex items-center gap-2"
-                >
-                  <input type="hidden" name="id" value={row.id} />
-                  <input type="hidden" name="isActive" value={row.isActive ? "false" : "true"} />
-                  <span className={row.isActive ? "text-accent" : "text-muted"}>
-                    {row.isActive ? t("common.active") : t("common.inactive")}
-                  </span>
-                </ActionForm>
-              </td>
+      <div className="table-card overflow-x-auto">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t("admin.users.fullName")}</th>
+              <th>{t("login.email")}</th>
+              <th>{t("admin.users.role")}</th>
+              <th>{t("common.station")}</th>
+              <th>{t("admin.users.newPassword")}</th>
+              <th>{t("common.status")}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id}>
+                <td colSpan={5} className="p-0">
+                  <ActionForm
+                    action={saveUser}
+                    submitText={t("common.save")}
+                    messages={messages}
+                    compact
+                    className="flex flex-wrap items-center gap-2 px-3 py-2"
+                  >
+                    <input type="hidden" name="id" value={row.id} />
+                    <input name="fullName" defaultValue={row.fullName} required className="field w-44" />
+                    <input name="email" type="email" defaultValue={row.email} required className="field w-52" />
+                    <select name="role" defaultValue={row.role} className="field w-auto">
+                      <option value="operator">{t("admin.users.operator")}</option>
+                      <option value="admin">{t("admin.users.admin")}</option>
+                    </select>
+                    <select name="stationId" defaultValue={row.stationId ?? ""} className="field w-auto">
+                      <option value="">—</option>
+                      {stationRows.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {label(s.name, locale)}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      name="password"
+                      type="password"
+                      placeholder={t("admin.users.passwordHint")}
+                      className="field w-52"
+                    />
+                  </ActionForm>
+                </td>
+                <td className="whitespace-nowrap">
+                  <ActionForm
+                    action={toggleUser}
+                    submitText={row.isActive ? t("common.deactivate") : t("common.activate")}
+                    messages={messages}
+                    compact
+                    className="flex items-center gap-2"
+                  >
+                    <input type="hidden" name="id" value={row.id} />
+                    <input type="hidden" name="isActive" value={row.isActive ? "false" : "true"} />
+                    <span className={`badge ${row.isActive ? "badge-success" : ""}`}>
+                      {row.isActive ? t("common.active") : t("common.inactive")}
+                    </span>
+                  </ActionForm>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

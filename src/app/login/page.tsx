@@ -12,11 +12,14 @@ export default async function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">{t("app.name")}</h1>
-            <p className="text-muted text-xs">{t("app.subtitle")}</p>
+      <div className="w-full max-w-[420px]">
+        <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="bg-accent grid size-11 place-items-center rounded-xl font-bold text-white">RO</span>
+            <div>
+              <h1 className="text-xl font-semibold">{t("app.name")}</h1>
+              <p className="text-muted text-xs">{t("app.subtitle")}</p>
+            </div>
           </div>
           <LocaleSwitcher current={locale} label={t("nav.language")} />
         </div>

@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
-import Link from "next/link";
 
 import { signOut } from "@/actions/auth";
+import AppShell, { type NavItem } from "@/components/AppShell";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import { db } from "@/db";
 import { stations } from "@/db/schema";
@@ -17,45 +17,44 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     ? (await db.select().from(stations).where(eq(stations.id, session.stationId)).limit(1))[0]
     : null;
 
-  const links = [
-    { href: "/dashboard", text: t("nav.dashboard") },
-    { href: "/turnarounds", text: t("nav.turnarounds") },
-    { href: "/reports/journal", text: t("nav.journal") },
-    ...(session.role === "admin" ? [{ href: "/admin/users", text: t("nav.admin") }] : []),
+  const links: NavItem[] = [
+    { href: "/dashboard", text: t("nav.dashboard"), icon: "dashboard" },
+    { href: "/turnarounds", text: t("nav.turnarounds"), icon: "turnarounds" },
+    { href: "/reports/journal", text: t("nav.journal"), icon: "journal" },
   ];
 
+  const adminLinks: NavItem[] =
+    session.role === "admin"
+      ? [
+          { href: "/admin/users", text: t("nav.users"), icon: "users" },
+          { href: "/admin/locomotives", text: t("nav.locomotives"), icon: "locomotives" },
+          { href: "/admin/train-numbers", text: t("nav.trainNumbers"), icon: "trainNumbers" },
+          { href: "/admin/maintenance", text: t("nav.maintenance"), icon: "maintenance" },
+          { href: "/admin/reference", text: t("nav.reference"), icon: "reference" },
+          { href: "/admin/operations", text: t("nav.operations"), icon: "operations" },
+          { href: "/admin/audit", text: t("nav.audit"), icon: "audit" },
+        ]
+      : [];
+
   return (
-    <>
-      <header className="border-line bg-surface no-print border-b">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-4 px-4 py-2">
-          <Link href="/dashboard" className="font-semibold">
-            {t("app.name")}
-          </Link>
-
-          <nav className="flex flex-wrap gap-3 text-sm">
-            {links.map((l) => (
-              <Link key={l.href} href={l.href} className="hover:text-accent hover:underline">
-                {l.text}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="ms-auto flex items-center gap-3 text-xs">
-            <span className="text-muted">
-              {session.fullName}
-              {station ? ` · ${label(station.name, locale)}` : ` · ${t("admin.users.admin")}`}
-            </span>
-            <LocaleSwitcher current={locale} label={t("nav.language")} />
-            <form action={signOut}>
-              <button type="submit" className="btn px-2 py-1 text-xs">
-                {t("nav.signOut")}
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-[1600px] flex-1 p-4">{children}</main>
-    </>
+    <AppShell
+      appName={t("app.name")}
+      menuLabel={t("nav.menu")}
+      adminLabel={t("nav.admin")}
+      links={links}
+      adminLinks={adminLinks}
+      userName={session.fullName}
+      userMeta={station ? label(station.name, locale) : t("admin.users.admin")}
+      localeSwitcher={<LocaleSwitcher current={locale} label={t("nav.language")} />}
+      signOutButton={
+        <form action={signOut}>
+          <button type="submit" className="btn px-3 py-2 text-xs">
+            {t("nav.signOut")}
+          </button>
+        </form>
+      }
+    >
+      {children}
+    </AppShell>
   );
 }

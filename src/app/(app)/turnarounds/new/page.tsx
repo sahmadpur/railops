@@ -12,11 +12,11 @@ export default async function NewTurnaroundPage() {
   const [t, locomotiveRows] = await Promise.all([getTranslations(), getActiveLocomotives()]);
 
   return (
-    <div className="max-w-md space-y-3">
+    <div className="max-w-md space-y-4">
       <Link href="/turnarounds" className="text-muted text-xs hover:underline">
         ← {t("turnarounds.title")}
       </Link>
-      <h1 className="text-lg font-semibold">{t("turnarounds.createTitle")}</h1>
+      <h1 className="page-title">{t("turnarounds.createTitle")}</h1>
 
       <NewTurnaroundForm
         locomotives={locomotiveRows.map((l) => ({ id: l.id, text: `${l.number} · ${l.owner}` }))}

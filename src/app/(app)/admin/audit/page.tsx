@@ -65,9 +65,9 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
 
   return (
     <div className="space-y-3">
-      <h1 className="text-lg font-semibold">{t("admin.audit.title")}</h1>
+      <h1 className="page-title">{t("admin.audit.title")}</h1>
 
-      <form className="border-line bg-surface flex flex-wrap items-end gap-2 rounded border p-3 text-xs">
+      <form className="filter-bar">
         <label className="flex flex-col gap-1">
           <span className="text-muted">{t("admin.audit.table")}</span>
           <select name="table" defaultValue={table} className="field w-auto">
@@ -91,8 +91,8 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
         </Link>
       </form>
 
-      <div className="overflow-x-auto">
-        <table className="data-table text-xs">
+      <div className="table-card overflow-x-auto">
+        <table className="data-table">
           <thead>
             <tr>
               <th>{t("admin.audit.at")}</th>

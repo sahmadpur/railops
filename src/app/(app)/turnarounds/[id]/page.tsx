@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
 import { locomotives, turnaroundOperations, turnarounds, users, type OperationField } from "@/db/schema";
 import { getFormOptions } from "@/lib/catalogue";
@@ -119,23 +120,49 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
   const statusLabel = options.statuses.find((s) => s.code === turnaround.statusCode);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <Link href="/turnarounds" className="text-muted text-xs hover:underline">
-            ← {t("turnarounds.title")}
-          </Link>
-          <h1 className="text-lg font-semibold">{t("turnarounds.detail", { id })}</h1>
-          <p className="text-muted text-xs">
-            {t("common.locomotive")}: <strong>{locomotive?.number ?? "—"}</strong> · {t("turnarounds.cycleDate")}:{" "}
-            {formatDate(turnaround.cycleDate, locale)} · {t("common.status")}:{" "}
-            {statusLabel ? label(statusLabel.label, locale) : turnaround.statusCode} · {t("common.elapsed")}:{" "}
-            <strong className="tabular-nums">{formatElapsed(elapsed)}</strong>
-          </p>
-          <p className="text-muted text-xs">
-            {t("turnarounds.operationsFilled", { filled: entries.length, total: rows.length })}
-          </p>
-        </div>
+    <div className="space-y-5">
+      <div>
+        <Link href="/turnarounds" className="text-muted text-xs hover:underline">
+          ← {t("turnarounds.title")}
+        </Link>
+        <h1 className="page-title mt-1">{t("turnarounds.detail", { id })}</h1>
+      </div>
+
+      <div className="card card-pad flex flex-wrap items-start justify-between gap-6">
+        <dl className="grid flex-1 grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
+          <div>
+            <dt className="text-muted text-xs">{t("common.locomotive")}</dt>
+            <dd className="mt-0.5 font-medium">{locomotive?.number ?? "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-muted text-xs">{t("turnarounds.cycleDate")}</dt>
+            <dd className="mt-0.5 font-medium">{formatDate(turnaround.cycleDate, locale)}</dd>
+          </div>
+          <div>
+            <dt className="text-muted text-xs">{t("common.status")}</dt>
+            <dd className="mt-1">
+              <StatusBadge
+                code={turnaround.statusCode}
+                text={statusLabel ? label(statusLabel.label, locale) : turnaround.statusCode}
+              />
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted text-xs">{t("common.elapsed")}</dt>
+            <dd className="mt-0.5 font-medium tabular-nums">{formatElapsed(elapsed)}</dd>
+          </div>
+          <div className="col-span-2 sm:col-span-4">
+            <div className="text-muted mb-1.5 text-xs">
+              {t("turnarounds.operationsFilled", { filled: entries.length, total: rows.length })}
+            </div>
+            <div className="bg-surface-muted h-2 w-full max-w-md overflow-hidden rounded-full">
+              <div
+                className={`h-full rounded-full ${isClosed ? "bg-success" : "bg-accent"}`}
+                style={{ width: `${Math.round((entries.length / Math.max(1, rows.length)) * 100)}%` }}
+              />
+            </div>
+          </div>
+        </dl>
 
         <CloseControls
           turnaroundId={id}
@@ -154,7 +181,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
         />
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="table-card overflow-x-auto">
         <table className="data-table">
           <thead>
             <tr>
