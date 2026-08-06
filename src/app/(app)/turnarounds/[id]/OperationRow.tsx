@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import type { OperationField } from "@/db/schema";
 import { clearOperation, saveOperation, type ActionResult } from "@/actions/turnaround";
+import SearchSelect from "@/components/SearchSelect";
 import { toLocalInputValue } from "@/lib/format";
 
 export type Option = { id: number | string; text: string };
@@ -141,7 +142,7 @@ export default function OperationRow({
       </td>
       <td className="text-muted whitespace-nowrap text-xs">{row.stationName}</td>
 
-      <td colSpan={row.editable ? 1 : 2}>
+      <td>
         {/* React resets an uncontrolled form once its action resolves, and a reset restores the
             defaults the inputs mounted with — the pre-save ones. Keying the form on the saved
             values remounts just the inputs against the revalidated data, while the row itself
@@ -171,61 +172,80 @@ export default function OperationRow({
             className="field w-[190px]"
           />
 
-          {row.fields.map((field) => (
-            <select
-              key={field}
-              name={FIELD_TO_INPUT[field]}
-              defaultValue={currentValue(row, field)}
-              disabled={!row.editable}
-              aria-label={labels.fieldNames[field]}
-              className="field w-auto min-w-[130px]"
-            >
-              <option value="">{labels.fieldNames[field]}</option>
-              {row.options[field].map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.text}
-                </option>
-              ))}
-            </select>
-          ))}
-
-          <input
-            type="text"
-            name="note"
-            defaultValue={row.note ?? ""}
-            disabled={!row.editable}
-            placeholder="…"
-            className="field w-[120px]"
-          />
+          {row.fields.map((field) =>
+            field === "train_number" || field === "locomotive" ? (
+              <SearchSelect
+                key={field}
+                name={FIELD_TO_INPUT[field]}
+                options={row.options[field]}
+                defaultId={currentValue(row, field)}
+                placeholder={labels.fieldNames[field]}
+                disabled={!row.editable}
+              />
+            ) : (
+              <select
+                key={field}
+                name={FIELD_TO_INPUT[field]}
+                defaultValue={currentValue(row, field)}
+                disabled={!row.editable}
+                aria-label={labels.fieldNames[field]}
+                className="field w-auto min-w-[130px]"
+              >
+                <option value="">{labels.fieldNames[field]}</option>
+                {row.options[field].map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.text}
+                  </option>
+                ))}
+              </select>
+            ),
+          )}
         </form>
       </td>
 
-      {row.editable && (
-        <td className="whitespace-nowrap">
-          <div className="flex items-center gap-1">
-            <button type="submit" form={`save-${row.operationTypeId}`} disabled={saving} className="btn btn-primary px-2 py-1 text-xs">
-              {saving ? labels.saving : labels.save}
-            </button>
-            {row.recorded && (
-              <form action={clear}>
-                <input type="hidden" name="turnaroundId" value={row.turnaroundId} />
-                <input type="hidden" name="operationTypeId" value={row.operationTypeId} />
-                <button type="submit" disabled={clearing} className="btn px-2 py-1 text-xs">
-                  {labels.clear}
-                </button>
-              </form>
-            )}
-          </div>
-          {feedback && (
-            <div
-              role="status"
-              className={`mt-1 text-[11px] ${feedback.ok ? "text-success" : "text-danger"}`}
-            >
-              {feedback.text}
+      <td>
+        {/* Lives outside the <form> element but submits with it via the form attribute —
+            the same trick RowForm documents. */}
+        <input
+          type="text"
+          name="note"
+          form={`save-${row.operationTypeId}`}
+          defaultValue={row.note ?? ""}
+          key={row.note ?? ""}
+          disabled={!row.editable}
+          placeholder="…"
+          className="field w-[140px]"
+        />
+      </td>
+
+      <td className="whitespace-nowrap">
+        {row.editable && (
+          <>
+            <div className="flex items-center gap-1">
+              <button type="submit" form={`save-${row.operationTypeId}`} disabled={saving} className="btn btn-primary px-2 py-1 text-xs">
+                {saving ? labels.saving : labels.save}
+              </button>
+              {row.recorded && (
+                <form action={clear}>
+                  <input type="hidden" name="turnaroundId" value={row.turnaroundId} />
+                  <input type="hidden" name="operationTypeId" value={row.operationTypeId} />
+                  <button type="submit" disabled={clearing} className="btn px-2 py-1 text-xs">
+                    {labels.clear}
+                  </button>
+                </form>
+              )}
             </div>
-          )}
-        </td>
-      )}
+            {feedback && (
+              <div
+                role="status"
+                className={`mt-1 text-[11px] ${feedback.ok ? "text-success" : "text-danger"}`}
+              >
+                {feedback.text}
+              </div>
+            )}
+          </>
+        )}
+      </td>
 
       <td className="text-muted text-[11px]">
         {row.editable ? (

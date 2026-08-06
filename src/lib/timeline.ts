@@ -139,6 +139,31 @@ export function operationStats(segment: Segment, rows: Row[]): OperationStats[] 
   }));
 }
 
+export type Interval = { from: Date; to: Date };
+
+/**
+ * Minutes inside [windowFrom, windowTo] not covered by any busy interval — the time a
+ * locomotive stood off the road. Intervals may overlap and may reach past the window.
+ */
+export function downtimeMinutes(windowFrom: Date, windowTo: Date, busy: Interval[]): number {
+  const start = windowFrom.getTime();
+  const end = windowTo.getTime();
+  if (end <= start) return 0;
+
+  let busyMs = 0;
+  // Sorted sweep: the cursor never moves backwards, so overlaps are counted once.
+  let cursor = start;
+  for (const interval of [...busy].sort((a, b) => a.from.getTime() - b.from.getTime())) {
+    const from = Math.max(interval.from.getTime(), cursor);
+    const to = Math.min(interval.to.getTime(), end);
+    if (to > from) {
+      busyMs += to - from;
+      cursor = to;
+    }
+  }
+  return Math.round((end - start - busyMs) / 60000);
+}
+
 function groupByTurnaround(rows: Row[]): Map<number, Row[]> {
   const grouped = new Map<number, Row[]>();
   for (const row of rows) {

@@ -36,8 +36,12 @@ and editable at `/admin/operations`. Each row declares its station, whether it i
 or conditional, which operation it runs in parallel with, and which extra fields it collects. Adding
 or reordering a step never requires a code change.
 
-**Operators write only their own station.** An operator sees the whole turnaround but can only edit
-the operations belonging to their assigned station. Admins are unrestricted.
+**Operators work their own station.** An operator's list shows only turnarounds whose next unfilled
+mandatory step is at their station — a record appears once the previous station's part is done and
+disappears once their own is. A fully filled but still-open turnaround stays with the route's final
+station until it is closed. On the detail page they can only edit the operations belonging to
+their assigned station; other stations' rows are read-only. Operators see just the turnaround
+interface — dashboard, journal and admin pages are admin-only. Admins are unrestricted.
 
 **Nothing is edited silently.** A Postgres trigger writes every insert, update and delete to
 `audit_log` with the acting user, taken from the transaction-local `railops.actor_id` that

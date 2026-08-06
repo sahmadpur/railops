@@ -6,12 +6,13 @@ import { notFound } from "next/navigation";
 import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
 import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users, type OperationField } from "@/db/schema";
-import { getFormOptions } from "@/lib/catalogue";
+import { getAvailableLocomotives, getFormOptions } from "@/lib/catalogue";
 import { formatDate, label, toLocalInputValue } from "@/lib/format";
 import { requireSession } from "@/lib/session";
-import { canEdit, elapsedMinutes, formatElapsed, missingForClose, unlockedIds } from "@/lib/turnaround-rules";
+import { canEdit, editableWindow, elapsedMinutes, formatElapsed, missingForClose, unlockedIds } from "@/lib/turnaround-rules";
 
 import CloseControls from "./CloseControls";
+import CollapsedRows from "./CollapsedRows";
 import OperationRow, { type Option, type RowData, type RowLabels } from "./OperationRow";
 
 export default async function TurnaroundDetailPage({ params }: PageProps<"/turnarounds/[id]">) {
@@ -24,7 +25,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
   const [turnaround] = await db.select().from(turnarounds).where(eq(turnarounds.id, id)).limit(1);
   if (!turnaround) notFound();
 
-  const [[train], [locomotive], entries, options] = await Promise.all([
+  const [[train], [locomotive], entries, options, available] = await Promise.all([
     db.select().from(trainNumbers).where(eq(trainNumbers.id, turnaround.trainNumberId)).limit(1),
     // Null until an attachment step records the locomotive.
     turnaround.locomotiveId
@@ -32,6 +33,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
       : [],
     db.select().from(turnaroundOperations).where(eq(turnaroundOperations.turnaroundId, id)),
     getFormOptions(),
+    getAvailableLocomotives(id),
   ]);
 
   const recorderIds = [...new Set(entries.map((e) => e.recordedBy))];
@@ -47,7 +49,13 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
     id: n.id,
     text: `${n.number} · ${n.country}`,
   }));
-  const locomotiveOptions: Option[] = options.locomotives.map((l) => ({ id: l.id, text: `${l.number} · ${l.owner}` }));
+  // Only free locomotives are offered, but one already recorded on this turnaround must keep
+  // showing its value even if it has since gone busy elsewhere.
+  const recordedLocomotiveIds = new Set(entries.map((e) => e.locomotiveId).filter((v) => v !== null));
+  const availableIds = new Set(available.map((l) => l.id));
+  const locomotiveOptions: Option[] = options.locomotives
+    .filter((l) => availableIds.has(l.id) || recordedLocomotiveIds.has(l.id))
+    .map((l) => ({ id: l.id, text: `${l.number} · ${l.owner}` }));
   const referenceOptions = (rows: { code: string; label: Parameters<typeof label>[0] }[]): Option[] =>
     rows.map((r) => ({ id: r.code, text: label(r.label, locale) }));
 
@@ -74,6 +82,8 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
       invalid_timestamp: t("errors.invalid_timestamp"),
       operation_inactive: t("errors.operation_inactive"),
       locked_operation: t("errors.locked_operation", { seq: "{seq}" }),
+      locomotive_busy: t("errors.locomotive_busy"),
+      past_leg: t("errors.past_leg"),
       clear_later_first: t("errors.clear_later_first", { seq: "{seq}" }),
       forbidden: t("errors.forbidden"),
       notFound: t("errors.notFound"),
@@ -87,10 +97,11 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
   const belongs = options.catalogue.filter((o) => o.isActive || entryByOperation.has(o.id));
   // The turnaround is filled in order, so the form shows what is recorded plus the next step —
   // everything beyond it is not enterable yet and would only be noise.
-  const unlocked = unlockedIds(
-    options.catalogue,
-    entries.map((e) => ({ operationTypeId: e.operationTypeId, occurredAt: e.occurredAt })),
-  );
+  const entriesLike = entries.map((e) => ({ operationTypeId: e.operationTypeId, occurredAt: e.occurredAt }));
+  const unlocked = unlockedIds(options.catalogue, entriesLike);
+  // The leg the turnaround is on now. Earlier legs are collapsed and, for operators, read-only —
+  // a Böyük Kəsik operator receiving the return leg must not touch the outbound one.
+  const editWindow = editableWindow(options.catalogue, entriesLike);
   const rows: RowData[] = belongs
     .filter((o) => unlocked.has(o.id) || entryByOperation.has(o.id))
     .map((operation) => {
@@ -109,7 +120,10 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
               ? t("common.optional")
               : `${t("common.conditional")} · ${t("admin.operations.conditionalOn")} ${operation.conditionalOnSeq ?? "—"}`,
         fields: operation.fields,
-        editable: canEdit(session, operation) && (!isClosed || session.role === "admin"),
+        editable:
+          canEdit(session, operation) &&
+          (session.role === "admin" || (editWindow !== null && operation.seq >= editWindow.fromSeq)) &&
+          (!isClosed || session.role === "admin"),
         recorded: Boolean(entry),
         occurredAtValue: toLocalInputValue(entry?.occurredAt ?? null),
         trainNumberId: entry?.trainNumberId ?? null,
@@ -129,11 +143,26 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
       };
     });
 
-  const missing = missingForClose(
-    options.catalogue,
-    entries.map((e) => ({ operationTypeId: e.operationTypeId, occurredAt: e.occurredAt })),
-  );
-  const elapsed = elapsedMinutes(entries.map((e) => ({ operationTypeId: e.operationTypeId, occurredAt: e.occurredAt })));
+  // Everything before the current leg is history: folded away, expandable on demand.
+  const earlierRows = editWindow ? rows.filter((r) => r.seq < editWindow.fromSeq) : [];
+  const currentRows = editWindow ? rows.filter((r) => r.seq >= editWindow.fromSeq) : rows;
+  const renderRows = (group: RowData[]) =>
+    group.map((row, index) => (
+      // Keyed on the operation alone: React resets the uncontrolled form once the action
+      // resolves, and by then this render has the saved values as its defaults. Keying on the
+      // values too would remount the row and throw away the action result — which is what
+      // shows the operator that the save landed.
+      <OperationRow
+        key={row.operationTypeId}
+        row={row}
+        labels={labels}
+        // Rule above the row where the route hands over to the next station.
+        newStationGroup={index > 0 && group[index - 1].stationName !== row.stationName}
+      />
+    ));
+
+  const missing = missingForClose(options.catalogue, entriesLike);
+  const elapsed = elapsedMinutes(entriesLike);
   const statusLabel = options.statuses.find((s) => s.code === turnaround.statusCode);
 
   return (
@@ -211,25 +240,23 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
               <th className="w-8">{t("admin.operations.seq")}</th>
               <th className="min-w-[260px]">{t("admin.operations.operation")}</th>
               <th>{t("common.station")}</th>
-              <th className="min-w-[320px]">{t("common.time")}</th>
+              <th className="min-w-[260px]">{t("common.time")}</th>
+              <th>{t("common.note")}</th>
               <th className="w-24">{t("common.actions")}</th>
               <th className="min-w-[140px]">{t("common.recordedBy")}</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <OperationRow
-                // Keyed on the operation alone: React resets the uncontrolled form once the
-                // action resolves, and by then this render has the saved values as its
-                // defaults. Keying on the values too would remount the row and throw away the
-                // action result — which is what shows the operator that the save landed.
-                key={row.operationTypeId}
-                row={row}
-                labels={labels}
-                // Rule above the row where the route hands over to the next station.
-                newStationGroup={index > 0 && rows[index - 1].stationName !== row.stationName}
-              />
-            ))}
+            {earlierRows.length > 0 && (
+              <CollapsedRows
+                columns={7}
+                showLabel={t("turnarounds.showEarlier", { count: earlierRows.length })}
+                hideLabel={t("turnarounds.hideEarlier")}
+              >
+                {renderRows(earlierRows)}
+              </CollapsedRows>
+            )}
+            {renderRows(currentRows)}
           </tbody>
         </table>
       </div>

@@ -98,7 +98,9 @@
       "stepTime": "Step time",
       "returnLeg": "return",
       "inTransit": "on the move"
-    }
+    },
+    "locomotiveDowntime": "Locomotive downtime",
+    "downtime": "Downtime"
   },
   "turnarounds": {
     "title": "Turnarounds",
@@ -119,7 +121,9 @@
     "operationsFilled": "{filled} of {total} operations recorded",
     "deleteConfirm": "Delete this turnaround and every operation recorded against it? This cannot be undone.",
     "trainBusy": "This train is already on an unfinished turnaround.",
-    "noTrainMatch": "Pick a train number from the list."
+    "noTrainMatch": "Pick a train number from the list.",
+    "showEarlier": "Show {count} earlier operations",
+    "hideEarlier": "Hide earlier operations"
   },
   "errors": {
     "wrong_station": "You may only record operations for your own station.",
@@ -134,7 +138,9 @@
     "forbidden": "You do not have permission for this action.",
     "notFound": "Record not found.",
     "duplicate": "A record with these values already exists.",
-    "generic": "The change could not be saved."
+    "generic": "The change could not be saved.",
+    "locomotive_busy": "The locomotive is on another turnaround or in maintenance.",
+    "past_leg": "This part of the route is already completed and can no longer be edited."
   },
   "fields": {
     "train_number": "Train number",

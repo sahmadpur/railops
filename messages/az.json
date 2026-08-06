@@ -98,7 +98,9 @@
       "stepTime": "Addım vaxtı",
       "returnLeg": "qayıdış",
       "inTransit": "yolda"
-    }
+    },
+    "locomotiveDowntime": "Lokomotivlərin boş dayanması",
+    "downtime": "Boş dayanma"
   },
   "turnarounds": {
     "title": "Dövriyyələr",
@@ -119,7 +121,9 @@
     "operationsFilled": "{total} əməliyyatdan {filled} qeyd olunub",
     "deleteConfirm": "Bu dövriyyə və ona aid bütün əməliyyatlar silinsin? Geri qaytarmaq mümkün deyil.",
     "trainBusy": "Bu qatar artıq bitməmiş dövriyyədədir.",
-    "noTrainMatch": "Siyahıdan qatar nömrəsi seçin."
+    "noTrainMatch": "Siyahıdan qatar nömrəsi seçin.",
+    "showEarlier": "Əvvəlki əməliyyatları göstər ({count})",
+    "hideEarlier": "Əvvəlki əməliyyatları gizlət"
   },
   "errors": {
     "wrong_station": "Yalnız öz stansiyanızın əməliyyatlarını qeyd edə bilərsiniz.",
@@ -134,7 +138,9 @@
     "forbidden": "Bu əməliyyat üçün icazəniz yoxdur.",
     "notFound": "Qeyd tapılmadı.",
     "duplicate": "Bu dəyərlərlə qeyd artıq mövcuddur.",
-    "generic": "Dəyişiklik yadda saxlanılmadı."
+    "generic": "Dəyişiklik yadda saxlanılmadı.",
+    "locomotive_busy": "Lokomotiv başqa dövriyyədədir və ya təmirdədir.",
+    "past_leg": "Marşrutun bu hissəsi artıq keçilib — redaktə mümkün deyil."
   },
   "fields": {
     "train_number": "Qatar nömrəsi",

@@ -8,10 +8,11 @@ import { db } from "@/db";
 import { withActor } from "@/db/actor";
 import { isUniqueViolation } from "@/db/errors";
 import { maintenanceRecords, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
-import { getActiveTrainNumbers, getStations } from "@/lib/catalogue";
+import { getActiveTrainNumbers, getAvailableLocomotives, getStations } from "@/lib/catalogue";
 import {
   canEdit,
   checkClearable,
+  checkCurrentLeg,
   checkUnlocked,
   FINISHED_STATUSES,
   missingForClose,
@@ -147,6 +148,15 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
     validateEntry(session, operation, input, context.catalogue, context.entries) ??
     checkUnlocked(operation, context.catalogue, context.entries);
   if (failure) return { ok: false, error: failure.code, seq: failure.seq, field: failure.field };
+
+  // The filtered dropdown is a convenience; the availability rule is enforced here. A locomotive
+  // already recorded on this turnaround stays legal so its steps can be re-saved.
+  if (input.locomotiveId && !context.entries.some((e) => e.locomotiveId === input.locomotiveId)) {
+    const available = await getAvailableLocomotives(turnaroundId);
+    if (!available.some((l) => l.id === input.locomotiveId)) {
+      return { ok: false, error: "locomotive_busy", seq: operation.seq };
+    }
+  }
 
   const note = optionalText(formData.get("note"));
 
@@ -296,6 +306,9 @@ export async function clearOperation(_prev: ActionResult | undefined, formData: 
   if (!operation) return { ok: false, error: "notFound" };
   if (!canEdit(session, operation)) return { ok: false, error: "wrong_station" };
 
+  const pastLeg = checkCurrentLeg(session, operation, context.catalogue, context.entries);
+  if (pastLeg) return { ok: false, error: pastLeg.code, seq: pastLeg.seq };
+
   const blocked = checkClearable(session, operation, context.catalogue, context.entries);
   if (blocked) return { ok: false, error: blocked.code, seq: blocked.seq };
 
@@ -335,7 +348,6 @@ export async function deleteTurnaround(_prev: ActionResult | undefined, formData
 
 export async function closeTurnaround(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const session = await requireSession();
-  if (session.role !== "admin") return { ok: false, error: "forbidden" };
 
   const turnaroundId = optionalInt(formData.get("turnaroundId"));
   if (!turnaroundId) return { ok: false, error: "generic" };
@@ -343,6 +355,7 @@ export async function closeTurnaround(_prev: ActionResult | undefined, formData:
   const context = await loadContext(turnaroundId);
   if (!context) return { ok: false, error: "notFound" };
 
+  // Anyone may close once nothing required is left — the check below is the real gate.
   const missing = missingForClose(context.catalogue, context.entries);
   if (missing.length > 0) return { ok: false, error: "missingOperations", seq: missing[0].seq };
 

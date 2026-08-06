@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { and, asc, count, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { db } from "@/db";
@@ -7,22 +7,25 @@ import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users } f
 import { getReference } from "@/lib/catalogue";
 import { formatDate, label } from "@/lib/format";
 import { getSession } from "@/lib/session";
+import { turnaroundFilters } from "@/lib/turnaround-filters";
 import { formatElapsed } from "@/lib/turnaround-rules";
 
-/** The filtered turnaround list, exactly as the screen shows it. */
+/** The filtered turnaround list, exactly as the screen shows it. Admin-only: the operator list
+    is station-scoped and this export is not. */
 export async function GET(request: Request) {
-  if (!(await getSession())) return new Response("Unauthorized", { status: 401 });
+  const session = await getSession();
+  if (!session) return new Response("Unauthorized", { status: 401 });
+  if (session.role !== "admin") return new Response("Forbidden", { status: 403 });
 
   const params = new URL(request.url).searchParams;
-  const filters: SQL[] = [];
-  const from = params.get("from");
-  const to = params.get("to");
-  const status = params.get("status");
-  const locomotiveId = params.get("locomotiveId");
-  if (from) filters.push(gte(turnarounds.cycleDate, from));
-  if (to) filters.push(lte(turnarounds.cycleDate, to));
-  if (status) filters.push(eq(turnarounds.statusCode, status));
-  if (locomotiveId) filters.push(eq(turnarounds.locomotiveId, Number(locomotiveId)));
+  const filters = turnaroundFilters({
+    from: params.get("from"),
+    to: params.get("to"),
+    status: params.get("status"),
+    locomotiveId: params.get("locomotiveId"),
+    trainNumberId: params.get("trainNumberId"),
+    q: params.get("q")?.trim(),
+  });
 
   const [t, locale, statuses, rows] = await Promise.all([
     getTranslations(),
