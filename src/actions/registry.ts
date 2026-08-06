@@ -5,8 +5,9 @@ import { eq, isNull, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { withActor } from "@/db/actor";
-import { isUniqueViolation } from "@/db/errors";
+import { isForeignKeyViolation, isUniqueViolation } from "@/db/errors";
 import {
+  auditLog,
   locomotives,
   maintenanceRecords,
   operationTypes,
@@ -51,10 +52,50 @@ async function run(path: string, work: (actorId: number) => Promise<void>): Prom
     await work(session.userId);
   } catch (error) {
     if (isDuplicate(error)) return { ok: false, error: "duplicate" };
+    // The database refuses to orphan a referenced row; say so instead of crashing.
+    if (isForeignKeyViolation(error)) return { ok: false, error: "inUse" };
     throw error;
   }
   revalidatePath(path);
   return ok;
+}
+
+/* ---------- deletion ---------- */
+
+/**
+ * One delete action for every registry list. The table arrives as a form field, so it is
+ * looked up in this map and never interpolated. Rows that are still referenced by turnaround
+ * history come back as `inUse` — deactivating them is the working answer there.
+ */
+const DELETABLE = {
+  locomotives,
+  trainNumbers,
+  referenceValues,
+  operationTypes,
+  users,
+  maintenanceRecords,
+  auditLog,
+} as const;
+
+const DELETE_PATHS: Record<keyof typeof DELETABLE, string> = {
+  locomotives: "/admin/locomotives",
+  trainNumbers: "/admin/train-numbers",
+  referenceValues: "/admin/reference",
+  operationTypes: "/admin/operations",
+  users: "/admin/users",
+  maintenanceRecords: "/admin/maintenance",
+  auditLog: "/admin/audit",
+};
+
+export async function deleteRow(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
+  const id = optionalNumber(formData, "id");
+  const key = text(formData, "table") as keyof typeof DELETABLE;
+  const table = DELETABLE[key];
+  if (!id || !table) return { ok: false, error: "generic" };
+
+  return run(DELETE_PATHS[key], async (actorId) => {
+    await withActor(actorId, (tx) => tx.delete(table).where(eq(table.id, id)));
+  });
 }
 
 /* ---------- users ---------- */

@@ -9,7 +9,7 @@ import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users, ty
 import { getFormOptions } from "@/lib/catalogue";
 import { formatDate, label, toLocalInputValue } from "@/lib/format";
 import { requireSession } from "@/lib/session";
-import { canEdit, elapsedMinutes, formatElapsed, missingForClose } from "@/lib/turnaround-rules";
+import { canEdit, elapsedMinutes, formatElapsed, missingForClose, unlockedIds } from "@/lib/turnaround-rules";
 
 import CloseControls from "./CloseControls";
 import OperationRow, { type Option, type RowData, type RowLabels } from "./OperationRow";
@@ -72,6 +72,8 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
       missing_field: t("errors.missing_field", { seq: "{seq}", field: "{field}" }),
       invalid_timestamp: t("errors.invalid_timestamp"),
       operation_inactive: t("errors.operation_inactive"),
+      locked_operation: t("errors.locked_operation", { seq: "{seq}" }),
+      clear_later_first: t("errors.clear_later_first", { seq: "{seq}" }),
       forbidden: t("errors.forbidden"),
       notFound: t("errors.notFound"),
       generic: t("errors.generic"),
@@ -79,8 +81,15 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
   };
 
   const isClosed = Boolean(turnaround.closedAt);
-  const rows: RowData[] = options.catalogue
-    .filter((o) => o.isActive)
+  const active = options.catalogue.filter((o) => o.isActive);
+  // The turnaround is filled in order, so the form shows what is recorded plus the next step —
+  // everything beyond it is not enterable yet and would only be noise.
+  const unlocked = unlockedIds(
+    options.catalogue,
+    entries.map((e) => ({ operationTypeId: e.operationTypeId, occurredAt: e.occurredAt })),
+  );
+  const rows: RowData[] = active
+    .filter((o) => unlocked.has(o.id) || entryByOperation.has(o.id))
     .map((operation) => {
       const entry = entryByOperation.get(operation.id);
       return {
@@ -161,12 +170,12 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
           </div>
           <div className="col-span-2 sm:col-span-4">
             <div className="text-muted mb-1.5 text-xs">
-              {t("turnarounds.operationsFilled", { filled: entries.length, total: rows.length })}
+              {t("turnarounds.operationsFilled", { filled: entries.length, total: active.length })}
             </div>
             <div className="bg-surface-muted h-2 w-full max-w-md overflow-hidden rounded-full">
               <div
                 className={`h-full rounded-full ${isClosed ? "bg-success" : "bg-accent"}`}
-                style={{ width: `${Math.round((entries.length / Math.max(1, rows.length)) * 100)}%` }}
+                style={{ width: `${Math.round((entries.length / Math.max(1, active.length)) * 100)}%` }}
               />
             </div>
           </div>
@@ -185,6 +194,8 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
             success: t("turnarounds.closeSuccess"),
             generic: t("errors.generic"),
             forbidden: t("errors.forbidden"),
+            delete: t("common.delete"),
+            deleteConfirm: t("turnarounds.deleteConfirm"),
           }}
         />
       </div>

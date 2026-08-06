@@ -2,13 +2,22 @@
 
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { db } from "@/db";
 import { withActor } from "@/db/actor";
 import { isUniqueViolation } from "@/db/errors";
 import { maintenanceRecords, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
 import { getActiveTrainNumbers, getStations } from "@/lib/catalogue";
-import { canEdit, missingForClose, openingRule, validateEntry, type EntryInput } from "@/lib/turnaround-rules";
+import {
+  canEdit,
+  checkClearable,
+  checkUnlocked,
+  missingForClose,
+  openingRule,
+  validateEntry,
+  type EntryInput,
+} from "@/lib/turnaround-rules";
 import { requireSession } from "@/lib/session";
 
 export type ActionResult = { ok: true } | { ok: false; error: string; seq?: number; field?: string };
@@ -73,7 +82,7 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
   const turnaroundId = optionalInt(formData.get("turnaroundId"));
   const operationTypeId = optionalInt(formData.get("operationTypeId"));
   const occurredAtRaw = optionalText(formData.get("occurredAt"));
-  if (!turnaroundId || !operationTypeId || !occurredAtRaw) return { ok: false, error: "invalid_timestamp" };
+  if (!turnaroundId || !operationTypeId) return { ok: false, error: "generic" };
 
   const context = await loadContext(turnaroundId);
   if (!context) return { ok: false, error: "notFound" };
@@ -83,7 +92,9 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
   if (!operation) return { ok: false, error: "notFound" };
 
   const input: EntryInput = {
-    occurredAt: new Date(occurredAtRaw),
+    // The form prefills the current time, so a blank field means the operator submitted before
+    // that landed (or with JavaScript off) — stamp it here rather than rejecting the entry.
+    occurredAt: occurredAtRaw ? new Date(occurredAtRaw) : new Date(),
     trainNumberId: optionalInt(formData.get("trainNumberId")),
     locomotiveId: optionalInt(formData.get("locomotiveId")),
     detachReasonCode: optionalText(formData.get("detachReasonCode")),
@@ -91,7 +102,9 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
     maintenanceTypeCode: optionalText(formData.get("maintenanceTypeCode")),
   };
 
-  const failure = validateEntry(session, operation, input, context.catalogue, context.entries);
+  const failure =
+    validateEntry(session, operation, input, context.catalogue, context.entries) ??
+    checkUnlocked(operation, context.catalogue, context.entries);
   if (failure) return { ok: false, error: failure.code, seq: failure.seq, field: failure.field };
 
   const note = optionalText(formData.get("note"));
@@ -242,6 +255,9 @@ export async function clearOperation(_prev: ActionResult | undefined, formData: 
   if (!operation) return { ok: false, error: "notFound" };
   if (!canEdit(session, operation)) return { ok: false, error: "wrong_station" };
 
+  const blocked = checkClearable(session, operation, context.catalogue, context.entries);
+  if (blocked) return { ok: false, error: blocked.code, seq: blocked.seq };
+
   await withActor(session.userId, (tx) =>
     tx
       .delete(turnaroundOperations)
@@ -255,6 +271,25 @@ export async function clearOperation(_prev: ActionResult | undefined, formData: 
 
   revalidatePath(`/turnarounds/${turnaroundId}`);
   return { ok: true };
+}
+
+/**
+ * Removes a turnaround and its operations (`turnaround_operations` cascades). ТОИР records
+ * survive with a null `turnaroundId`, and the audit triggers keep the before-image of every
+ * deleted row.
+ */
+export async function deleteTurnaround(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
+  const session = await requireSession();
+  if (session.role !== "admin") return { ok: false, error: "forbidden" };
+
+  const turnaroundId = optionalInt(formData.get("turnaroundId"));
+  if (!turnaroundId) return { ok: false, error: "generic" };
+
+  await withActor(session.userId, (tx) => tx.delete(turnarounds).where(eq(turnarounds.id, turnaroundId)));
+
+  revalidatePath("/turnarounds");
+  revalidatePath("/dashboard");
+  redirect("/turnarounds");
 }
 
 export async function closeTurnaround(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {

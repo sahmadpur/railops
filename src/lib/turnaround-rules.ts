@@ -150,6 +150,50 @@ export function missingForClose(catalogue: OperationTypeLike[], entries: EntryLi
   });
 }
 
+/**
+ * The turnaround is filled in order: nothing past the first unfilled mandatory step may be
+ * recorded yet. An unfilled *optional* step never wedges the sequence — it stays open while
+ * the steps after it proceed — and a step that runs parallel to the blocker opens with it.
+ * Already-recorded steps stay editable wherever they sit.
+ */
+export function unlockedIds(catalogue: OperationTypeLike[], entries: EntryLike[]): Set<number> {
+  const filled = new Set(entries.map((e) => e.operationTypeId));
+  const blocker = missingForClose(catalogue, entries).sort((a, b) => a.seq - b.seq)[0];
+
+  return new Set(
+    catalogue
+      .filter((o) => !blocker || o.seq <= blocker.seq || areParallel(o, blocker) || filled.has(o.id))
+      .map((o) => o.id),
+  );
+}
+
+/** Guards the write path against a replayed form for a step that is not open yet. */
+export function checkUnlocked(
+  operation: OperationTypeLike,
+  catalogue: OperationTypeLike[],
+  entries: EntryLike[],
+): RuleError | null {
+  return unlockedIds(catalogue, entries).has(operation.id)
+    ? null
+    : { code: "locked_operation", seq: operation.seq };
+}
+
+/**
+ * Clearing a step in the middle would punch a hole in the sequence and hide everything after
+ * it, so only the newest recorded step may be cleared. Admins are exempt.
+ */
+export function checkClearable(
+  actor: ActorLike,
+  operation: OperationTypeLike,
+  catalogue: OperationTypeLike[],
+  entries: EntryLike[],
+): RuleError | null {
+  if (actor.role === "admin") return null;
+  const seqById = new Map(catalogue.map((o) => [o.id, o.seq]));
+  const later = entries.find((e) => (seqById.get(e.operationTypeId) ?? 0) > operation.seq);
+  return later ? { code: "clear_later_first", seq: seqById.get(later.operationTypeId) } : null;
+}
+
 /** Elapsed turnaround time in minutes — the spreadsheet's "Общее затраченное время" row. */
 export function elapsedMinutes(entries: EntryLike[]): number | null {
   if (entries.length < 2) return null;

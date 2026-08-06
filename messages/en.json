@@ -43,6 +43,7 @@
     "create": "Create",
     "edit": "Edit",
     "delete": "Delete",
+    "deleteConfirm": "Delete this record? This cannot be undone.",
     "deactivate": "Deactivate",
     "activate": "Activate",
     "active": "Active",
@@ -74,12 +75,21 @@
   "dashboard": {
     "title": "Dashboard",
     "openTurnarounds": "Turnarounds in progress",
-    "completedToday": "Completed today",
+    "completedInRange": "Completed in this period",
     "openMaintenance": "Locomotives in technical work",
     "locomotivesActive": "Active locomotives",
-    "byStation": "Operations recorded today, by station",
     "recent": "Recent turnarounds",
-    "avgElapsed": "Average turnaround time (last 30 days)"
+    "avgElapsed": "Average turnaround time",
+    "timeline": {
+      "title": "Time spent per station",
+      "basedOn": "{count} turnaround(s) in this period",
+      "avgTime": "Average time at the station",
+      "turnarounds": "Turnarounds measured",
+      "operations": "Operations recorded",
+      "recorded": "Recorded",
+      "stepTime": "Step time",
+      "returnLeg": "return"
+    }
   },
   "turnarounds": {
     "title": "Turnarounds",
@@ -97,7 +107,8 @@
     "notYourStation": "Recorded at another station — read only for you.",
     "alreadyExists": "This train already has a turnaround on that date.",
     "cannotOpenHere": "Turnarounds are not opened at your station.",
-    "operationsFilled": "{filled} of {total} operations recorded"
+    "operationsFilled": "{filled} of {total} operations recorded",
+    "deleteConfirm": "Delete this turnaround and every operation recorded against it? This cannot be undone."
   },
   "errors": {
     "wrong_station": "You may only record operations for your own station.",
@@ -106,6 +117,9 @@
     "missing_field": "Operation {seq} requires the field \"{field}\".",
     "invalid_timestamp": "Enter a valid date and time.",
     "operation_inactive": "This operation is disabled in the catalogue.",
+    "locked_operation": "Record operation {seq} first — the turnaround is filled in order.",
+    "clear_later_first": "Clear operation {seq} first — only the newest record can be removed.",
+    "inUse": "This record is used by existing entries and cannot be deleted. Deactivate it instead.",
     "forbidden": "You do not have permission for this action.",
     "notFound": "Record not found.",
     "duplicate": "A record with these values already exists.",
@@ -197,7 +211,8 @@
       "changes": "Changes",
       "insert": "Created",
       "update": "Changed",
-      "delete": "Deleted"
+      "delete": "Deleted",
+      "deleteConfirm": "Delete this audit entry? Nothing records the audit trail itself, so this leaves no trace."
     }
   }
 }

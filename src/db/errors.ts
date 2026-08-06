@@ -23,3 +23,8 @@ export function isUniqueViolation(error: unknown, constraint?: string): boolean 
   if (pg?.code !== "23505") return false;
   return constraint === undefined || pg.constraint_name === constraint;
 }
+
+/** SQLSTATE 23503 — foreign_key_violation: the row is still referenced elsewhere. */
+export function isForeignKeyViolation(error: unknown): boolean {
+  return pgError(error)?.code === "23503";
+}

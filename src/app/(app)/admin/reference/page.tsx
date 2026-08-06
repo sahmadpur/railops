@@ -1,8 +1,9 @@
 import { asc } from "drizzle-orm";
 import { getTranslations } from "next-intl/server";
 
-import { saveReferenceValue } from "@/actions/registry";
+import { deleteRow, saveReferenceValue } from "@/actions/registry";
 import ActionForm from "@/components/ActionForm";
+import DeleteButton from "@/components/DeleteButton";
 import { db } from "@/db";
 import { referenceValues } from "@/db/schema";
 import { locales } from "@/i18n/config";
@@ -16,6 +17,12 @@ export default async function AdminReferencePage() {
   ]);
 
   const messages = { saved: t("common.saved"), duplicate: t("errors.duplicate"), generic: t("errors.generic") };
+  const deleteLabels = {
+    delete: t("common.delete"),
+    confirm: t("common.deleteConfirm"),
+    inUse: t("errors.inUse"),
+    generic: t("errors.generic"),
+  };
 
   return (
     <div className="space-y-4">
@@ -60,12 +67,13 @@ export default async function AdminReferencePage() {
                   <tr>
                     <th className="w-28">{t("admin.reference.code")}</th>
                     <th>{t("admin.reference.label")}</th>
+                    <th className="w-32">{t("common.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {kindRows.length === 0 && (
                     <tr>
-                      <td colSpan={2} className="text-muted text-center">
+                      <td colSpan={3} className="text-muted text-center">
                         {t("common.empty")}
                       </td>
                     </tr>
@@ -97,6 +105,12 @@ export default async function AdminReferencePage() {
                             <option value="false">{t("common.inactive")}</option>
                           </select>
                         </ActionForm>
+                      </td>
+                      <td className="whitespace-nowrap">
+                        <DeleteButton action={deleteRow} labels={deleteLabels}>
+                          <input type="hidden" name="table" value="referenceValues" />
+                          <input type="hidden" name="id" value={row.id} />
+                        </DeleteButton>
                       </td>
                     </tr>
                   ))}

@@ -1,8 +1,9 @@
 import { asc } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { saveLocomotive } from "@/actions/registry";
+import { deleteRow, saveLocomotive } from "@/actions/registry";
 import ActionForm from "@/components/ActionForm";
+import DeleteButton from "@/components/DeleteButton";
 import { db } from "@/db";
 import { locomotives } from "@/db/schema";
 import { getStations } from "@/lib/catalogue";
@@ -17,6 +18,12 @@ export default async function AdminLocomotivesPage() {
   ]);
 
   const messages = { saved: t("common.saved"), duplicate: t("errors.duplicate"), generic: t("errors.generic") };
+  const deleteLabels = {
+    delete: t("common.delete"),
+    confirm: t("common.deleteConfirm"),
+    inUse: t("errors.inUse"),
+    generic: t("errors.generic"),
+  };
 
   const stationSelect = (name: string, value: number | "" | null) => (
     <select name={name} defaultValue={value ?? ""} className="field w-auto">
@@ -69,6 +76,7 @@ export default async function AdminLocomotivesPage() {
               <th>{t("admin.locomotives.depot")}</th>
               <th>{t("admin.locomotives.currentStation")}</th>
               <th>{t("common.status")}</th>
+              <th>{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -95,6 +103,12 @@ export default async function AdminLocomotivesPage() {
                       <option value="false">{t("common.inactive")}</option>
                     </select>
                   </ActionForm>
+                </td>
+                <td className="whitespace-nowrap">
+                  <DeleteButton action={deleteRow} labels={deleteLabels}>
+                    <input type="hidden" name="table" value="locomotives" />
+                    <input type="hidden" name="id" value={row.id} />
+                  </DeleteButton>
                 </td>
               </tr>
             ))}

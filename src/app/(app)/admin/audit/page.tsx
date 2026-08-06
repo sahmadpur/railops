@@ -2,6 +2,8 @@ import { and, desc, eq, type SQL } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
+import { deleteRow } from "@/actions/registry";
+import DeleteButton from "@/components/DeleteButton";
 import { db } from "@/db";
 import { auditLog, users } from "@/db/schema";
 import { formatDateTime } from "@/lib/format";
@@ -63,6 +65,14 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
     delete: t("admin.audit.delete"),
   };
 
+  // Nothing audits the audit table itself, so a purged entry leaves no trace behind.
+  const deleteLabels = {
+    delete: t("common.delete"),
+    confirm: t("admin.audit.deleteConfirm"),
+    inUse: t("errors.inUse"),
+    generic: t("errors.generic"),
+  };
+
   return (
     <div className="space-y-3">
       <h1 className="page-title">{t("admin.audit.title")}</h1>
@@ -101,12 +111,13 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
               <th>{t("admin.audit.row")}</th>
               <th>{t("admin.audit.action")}</th>
               <th className="min-w-[380px]">{t("admin.audit.changes")}</th>
+              <th className="w-32">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="text-muted text-center">
+                <td colSpan={7} className="text-muted text-center">
                   {t("common.empty")}
                 </td>
               </tr>
@@ -120,6 +131,12 @@ export default async function AdminAuditPage({ searchParams }: PageProps<"/admin
                 <td>{actionText[row.action] ?? row.action}</td>
                 <td className="font-mono text-[11px] break-all">
                   {row.action === "update" ? diff(row.before, row.after) : row.action === "insert" ? "—" : "—"}
+                </td>
+                <td className="whitespace-nowrap">
+                  <DeleteButton action={deleteRow} labels={deleteLabels}>
+                    <input type="hidden" name="table" value="auditLog" />
+                    <input type="hidden" name="id" value={row.id} />
+                  </DeleteButton>
                 </td>
               </tr>
             ))}
