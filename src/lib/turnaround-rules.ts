@@ -47,6 +47,12 @@ const FIELD_INPUT: Record<OperationField, keyof EntryInput> = {
 
 export type RuleError = { code: string; seq?: number; field?: string };
 
+/**
+ * A turnaround is off the road once it reaches one of these; anything else still occupies its
+ * train, so that train cannot start another turnaround.
+ */
+export const FINISHED_STATUSES = ["completed", "cancelled"] as const;
+
 /** An operator may only record operations that happen at their own station. Admins are unrestricted. */
 export function canEdit(actor: ActorLike, operation: OperationTypeLike): boolean {
   if (actor.role === "admin") return true;

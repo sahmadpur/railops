@@ -25,7 +25,14 @@
     "password": "Şifrə",
     "submit": "Daxil ol",
     "invalid": "E-poçt və ya şifrə yanlışdır, ya da hesab deaktiv edilib.",
-    "hint": "Hesabları administrator yaradır."
+    "hint": "Hesabları administrator yaradır.",
+    "corridor": "Dəhliz",
+    "border": "Dövlət sərhədi",
+    "stops": {
+      "bk": "Böyük Kəsik",
+      "grd": "Qardabani",
+      "tbs": "Tbilisi"
+    }
   },
   "common": {
     "station": "Stansiya",
@@ -70,7 +77,8 @@
     "conditional": "Şərtli",
     "recordedBy": "Qeyd edən",
     "month": "Ay",
-    "back": "Geri"
+    "back": "Geri",
+    "saving": "Yadda saxlanılır…"
   },
   "dashboard": {
     "title": "İcmal",
@@ -88,7 +96,8 @@
       "operations": "Qeyd olunan əməliyyatlar",
       "recorded": "Qeyd sayı",
       "stepTime": "Addım vaxtı",
-      "returnLeg": "qayıdış"
+      "returnLeg": "qayıdış",
+      "inTransit": "yolda"
     }
   },
   "turnarounds": {
@@ -108,7 +117,9 @@
     "alreadyExists": "Bu qatarın həmin tarixə artıq dövriyyəsi var.",
     "cannotOpenHere": "Sizin stansiyanızda dövriyyə açılmır.",
     "operationsFilled": "{total} əməliyyatdan {filled} qeyd olunub",
-    "deleteConfirm": "Bu dövriyyə və ona aid bütün əməliyyatlar silinsin? Geri qaytarmaq mümkün deyil."
+    "deleteConfirm": "Bu dövriyyə və ona aid bütün əməliyyatlar silinsin? Geri qaytarmaq mümkün deyil.",
+    "trainBusy": "Bu qatar artıq bitməmiş dövriyyədədir.",
+    "noTrainMatch": "Siyahıdan qatar nömrəsi seçin."
   },
   "errors": {
     "wrong_station": "Yalnız öz stansiyanızın əməliyyatlarını qeyd edə bilərsiniz.",

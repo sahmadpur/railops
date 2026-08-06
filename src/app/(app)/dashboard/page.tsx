@@ -1,6 +1,7 @@
 import { and, asc, count, desc, eq, gte, isNotNull, isNull, lte } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
+import { Fragment } from "react";
 
 import RowLink from "@/components/RowLink";
 import StatusBadge from "@/components/StatusBadge";
@@ -15,7 +16,7 @@ import {
 } from "@/db/schema";
 import { getCatalogue, getReference, getStations } from "@/lib/catalogue";
 import { formatDate, label, todayIso } from "@/lib/format";
-import { operationStats, routeSegments, segmentStats } from "@/lib/timeline";
+import { operationStats, routeSegments, segmentStats, transitStats } from "@/lib/timeline";
 import { requireSession } from "@/lib/session";
 import { formatElapsed } from "@/lib/turnaround-rules";
 
@@ -87,6 +88,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
   const segments = routeSegments(catalogue);
   const stats = segmentStats(segments, rows);
+  const transit = transitStats(segments, rows);
   const detail = selected !== null ? stats[selected] : undefined;
   const detailOperations = detail ? operationStats(detail.segment, rows) : [];
   const operationName = new Map(catalogue.map((o) => [o.id, label(o.label, locale)]));
@@ -180,7 +182,76 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             {t("dashboard.timeline.basedOn", { count: turnaroundsInRange.value })}
           </span>
         </div>
-        <ul className="divide-line divide-y">
+
+        {/* The corridor drawn as the line it is: stops on a continuous track, time on the move
+            between them. Each column carries its own half of the track, so the rail stays
+            joined at any width without absolute positioning. */}
+        <div className="overflow-x-auto px-5 pb-6 pt-5">
+          <div className="flex min-w-max justify-center">
+            {stats.map((row, index) => {
+              const isSelected = selected === row.segment.index;
+              return (
+                <Fragment key={row.segment.index}>
+                  <Link
+                    href={`/dashboard?from=${from}&to=${to}&station=${row.segment.index}`}
+                    scroll={false}
+                    className="group flex w-28 shrink-0 flex-col items-center"
+                  >
+                    <span className="flex h-4 w-full items-center">
+                      <span className={`h-0.5 flex-1 ${index === 0 ? "" : "bg-line"}`} />
+                      <span
+                        className={`group-hover:ring-accent/30 size-3 rounded-full ring-4 transition ${
+                          isSelected ? "bg-accent ring-accent/25" : "bg-accent/70 ring-transparent"
+                        }`}
+                      />
+                      <span className={`h-0.5 flex-1 ${index === stats.length - 1 ? "" : "bg-line"}`} />
+                    </span>
+                    <span
+                      className={`mt-2.5 text-center text-xs leading-tight ${
+                        isSelected ? "text-accent font-semibold" : "group-hover:text-accent font-medium"
+                      }`}
+                    >
+                      {stationName.get(row.segment.stationId) ?? "—"}
+                    </span>
+                    {/* Held even when empty so every dwell time sits on the same baseline. */}
+                    <span className="text-faint h-3.5 text-[10px]">
+                      {row.segment.pass > 1 ? t("dashboard.timeline.returnLeg") : ""}
+                    </span>
+                    <span className="mt-0.5 text-sm font-semibold tabular-nums">{formatElapsed(row.avgMinutes)}</span>
+                  </Link>
+
+                  {index < transit.length && (
+                    <span className="flex w-24 shrink-0 flex-col items-center">
+                      <span className="flex h-4 w-full items-center">
+                        <span className="bg-line h-0.5 flex-1" />
+                        <svg
+                          viewBox="0 0 24 24"
+                          width="12"
+                          height="12"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          className="text-faint shrink-0"
+                          aria-hidden
+                        >
+                          <path d="m9 6 6 6-6 6" />
+                        </svg>
+                        <span className="bg-line h-0.5 flex-1" />
+                      </span>
+                      <span className="text-faint mt-2.5 text-[10px] leading-tight">
+                        {t("dashboard.timeline.inTransit")}
+                      </span>
+                      <span className="text-muted h-3.5 text-[11px] tabular-nums">{formatElapsed(transit[index])}</span>
+                    </span>
+                  )}
+                </Fragment>
+              );
+            })}
+          </div>
+        </div>
+
+        <ul className="divide-line border-line divide-y border-t">
           {stats.map((row) => (
             <li key={row.segment.index}>
               <Link

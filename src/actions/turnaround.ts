@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, notInArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -13,6 +13,7 @@ import {
   canEdit,
   checkClearable,
   checkUnlocked,
+  FINISHED_STATUSES,
   missingForClose,
   openingRule,
   validateEntry,
@@ -62,10 +63,50 @@ export async function createTurnaround(_prev: ActionResult | undefined, formData
   if (!train) return { ok: false, error: "generic" };
   if (opening.parity && train.parity !== opening.parity) return { ok: false, error: "generic" };
 
+  // A train still on the road cannot start a second turnaround.
+  const [busy] = await db
+    .select({ id: turnarounds.id })
+    .from(turnarounds)
+    .where(
+      and(
+        eq(turnarounds.trainNumberId, trainNumberId),
+        notInArray(turnarounds.statusCode, [...FINISHED_STATUSES]),
+      ),
+    )
+    .limit(1);
+  if (busy) return { ok: false, error: "trainBusy" };
+
+  let created: { id: number } | undefined;
   try {
-    await withActor(session.userId, (tx) =>
-      tx.insert(turnarounds).values({ trainNumberId, cycleDate, openedBy: session.userId, statusCode: "open" }),
-    );
+    created = await withActor(session.userId, async (tx) => {
+      const [row] = await tx
+        .insert(turnarounds)
+        .values({ trainNumberId, cycleDate, openedBy: session.userId, statusCode: "open" })
+        .returning({ id: turnarounds.id });
+
+      // The first step is the arrival that opens the turnaround, so it is recorded here rather
+      // than typed again: its time is the moment of creation and its train is the one chosen.
+      // Skipped when that step wants anything else, since there is nothing to fill it from.
+      const [first] = await tx
+        .select()
+        .from(operationTypes)
+        .where(eq(operationTypes.isActive, true))
+        .orderBy(asc(operationTypes.seq))
+        .limit(1);
+
+      if (first && first.fields.every((f) => f === "train_number")) {
+        await tx.insert(turnaroundOperations).values({
+          turnaroundId: row.id,
+          operationTypeId: first.id,
+          occurredAt: new Date(),
+          trainNumberId: first.fields.includes("train_number") ? trainNumberId : null,
+          recordedBy: session.userId,
+        });
+        await tx.update(turnarounds).set({ statusCode: "in_progress" }).where(eq(turnarounds.id, row.id));
+      }
+
+      return row;
+    });
   } catch (error) {
     if (isUniqueViolation(error, "turnarounds_train_date_key")) return { ok: false, error: "alreadyExists" };
     throw error;
@@ -73,7 +114,7 @@ export async function createTurnaround(_prev: ActionResult | undefined, formData
 
   revalidatePath("/turnarounds");
   revalidatePath("/dashboard");
-  return { ok: true };
+  redirect(`/turnarounds/${created.id}`);
 }
 
 /** Creates or updates one operation row, then mirrors ТОИР steps into the technical work registry. */

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { operationStats, routeSegments, segmentStats, type Row } from "./timeline";
+import { operationStats, routeSegments, segmentStats, transitStats, type Row } from "./timeline";
 
 const BK = 1;
 const GRD = 2;
@@ -52,6 +52,20 @@ test("a leg's average spans its first to its last step, over turnarounds that re
   assert.deepEqual([grdOut.avgMinutes, grdOut.turnarounds, grdOut.operations], [30, 1, 3]);
   // Nothing recorded on the return leg at all.
   assert.deepEqual([bkBack.avgMinutes, bkBack.turnarounds, bkBack.operations], [null, 0, 0]);
+});
+
+test("transit time runs from the last step of one leg to the first of the next", () => {
+  const rows: Row[] = [
+    row(1, 10, 1, "2026-08-06T10:00:00Z"),
+    row(1, 20, 2, "2026-08-06T11:00:00Z"), // leaves BK at 11:00
+    row(1, 30, 3, "2026-08-06T13:00:00Z"), // arrives GRD at 13:00 → 120 minutes on the move
+    row(1, 40, 4, "2026-08-06T13:30:00Z"),
+    row(2, 20, 2, "2026-08-07T08:00:00Z"),
+    row(2, 30, 3, "2026-08-07T11:00:00Z"), // 180 minutes
+  ];
+
+  // Nothing is recorded on the return leg, so the GRD → BK gap has no measurement.
+  assert.deepEqual(transitStats(routeSegments(catalogue), rows), [150, null]);
 });
 
 test("step time is the gap from the preceding recorded step of the same turnaround", () => {

@@ -303,6 +303,190 @@ body {
     color: var(--accent);
     font-weight: 500;
   }
+
+  /* --- sign-in corridor ----------------------------------------------------
+     The sign-in page draws the corridor the app logs: Böyük Kəsik → Qardabani
+     → Tbilisi, the state border between the first two, and the return leg back
+     up the same track. Built from borders and gradients — real track has two
+     rails and ties — so the page ships no client JS for it. */
+
+  .corridor {
+    padding: 1.75rem 1.75rem 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
+    background:
+      repeating-linear-gradient(
+        to right,
+        rgba(70, 95, 255, 0.05) 0 1px,
+        transparent 1px 22px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(70, 95, 255, 0.05) 0 1px,
+        transparent 1px 22px
+      ),
+      linear-gradient(180deg, #ffffff 0%, #f4f7ff 100%);
+  }
+
+  .corridor-track {
+    position: relative;
+    margin-top: 1rem;
+  }
+  /* The track itself: two rails with ties between them. */
+  .corridor-track::before {
+    content: "";
+    position: absolute;
+    left: 22px;
+    width: 12px;
+    top: 8px;
+    bottom: 1.25rem;
+    border-left: 1.5px solid rgba(16, 24, 40, 0.2);
+    border-right: 1.5px solid rgba(16, 24, 40, 0.2);
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(16, 24, 40, 0.12) 0 1.5px,
+      transparent 1.5px 8px
+    );
+    transform-origin: top;
+    animation: corridor-draw 0.9s ease-out both;
+  }
+  /* Return leg: dashed, with the U-turn drawn by one rounded corner. */
+  .corridor-return {
+    position: absolute;
+    left: 2px;
+    width: 26px;
+    top: 12px;
+    bottom: 1.25rem;
+    border-left: 1px dashed var(--faint);
+    border-bottom: 1px dashed var(--faint);
+    border-bottom-left-radius: 10px;
+    animation: corridor-fade 0.6s ease-out 0.95s both;
+  }
+  .corridor-return::before {
+    content: "";
+    position: absolute;
+    left: -4px;
+    top: -5px;
+    border-inline: 4px solid transparent;
+    border-bottom: 5px solid var(--faint);
+  }
+
+  .corridor-stops {
+    padding-bottom: 2rem;
+  }
+  .corridor-stops > li {
+    padding-bottom: 1.5rem;
+  }
+  .corridor-stops > li:last-child {
+    padding-bottom: 0;
+  }
+
+  .corridor-stop {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr auto;
+    align-items: start;
+    animation: corridor-stop-in 0.5s ease-out both;
+  }
+  .corridor-node {
+    justify-self: center;
+    margin-top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 9999px;
+    border: 2px solid var(--accent);
+    background: var(--surface);
+    box-shadow: 0 0 0 4px rgba(70, 95, 255, 0.1);
+  }
+  .corridor-code {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+  }
+  /* Countries line up in their own column — the corridor crosses one border. */
+  .corridor-country {
+    margin-top: 3px;
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: var(--faint);
+  }
+  .corridor-name {
+    font-size: 0.8125rem;
+    color: var(--muted);
+  }
+
+  /* The border is a point on the line, so it crosses the track. */
+  .corridor-frontier {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  /* Fixed stub on the left so the label lands in the same place in every language. */
+  .corridor-frontier::before {
+    content: "";
+    flex: none;
+    width: 2.5rem;
+    border-top: 1px dashed var(--border-strong);
+  }
+  .corridor-frontier::after {
+    content: "";
+    flex: 1;
+    border-top: 1px dashed var(--border-strong);
+  }
+
+  .corridor-legend {
+    margin-top: -1.5rem;
+    padding-left: 3.75rem;
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--faint);
+    animation: corridor-fade 0.6s ease-out 0.95s both;
+  }
+}
+
+@keyframes corridor-draw {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes corridor-stop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes corridor-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .corridor-track::before,
+  .corridor-stop,
+  .corridor-return,
+  .corridor-legend {
+    animation: none;
+  }
 }
 
 @media print {

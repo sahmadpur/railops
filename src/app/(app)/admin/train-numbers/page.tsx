@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { deleteRow, saveTrainNumber } from "@/actions/registry";
 import ActionForm from "@/components/ActionForm";
 import DeleteButton from "@/components/DeleteButton";
+import RowForm from "@/components/RowForm";
 import { db } from "@/db";
 import { trainNumbers } from "@/db/schema";
 
@@ -56,40 +57,45 @@ export default async function AdminTrainNumbersPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td colSpan={4} className="p-0">
-                  <ActionForm
-                    action={saveTrainNumber}
-                    submitText={t("common.save")}
-                    messages={messages}
-                    compact
-                    className="flex flex-wrap items-center gap-2 px-3 py-2"
-                  >
-                    <input type="hidden" name="id" value={row.id} />
-                    <input name="number" defaultValue={row.number} required className="field w-28" />
-                    {/* Derived from the number on save — shown, never chosen. */}
-                    <span className="text-muted w-16 text-xs">
-                      {t(row.parity === "even" ? "admin.trainNumbers.even" : "admin.trainNumbers.odd")}
-                    </span>
-                    <select name="country" defaultValue={row.country} className="field w-auto">
+            {rows.map((row) => {
+              const form = `train-number-${row.id}`;
+              return (
+                <tr key={row.id}>
+                  <td>
+                    <input name="number" form={form} defaultValue={row.number} required className="field w-28" />
+                  </td>
+                  {/* Derived from the number on save — shown, never chosen. */}
+                  <td className="text-muted">
+                    {t(row.parity === "even" ? "admin.trainNumbers.even" : "admin.trainNumbers.odd")}
+                  </td>
+                  <td>
+                    <select name="country" form={form} defaultValue={row.country} className="field w-auto">
                       <option value="AZ">AZ</option>
                       <option value="GR">GR</option>
                     </select>
-                    <select name="isActive" defaultValue={String(row.isActive)} className="field w-auto">
+                  </td>
+                  <td>
+                    <select name="isActive" form={form} defaultValue={String(row.isActive)} className="field w-auto">
                       <option value="true">{t("common.active")}</option>
                       <option value="false">{t("common.inactive")}</option>
                     </select>
-                  </ActionForm>
-                </td>
-                <td className="whitespace-nowrap">
-                  <DeleteButton action={deleteRow} labels={deleteLabels}>
-                    <input type="hidden" name="table" value="trainNumbers" />
-                    <input type="hidden" name="id" value={row.id} />
-                  </DeleteButton>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <RowForm
+                    formId={form}
+                    action={saveTrainNumber}
+                    submitText={t("common.save")}
+                    messages={messages}
+                    hidden={{ id: row.id }}
+                    actions={
+                      <DeleteButton action={deleteRow} labels={deleteLabels}>
+                        <input type="hidden" name="table" value="trainNumbers" />
+                        <input type="hidden" name="id" value={row.id} />
+                      </DeleteButton>
+                    }
+                  />
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

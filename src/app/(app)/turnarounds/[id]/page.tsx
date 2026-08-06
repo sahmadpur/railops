@@ -45,7 +45,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
 
   const trainOptions: Option[] = options.trainNumbers.map((n) => ({
     id: n.id,
-    text: `${n.number} · ${n.country} · ${t(n.parity === "even" ? "admin.trainNumbers.even" : "admin.trainNumbers.odd")}`,
+    text: `${n.number} · ${n.country}`,
   }));
   const locomotiveOptions: Option[] = options.locomotives.map((l) => ({ id: l.id, text: `${l.number} · ${l.owner}` }));
   const referenceOptions = (rows: { code: string; label: Parameters<typeof label>[0] }[]): Option[] =>
@@ -61,6 +61,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
 
   const labels: RowLabels = {
     save: t("common.save"),
+    saving: t("common.saving"),
     clear: t("common.clear"),
     saved: t("common.saved"),
     readOnly: t("turnarounds.notYourStation"),
@@ -81,14 +82,16 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
   };
 
   const isClosed = Boolean(turnaround.closedAt);
-  const active = options.catalogue.filter((o) => o.isActive);
+  // Anything recorded stays on the page, even a step since disabled in the catalogue — dropping
+  // it would hide history and leave the counter describing rows that are not there.
+  const belongs = options.catalogue.filter((o) => o.isActive || entryByOperation.has(o.id));
   // The turnaround is filled in order, so the form shows what is recorded plus the next step —
   // everything beyond it is not enterable yet and would only be noise.
   const unlocked = unlockedIds(
     options.catalogue,
     entries.map((e) => ({ operationTypeId: e.operationTypeId, occurredAt: e.occurredAt })),
   );
-  const rows: RowData[] = active
+  const rows: RowData[] = belongs
     .filter((o) => unlocked.has(o.id) || entryByOperation.has(o.id))
     .map((operation) => {
       const entry = entryByOperation.get(operation.id);
@@ -107,6 +110,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
               : `${t("common.conditional")} · ${t("admin.operations.conditionalOn")} ${operation.conditionalOnSeq ?? "—"}`,
         fields: operation.fields,
         editable: canEdit(session, operation) && (!isClosed || session.role === "admin"),
+        recorded: Boolean(entry),
         occurredAtValue: toLocalInputValue(entry?.occurredAt ?? null),
         trainNumberId: entry?.trainNumberId ?? null,
         locomotiveId: entry?.locomotiveId ?? null,
@@ -170,12 +174,12 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
           </div>
           <div className="col-span-2 sm:col-span-4">
             <div className="text-muted mb-1.5 text-xs">
-              {t("turnarounds.operationsFilled", { filled: entries.length, total: active.length })}
+              {t("turnarounds.operationsFilled", { filled: entries.length, total: belongs.length })}
             </div>
             <div className="bg-surface-muted h-2 w-full max-w-md overflow-hidden rounded-full">
               <div
                 className={`h-full rounded-full ${isClosed ? "bg-success" : "bg-accent"}`}
-                style={{ width: `${Math.round((entries.length / Math.max(1, active.length)) * 100)}%` }}
+                style={{ width: `${Math.round((entries.length / Math.max(1, belongs.length)) * 100)}%` }}
               />
             </div>
           </div>
@@ -215,19 +219,11 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
           <tbody>
             {rows.map((row, index) => (
               <OperationRow
-                // React resets an uncontrolled form after its action resolves, which would
-                // snap the selects back to their mount-time defaults. Keying on the saved
-                // values remounts the row so it shows what is actually in the database.
-                key={[
-                  row.operationTypeId,
-                  row.occurredAtValue,
-                  row.trainNumberId,
-                  row.locomotiveId,
-                  row.detachReasonCode,
-                  row.maintenanceReasonCode,
-                  row.maintenanceTypeCode,
-                  row.note,
-                ].join("|")}
+                // Keyed on the operation alone: React resets the uncontrolled form once the
+                // action resolves, and by then this render has the saved values as its
+                // defaults. Keying on the values too would remount the row and throw away the
+                // action result — which is what shows the operator that the save landed.
+                key={row.operationTypeId}
                 row={row}
                 labels={labels}
                 // Rule above the row where the route hands over to the next station.

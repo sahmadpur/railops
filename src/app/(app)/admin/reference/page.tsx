@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { deleteRow, saveReferenceValue } from "@/actions/registry";
 import ActionForm from "@/components/ActionForm";
 import DeleteButton from "@/components/DeleteButton";
+import RowForm from "@/components/RowForm";
 import { db } from "@/db";
 import { referenceValues } from "@/db/schema";
 import { locales } from "@/i18n/config";
@@ -67,53 +68,67 @@ export default async function AdminReferencePage() {
                   <tr>
                     <th className="w-28">{t("admin.reference.code")}</th>
                     <th>{t("admin.reference.label")}</th>
+                    <th>{t("common.status")}</th>
                     <th className="w-32">{t("common.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {kindRows.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="text-muted text-center">
+                      <td colSpan={4} className="text-muted text-center">
                         {t("common.empty")}
                       </td>
                     </tr>
                   )}
-                  {kindRows.map((row) => (
-                    <tr key={row.id}>
-                      <td colSpan={2} className="p-0">
-                        <ActionForm
-                          action={saveReferenceValue}
-                          submitText={t("common.save")}
-                          messages={messages}
-                          compact
-                          className="flex flex-wrap items-center gap-2 px-3 py-2"
-                        >
-                          <input type="hidden" name="id" value={row.id} />
-                          <input type="hidden" name="kind" value={row.kind} />
-                          <input name="code" defaultValue={row.code} required className="field w-24" />
-                          {locales.map((locale) => (
-                            <input
-                              key={locale}
-                              name={`label_${locale}`}
-                              defaultValue={row.label[locale] ?? ""}
-                              aria-label={locale}
-                              className="field w-36"
-                            />
-                          ))}
-                          <select name="isActive" defaultValue={String(row.isActive)} className="field w-auto">
+                  {kindRows.map((row) => {
+                    const form = `reference-${row.id}`;
+                    return (
+                      <tr key={row.id}>
+                        <td>
+                          <input name="code" form={form} defaultValue={row.code} required className="field w-24" />
+                        </td>
+                        {/* One cell, one input per locale — the four translations are one value. */}
+                        <td>
+                          <div className="flex flex-wrap gap-2">
+                            {locales.map((locale) => (
+                              <input
+                                key={locale}
+                                name={`label_${locale}`}
+                                form={form}
+                                defaultValue={row.label[locale] ?? ""}
+                                aria-label={locale}
+                                className="field w-36"
+                              />
+                            ))}
+                          </div>
+                        </td>
+                        <td>
+                          <select
+                            name="isActive"
+                            form={form}
+                            defaultValue={String(row.isActive)}
+                            className="field w-auto"
+                          >
                             <option value="true">{t("common.active")}</option>
                             <option value="false">{t("common.inactive")}</option>
                           </select>
-                        </ActionForm>
-                      </td>
-                      <td className="whitespace-nowrap">
-                        <DeleteButton action={deleteRow} labels={deleteLabels}>
-                          <input type="hidden" name="table" value="referenceValues" />
-                          <input type="hidden" name="id" value={row.id} />
-                        </DeleteButton>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <RowForm
+                          formId={form}
+                          action={saveReferenceValue}
+                          submitText={t("common.save")}
+                          messages={messages}
+                          hidden={{ id: row.id, kind: row.kind }}
+                          actions={
+                            <DeleteButton action={deleteRow} labels={deleteLabels}>
+                              <input type="hidden" name="table" value="referenceValues" />
+                              <input type="hidden" name="id" value={row.id} />
+                            </DeleteButton>
+                          }
+                        />
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

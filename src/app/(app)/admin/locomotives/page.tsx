@@ -4,6 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { deleteRow, saveLocomotive } from "@/actions/registry";
 import ActionForm from "@/components/ActionForm";
 import DeleteButton from "@/components/DeleteButton";
+import RowForm from "@/components/RowForm";
 import { db } from "@/db";
 import { locomotives } from "@/db/schema";
 import { getStations } from "@/lib/catalogue";
@@ -25,8 +26,8 @@ export default async function AdminLocomotivesPage() {
     generic: t("errors.generic"),
   };
 
-  const stationSelect = (name: string, value: number | "" | null) => (
-    <select name={name} defaultValue={value ?? ""} className="field w-auto">
+  const stationSelect = (name: string, value: number | "" | null, form?: string) => (
+    <select name={name} form={form} defaultValue={value ?? ""} className="field w-auto">
       <option value="">—</option>
       {stationRows.map((s) => (
         <option key={s.id} value={s.id}>
@@ -80,38 +81,45 @@ export default async function AdminLocomotivesPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td colSpan={5} className="p-0">
-                  <ActionForm
-                    action={saveLocomotive}
-                    submitText={t("common.save")}
-                    messages={messages}
-                    compact
-                    className="flex flex-wrap items-center gap-2 px-3 py-2"
-                  >
-                    <input type="hidden" name="id" value={row.id} />
-                    <input name="number" defaultValue={row.number} required className="field w-32" />
-                    <select name="owner" defaultValue={row.owner} className="field w-auto">
+            {rows.map((row) => {
+              const form = `locomotive-${row.id}`;
+              return (
+                <tr key={row.id}>
+                  <td>
+                    <input name="number" form={form} defaultValue={row.number} required className="field w-32" />
+                  </td>
+                  <td>
+                    <select name="owner" form={form} defaultValue={row.owner} className="field w-auto">
                       <option value="AZ">AZ</option>
                       <option value="GR">GR</option>
                     </select>
-                    <input name="depot" defaultValue={row.depot ?? ""} className="field w-36" />
-                    {stationSelect("currentStationId", row.currentStationId)}
-                    <select name="isActive" defaultValue={String(row.isActive)} className="field w-auto">
+                  </td>
+                  <td>
+                    <input name="depot" form={form} defaultValue={row.depot ?? ""} className="field w-36" />
+                  </td>
+                  <td>{stationSelect("currentStationId", row.currentStationId, form)}</td>
+                  <td>
+                    <select name="isActive" form={form} defaultValue={String(row.isActive)} className="field w-auto">
                       <option value="true">{t("common.active")}</option>
                       <option value="false">{t("common.inactive")}</option>
                     </select>
-                  </ActionForm>
-                </td>
-                <td className="whitespace-nowrap">
-                  <DeleteButton action={deleteRow} labels={deleteLabels}>
-                    <input type="hidden" name="table" value="locomotives" />
-                    <input type="hidden" name="id" value={row.id} />
-                  </DeleteButton>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <RowForm
+                    formId={form}
+                    action={saveLocomotive}
+                    submitText={t("common.save")}
+                    messages={messages}
+                    hidden={{ id: row.id }}
+                    actions={
+                      <DeleteButton action={deleteRow} labels={deleteLabels}>
+                        <input type="hidden" name="table" value="locomotives" />
+                        <input type="hidden" name="id" value={row.id} />
+                      </DeleteButton>
+                    }
+                  />
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

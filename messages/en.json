@@ -25,7 +25,14 @@
     "password": "Password",
     "submit": "Sign in",
     "invalid": "Wrong email or password, or the account is deactivated.",
-    "hint": "Accounts are created by the administrator."
+    "hint": "Accounts are created by the administrator.",
+    "corridor": "Corridor",
+    "border": "State border",
+    "stops": {
+      "bk": "Boyuk Kasik",
+      "grd": "Gardabani",
+      "tbs": "Tbilisi"
+    }
   },
   "common": {
     "station": "Station",
@@ -70,7 +77,8 @@
     "conditional": "Conditional",
     "recordedBy": "Recorded by",
     "month": "Month",
-    "back": "Back"
+    "back": "Back",
+    "saving": "Saving…"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -88,7 +96,8 @@
       "operations": "Operations recorded",
       "recorded": "Recorded",
       "stepTime": "Step time",
-      "returnLeg": "return"
+      "returnLeg": "return",
+      "inTransit": "on the move"
     }
   },
   "turnarounds": {
@@ -108,7 +117,9 @@
     "alreadyExists": "This train already has a turnaround on that date.",
     "cannotOpenHere": "Turnarounds are not opened at your station.",
     "operationsFilled": "{filled} of {total} operations recorded",
-    "deleteConfirm": "Delete this turnaround and every operation recorded against it? This cannot be undone."
+    "deleteConfirm": "Delete this turnaround and every operation recorded against it? This cannot be undone.",
+    "trainBusy": "This train is already on an unfinished turnaround.",
+    "noTrainMatch": "Pick a train number from the list."
   },
   "errors": {
     "wrong_station": "You may only record operations for your own station.",

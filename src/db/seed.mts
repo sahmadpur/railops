@@ -7,7 +7,7 @@
  * and marked below — confirm with the operations team and edit at /admin/operations.
  */
 import bcrypt from "bcryptjs";
-import { sql } from "drizzle-orm";
+import { notInArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
@@ -47,6 +47,47 @@ const STATIONS = [
     name: { az: "Tbilisi", ru: "Тбилиси", en: "Tbilisi", ka: "თბილისი" },
   },
 ] satisfies { code: string; country: string; sortOrder: number; name: Localized }[];
+
+/**
+ * The real fleet. This list is authoritative: locomotives absent from it are deleted on every
+ * seed run, so a fresh deploy ends up with exactly these rows and nothing left over from demos.
+ */
+const LOCOMOTIVES = [
+  { number: "VL10-494", owner: "AZ", depot: "Gəncə", station: "BK" },
+  { number: "VL10-585", owner: "AZ", depot: "Gəncə", station: "BK" },
+  { number: "VL10-676", owner: "AZ", depot: "Gəncə", station: "BK" },
+  { number: "VL10-1138", owner: "AZ", depot: "Gəncə", station: "BK" },
+  { number: "VL10-1215", owner: "AZ", depot: "Gəncə", station: "BK" },
+  { number: "VL10-1574", owner: "AZ", depot: "Gəncə", station: "BK" },
+  { number: "VL10-1639", owner: "AZ", depot: "Gəncə", station: "BK" },
+  { number: "VL11-456", owner: "AZ", depot: "Gəncə", station: "BK" },
+  { number: "VL10-1581", owner: "AZ", depot: "Gəncə", station: "BK" },
+] satisfies { number: string; owner: "AZ" | "GR"; depot: string; station: "BK" | "GRD" | "TBS" }[];
+
+/**
+ * Corridor train numbers, authoritative in the same way as LOCOMOTIVES above.
+ * Parity carries the direction — even runs Böyük Kəsik → Tbilisi, odd runs Tbilisi → Böyük Kəsik —
+ * which is why it is derived from the last digit here instead of being listed per row. That is the
+ * same rule the registry form applies (see src/actions/registry.ts).
+ */
+const TRAIN_NUMBERS = [
+  // Böyük Kəsik → Tbilisi
+  "1200", "1202", "1204", "1206", "1208", "1210",
+  "2100", "2102", "2104", "2106", "2108", "2110",
+  "2500", "2502", "2504", "2506", "2508", "2510",
+  "2600", "2602", "2604", "2606", "2608", "2610",
+  "2700", "2702", "2704", "2706", "2708", "2710",
+  "2800", "2802", "2804", "2806", "2808", "2810",
+  "3000", "3002", "3004", "3006", "3008", "3010",
+  // Tbilisi → Böyük Kəsik
+  "1201", "1203", "1205", "1207", "1209",
+  "2101", "2103", "2105", "2107", "2109",
+  "2301", "2303", "2305", "2307", "2309",
+  "2401", "2403", "2405", "2407", "2409",
+  "3001", "3003", "3005", "3007", "3009",
+];
+
+const TRAIN_COUNTRY = "AZ" as const;
 
 type OpSeed = {
   seq: number;
@@ -500,6 +541,61 @@ async function main() {
   const stationIds = new Map((await db.select().from(stations)).map((s) => [s.code, s.id]));
 
   await db
+    .insert(locomotives)
+    .values(
+      LOCOMOTIVES.map((l) => ({
+        number: l.number,
+        owner: l.owner,
+        depot: l.depot,
+        currentStationId: stationIds.get(l.station)!,
+      })),
+    )
+    .onConflictDoUpdate({
+      // currentStationId is left alone on conflict: it tracks where the locomotive actually is,
+      // and re-seeding must not teleport a working locomotive back to its starting station.
+      target: locomotives.number,
+      set: { owner: sql`excluded.owner`, depot: sql`excluded.depot`, isActive: true },
+    });
+
+  // Retire everything not on the list. Rows already referenced by recorded work cannot be
+  // deleted without destroying history, so those are deactivated instead — they disappear from
+  // every picker but stay readable on the turnarounds that used them. On a fresh database
+  // nothing is referenced, so this deletes outright and the fleet is exactly the list above.
+  const retired = notInArray(
+    locomotives.number,
+    LOCOMOTIVES.map((l) => l.number),
+  );
+  await db.update(locomotives).set({ isActive: false }).where(retired);
+  await db.delete(locomotives).where(
+    sql`${retired}
+      and not exists (select 1 from turnarounds t where t.locomotive_id = ${locomotives.id})
+      and not exists (select 1 from turnaround_operations o where o.locomotive_id = ${locomotives.id})
+      and not exists (select 1 from maintenance_records m where m.locomotive_id = ${locomotives.id})`,
+  );
+
+  await db
+    .insert(trainNumbers)
+    .values(
+      TRAIN_NUMBERS.map((number) => ({
+        number,
+        parity: Number(number.at(-1)) % 2 === 0 ? ("even" as const) : ("odd" as const),
+        country: TRAIN_COUNTRY,
+      })),
+    )
+    .onConflictDoUpdate({
+      target: [trainNumbers.number, trainNumbers.country],
+      set: { parity: sql`excluded.parity`, isActive: true },
+    });
+
+  const retiredTrains = notInArray(trainNumbers.number, TRAIN_NUMBERS);
+  await db.update(trainNumbers).set({ isActive: false }).where(retiredTrains);
+  await db.delete(trainNumbers).where(
+    sql`${retiredTrains}
+      and not exists (select 1 from turnarounds t where t.train_number_id = ${trainNumbers.id})
+      and not exists (select 1 from turnaround_operations o where o.train_number_id = ${trainNumbers.id})`,
+  );
+
+  await db
     .insert(operationTypes)
     .values(
       OPERATIONS.map((o) => ({
@@ -550,25 +646,6 @@ async function main() {
     .onConflictDoNothing({ target: users.email });
 
   if (process.env.SEED_DEMO === "1") {
-    await db
-      .insert(locomotives)
-      .values([
-        { number: "VL11-001", owner: "AZ" as const, depot: "Böyük Kəsik", currentStationId: stationIds.get("BK")! },
-        { number: "VL11-002", owner: "AZ" as const, depot: "Böyük Kəsik", currentStationId: stationIds.get("BK")! },
-        { number: "TEM2-118", owner: "GR" as const, depot: "Gardabani", currentStationId: stationIds.get("GRD")! },
-      ])
-      .onConflictDoNothing({ target: locomotives.number });
-
-    await db
-      .insert(trainNumbers)
-      .values([
-        { number: "6001", parity: "odd" as const, country: "AZ" as const },
-        { number: "6002", parity: "even" as const, country: "AZ" as const },
-        { number: "4501", parity: "odd" as const, country: "GR" as const },
-        { number: "4502", parity: "even" as const, country: "GR" as const },
-      ])
-      .onConflictDoNothing();
-
     for (const st of STATIONS) {
       await db
         .insert(users)
@@ -584,7 +661,7 @@ async function main() {
   }
 
   console.log(
-    `seeded: ${STATIONS.length} stations, ${OPERATIONS.length} operations, ${REFERENCE.length} reference values, admin ${adminEmail}`,
+    `seeded: ${STATIONS.length} stations, ${OPERATIONS.length} operations, ${LOCOMOTIVES.length} locomotives, ${TRAIN_NUMBERS.length} train numbers, ${REFERENCE.length} reference values, admin ${adminEmail}`,
   );
 }
 
