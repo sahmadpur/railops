@@ -1,0 +1,274 @@
+"use server";
+
+import { and, asc, eq, isNull } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+
+import { db } from "@/db";
+import { withActor } from "@/db/actor";
+import { maintenanceRecords, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
+import { canEdit, missingForClose, validateEntry, type EntryInput } from "@/lib/turnaround-rules";
+import { requireSession } from "@/lib/session";
+
+export type ActionResult = { ok: true } | { ok: false; error: string; seq?: number; field?: string };
+
+function optionalInt(value: FormDataEntryValue | null): number | null {
+  const text = String(value ?? "").trim();
+  if (!text) return null;
+  const parsed = Number(text);
+  return Number.isInteger(parsed) ? parsed : null;
+}
+
+function optionalText(value: FormDataEntryValue | null): string | null {
+  const text = String(value ?? "").trim();
+  return text === "" ? null : text;
+}
+
+async function loadContext(turnaroundId: number) {
+  const [turnaround] = await db.select().from(turnarounds).where(eq(turnarounds.id, turnaroundId)).limit(1);
+  if (!turnaround) return null;
+
+  const [catalogue, entries] = await Promise.all([
+    db.select().from(operationTypes).orderBy(asc(operationTypes.seq)),
+    db.select().from(turnaroundOperations).where(eq(turnaroundOperations.turnaroundId, turnaroundId)),
+  ]);
+
+  return { turnaround, catalogue, entries };
+}
+
+export async function createTurnaround(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
+  const session = await requireSession();
+  const locomotiveId = optionalInt(formData.get("locomotiveId"));
+  const cycleDate = optionalText(formData.get("cycleDate"));
+  if (!locomotiveId || !cycleDate) return { ok: false, error: "generic" };
+
+  try {
+    await withActor(session.userId, (tx) =>
+      tx.insert(turnarounds).values({ locomotiveId, cycleDate, openedBy: session.userId, statusCode: "open" }),
+    );
+  } catch (error) {
+    if (String(error).includes("turnarounds_loco_date_key")) return { ok: false, error: "alreadyExists" };
+    throw error;
+  }
+
+  revalidatePath("/turnarounds");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+/** Creates or updates one operation row, then mirrors ТОИР steps into the technical work registry. */
+export async function saveOperation(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
+  const session = await requireSession();
+  const turnaroundId = optionalInt(formData.get("turnaroundId"));
+  const operationTypeId = optionalInt(formData.get("operationTypeId"));
+  const occurredAtRaw = optionalText(formData.get("occurredAt"));
+  if (!turnaroundId || !operationTypeId || !occurredAtRaw) return { ok: false, error: "invalid_timestamp" };
+
+  const context = await loadContext(turnaroundId);
+  if (!context) return { ok: false, error: "notFound" };
+  if (context.turnaround.closedAt && session.role !== "admin") return { ok: false, error: "forbidden" };
+
+  const operation = context.catalogue.find((o) => o.id === operationTypeId);
+  if (!operation) return { ok: false, error: "notFound" };
+
+  const input: EntryInput = {
+    occurredAt: new Date(occurredAtRaw),
+    trainNumberId: optionalInt(formData.get("trainNumberId")),
+    locomotiveId: optionalInt(formData.get("locomotiveId")),
+    detachReasonCode: optionalText(formData.get("detachReasonCode")),
+    maintenanceReasonCode: optionalText(formData.get("maintenanceReasonCode")),
+    maintenanceTypeCode: optionalText(formData.get("maintenanceTypeCode")),
+  };
+
+  const failure = validateEntry(session, operation, input, context.catalogue, context.entries);
+  if (failure) return { ok: false, error: failure.code, seq: failure.seq, field: failure.field };
+
+  const note = optionalText(formData.get("note"));
+
+  await withActor(session.userId, async (tx) => {
+    await tx
+      .insert(turnaroundOperations)
+      .values({
+        turnaroundId,
+        operationTypeId,
+        occurredAt: input.occurredAt,
+        trainNumberId: input.trainNumberId ?? null,
+        locomotiveId: input.locomotiveId ?? null,
+        detachReasonCode: input.detachReasonCode ?? null,
+        maintenanceReasonCode: input.maintenanceReasonCode ?? null,
+        maintenanceTypeCode: input.maintenanceTypeCode ?? null,
+        note,
+        recordedBy: session.userId,
+      })
+      .onConflictDoUpdate({
+        target: [turnaroundOperations.turnaroundId, turnaroundOperations.operationTypeId],
+        set: {
+          occurredAt: input.occurredAt,
+          trainNumberId: input.trainNumberId ?? null,
+          locomotiveId: input.locomotiveId ?? null,
+          detachReasonCode: input.detachReasonCode ?? null,
+          maintenanceReasonCode: input.maintenanceReasonCode ?? null,
+          maintenanceTypeCode: input.maintenanceTypeCode ?? null,
+          note,
+          recordedBy: session.userId,
+          updatedAt: new Date(),
+        },
+      });
+
+    if (operation.maintenanceEffect) {
+      await syncMaintenance(tx, {
+        effect: operation.maintenanceEffect,
+        turnaroundId,
+        locomotiveId: input.locomotiveId ?? context.turnaround.locomotiveId,
+        occurredAt: input.occurredAt,
+        typeCode: input.maintenanceTypeCode ?? null,
+        reasonCode: input.maintenanceReasonCode ?? null,
+        actorId: session.userId,
+      });
+    }
+
+    if (context.turnaround.statusCode === "open") {
+      await tx
+        .update(turnarounds)
+        .set({ statusCode: "in_progress", updatedAt: new Date() })
+        .where(eq(turnarounds.id, turnaroundId));
+    }
+  });
+
+  revalidatePath(`/turnarounds/${turnaroundId}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/reports/journal");
+  return { ok: true };
+}
+
+type Tx = Parameters<Parameters<typeof withActor>[1]>[0];
+
+/**
+ * A `send` step opens the technical work record; the matching `return` step closes the
+ * still-open one for that locomotive. Re-saving a step updates in place rather than
+ * stacking duplicates.
+ */
+async function syncMaintenance(
+  tx: Tx,
+  args: {
+    effect: "send" | "return";
+    turnaroundId: number;
+    locomotiveId: number;
+    occurredAt: Date;
+    typeCode: string | null;
+    reasonCode: string | null;
+    actorId: number;
+  },
+) {
+  const [open] = await tx
+    .select()
+    .from(maintenanceRecords)
+    .where(
+      and(
+        eq(maintenanceRecords.locomotiveId, args.locomotiveId),
+        eq(maintenanceRecords.turnaroundId, args.turnaroundId),
+        isNull(maintenanceRecords.returnedAt),
+      ),
+    )
+    .orderBy(asc(maintenanceRecords.sentAt))
+    .limit(1);
+
+  if (args.effect === "send") {
+    if (open) {
+      await tx
+        .update(maintenanceRecords)
+        .set({ sentAt: args.occurredAt, typeCode: args.typeCode, reasonCode: args.reasonCode })
+        .where(eq(maintenanceRecords.id, open.id));
+      return;
+    }
+    await tx.insert(maintenanceRecords).values({
+      locomotiveId: args.locomotiveId,
+      turnaroundId: args.turnaroundId,
+      typeCode: args.typeCode,
+      reasonCode: args.reasonCode,
+      sentAt: args.occurredAt,
+      createdBy: args.actorId,
+    });
+    return;
+  }
+
+  if (open) {
+    await tx
+      .update(maintenanceRecords)
+      .set({ returnedAt: args.occurredAt, typeCode: args.typeCode ?? open.typeCode })
+      .where(eq(maintenanceRecords.id, open.id));
+  }
+}
+
+export async function clearOperation(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
+  const session = await requireSession();
+  const turnaroundId = optionalInt(formData.get("turnaroundId"));
+  const operationTypeId = optionalInt(formData.get("operationTypeId"));
+  if (!turnaroundId || !operationTypeId) return { ok: false, error: "generic" };
+
+  const context = await loadContext(turnaroundId);
+  if (!context) return { ok: false, error: "notFound" };
+  if (context.turnaround.closedAt && session.role !== "admin") return { ok: false, error: "forbidden" };
+
+  const operation = context.catalogue.find((o) => o.id === operationTypeId);
+  if (!operation) return { ok: false, error: "notFound" };
+  if (!canEdit(session, operation)) return { ok: false, error: "wrong_station" };
+
+  await withActor(session.userId, (tx) =>
+    tx
+      .delete(turnaroundOperations)
+      .where(
+        and(
+          eq(turnaroundOperations.turnaroundId, turnaroundId),
+          eq(turnaroundOperations.operationTypeId, operationTypeId),
+        ),
+      ),
+  );
+
+  revalidatePath(`/turnarounds/${turnaroundId}`);
+  return { ok: true };
+}
+
+export async function closeTurnaround(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
+  const session = await requireSession();
+  if (session.role !== "admin") return { ok: false, error: "forbidden" };
+
+  const turnaroundId = optionalInt(formData.get("turnaroundId"));
+  if (!turnaroundId) return { ok: false, error: "generic" };
+
+  const context = await loadContext(turnaroundId);
+  if (!context) return { ok: false, error: "notFound" };
+
+  const missing = missingForClose(context.catalogue, context.entries);
+  if (missing.length > 0) return { ok: false, error: "missingOperations", seq: missing[0].seq };
+
+  await withActor(session.userId, (tx) =>
+    tx
+      .update(turnarounds)
+      .set({ statusCode: "completed", closedAt: new Date(), updatedAt: new Date() })
+      .where(eq(turnarounds.id, turnaroundId)),
+  );
+
+  revalidatePath(`/turnarounds/${turnaroundId}`);
+  revalidatePath("/turnarounds");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function reopenTurnaround(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
+  const session = await requireSession();
+  if (session.role !== "admin") return { ok: false, error: "forbidden" };
+
+  const turnaroundId = optionalInt(formData.get("turnaroundId"));
+  if (!turnaroundId) return { ok: false, error: "generic" };
+
+  await withActor(session.userId, (tx) =>
+    tx
+      .update(turnarounds)
+      .set({ statusCode: "in_progress", closedAt: null, updatedAt: new Date() })
+      .where(eq(turnarounds.id, turnaroundId)),
+  );
+
+  revalidatePath(`/turnarounds/${turnaroundId}`);
+  revalidatePath("/turnarounds");
+  return { ok: true };
+}

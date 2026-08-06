@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.env
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
+# Local dev credentials
+.pass

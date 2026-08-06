@@ -1,0 +1,201 @@
+{
+  "app": {
+    "name": "RailOps",
+    "subtitle": "Lokomotiv dövriyyəsinin qeydiyyatı və reyestrlər"
+  },
+  "nav": {
+    "dashboard": "İcmal",
+    "turnarounds": "Dövriyyələr",
+    "journal": "Jurnal",
+    "admin": "İdarəetmə",
+    "users": "İstifadəçilər",
+    "locomotives": "Lokomotivlər",
+    "trainNumbers": "Qatar nömrələri",
+    "maintenance": "Texniki işlər",
+    "reference": "Sorğu kitabçaları",
+    "operations": "Əməliyyat kataloqu",
+    "audit": "Dəyişiklik jurnalı",
+    "signOut": "Çıxış",
+    "language": "Dil"
+  },
+  "login": {
+    "title": "Giriş",
+    "email": "E-poçt",
+    "password": "Şifrə",
+    "submit": "Daxil ol",
+    "invalid": "E-poçt və ya şifrə yanlışdır, ya da hesab deaktiv edilib.",
+    "hint": "Hesabları administrator yaradır."
+  },
+  "common": {
+    "station": "Stansiya",
+    "stations": "Stansiyalar",
+    "date": "Tarix",
+    "from": "Başlanğıc",
+    "to": "Son",
+    "status": "Status",
+    "locomotive": "Lokomotiv",
+    "trainNumber": "Qatar nömrəsi",
+    "save": "Yadda saxla",
+    "saved": "Yadda saxlanıldı",
+    "clear": "Təmizlə",
+    "cancel": "Ləğv et",
+    "create": "Yarat",
+    "edit": "Dəyiş",
+    "delete": "Sil",
+    "deactivate": "Deaktiv et",
+    "activate": "Aktiv et",
+    "active": "Aktiv",
+    "inactive": "Deaktiv",
+    "actions": "Əməliyyatlar",
+    "filter": "Süzgəc",
+    "reset": "Sıfırla",
+    "all": "Hamısı",
+    "none": "—",
+    "note": "Qeyd",
+    "reason": "Səbəb",
+    "time": "Vaxt",
+    "elapsed": "Sərf olunan vaxt",
+    "total": "Cəmi",
+    "print": "Çap et",
+    "exportExcel": "Excel-ə çıxar",
+    "search": "Axtarış",
+    "loading": "Yüklənir…",
+    "empty": "Qeyd yoxdur",
+    "yes": "Bəli",
+    "no": "Xeyr",
+    "required": "Mütləq",
+    "optional": "Zərurət olduqda",
+    "conditional": "Şərtli",
+    "recordedBy": "Qeyd edən",
+    "month": "Ay",
+    "back": "Geri"
+  },
+  "dashboard": {
+    "title": "İcmal",
+    "openTurnarounds": "Davam edən dövriyyələr",
+    "completedToday": "Bu gün tamamlanan",
+    "openMaintenance": "TOİR-də olan lokomotivlər",
+    "locomotivesActive": "Aktiv lokomotivlər",
+    "byStation": "Bu gün qeyd olunan əməliyyatlar (stansiyalar üzrə)",
+    "recent": "Son dövriyyələr",
+    "avgElapsed": "Orta dövriyyə vaxtı (son 30 gün)"
+  },
+  "turnarounds": {
+    "title": "Dövriyyələr",
+    "new": "Yeni dövriyyə",
+    "createTitle": "Yeni dövriyyə aç",
+    "cycleDate": "Dövriyyə tarixi",
+    "openedBy": "Açan",
+    "progress": "Doldurulub",
+    "detail": "Dövriyyə {id}",
+    "close": "Dövriyyəni bağla",
+    "reopen": "Yenidən aç",
+    "closed": "Bağlanıb",
+    "missingOperations": "Bağlamaq mümkün deyil: {count} mütləq əməliyyat qeyd olunmayıb.",
+    "closeSuccess": "Dövriyyə bağlandı.",
+    "notYourStation": "Başqa stansiyanın əməliyyatı — yalnız oxumaq üçün.",
+    "alreadyExists": "Bu lokomotivin həmin tarixə artıq dövriyyəsi var.",
+    "operationsFilled": "{total} əməliyyatdan {filled} qeyd olunub"
+  },
+  "errors": {
+    "wrong_station": "Yalnız öz stansiyanızın əməliyyatlarını qeyd edə bilərsiniz.",
+    "before_earlier_operation": "Vaxt artıq qeyd olunmuş {seq} nömrəli əməliyyatdan əvvəldir.",
+    "after_later_operation": "Vaxt artıq qeyd olunmuş {seq} nömrəli əməliyyatdan sonradır.",
+    "missing_field": "{seq} nömrəli əməliyyat üçün «{field}» sahəsi tələb olunur.",
+    "invalid_timestamp": "Düzgün tarix və vaxt daxil edin.",
+    "operation_inactive": "Bu əməliyyat kataloqda deaktivdir.",
+    "forbidden": "Bu əməliyyat üçün icazəniz yoxdur.",
+    "notFound": "Qeyd tapılmadı.",
+    "duplicate": "Bu dəyərlərlə qeyd artıq mövcuddur.",
+    "generic": "Dəyişiklik yadda saxlanılmadı."
+  },
+  "fields": {
+    "train_number": "Qatar nömrəsi",
+    "locomotive": "Lokomotiv",
+    "detach_reason": "Ayrılma səbəbi",
+    "maintenance_reason": "TOİR səbəbi",
+    "maintenance_type": "TOİR növü"
+  },
+  "journal": {
+    "title": "Aylıq jurnal",
+    "heading": "Qatarların hərəkət və emal vaxtlarının qeydiyyatı",
+    "subheading": "{station} istiqaməti — {month}",
+    "operationColumn": "Əməliyyatın adı / Vaxt",
+    "totalRow": "Ümumi sərf olunan vaxt",
+    "footnote": "Vaxt ss:dd formatındadır. Tire — qeyd yoxdur."
+  },
+  "admin": {
+    "users": {
+      "title": "İstifadəçilər",
+      "fullName": "Soyad, ad",
+      "role": "Rol",
+      "admin": "Administrator",
+      "operator": "Operator",
+      "password": "Şifrə",
+      "newPassword": "Yeni şifrə",
+      "passwordHint": "Şifrəni dəyişməmək üçün boş buraxın.",
+      "create": "İstifadəçi yarat",
+      "stationRequired": "Operatora stansiya təyin edilməlidir."
+    },
+    "locomotives": {
+      "title": "Lokomotivlər",
+      "number": "Nömrə",
+      "owner": "Mənsubiyyət",
+      "depot": "Depo",
+      "currentStation": "Cari stansiya",
+      "create": "Lokomotiv əlavə et"
+    },
+    "trainNumbers": {
+      "title": "Qatar nömrələri",
+      "number": "Nömrə",
+      "parity": "Cütlük",
+      "even": "Cüt",
+      "odd": "Tək",
+      "country": "Dəmir yolu",
+      "create": "Nömrə əlavə et"
+    },
+    "maintenance": {
+      "title": "Texniki işlər",
+      "type": "Növ",
+      "sentAt": "Göndərilib",
+      "returnedAt": "Qaytarılıb",
+      "open": "Davam edir",
+      "markReturned": "Qaytarılmış kimi qeyd et"
+    },
+    "reference": {
+      "title": "Sorğu kitabçaları",
+      "kind": "Kitabça",
+      "code": "Kod",
+      "label": "Ad",
+      "create": "Dəyər əlavə et",
+      "kinds": {
+        "maintenance_type": "TOİR növləri",
+        "maintenance_reason": "TOİR səbəbləri",
+        "detach_reason": "Ayrılma səbəbləri",
+        "turnaround_status": "Dövriyyə statusları"
+      }
+    },
+    "operations": {
+      "title": "Əməliyyat kataloqu",
+      "seq": "№",
+      "operation": "Əməliyyat",
+      "obligation": "Məcburilik",
+      "conditionalOn": "Şərt",
+      "parallelWith": "Paralel",
+      "fields": "Əlavə sahələr",
+      "hint": "Dövriyyə ardıcıllığı məlumatdır. Sətri dəyişmək bütün dövriyyə formalarını dərhal dəyişir."
+    },
+    "audit": {
+      "title": "Dəyişiklik jurnalı",
+      "table": "Cədvəl",
+      "row": "Qeyd",
+      "action": "Əməliyyat",
+      "actor": "İstifadəçi",
+      "at": "Vaxt",
+      "changes": "Dəyişikliklər",
+      "insert": "Yaradıldı",
+      "update": "Dəyişdirildi",
+      "delete": "Silindi"
+    }
+  }
+}

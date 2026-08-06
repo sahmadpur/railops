@@ -1,0 +1,67 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-railops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-railops}
+      POSTGRES_DB: ${POSTGRES_DB:-railops}
+      # `current_date` in the dashboard's "today" counts must mean today in the corridor.
+      TZ: ${TZ:-Asia/Baku}
+      PGTZ: ${TZ:-Asia/Baku}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-railops} -d ${POSTGRES_DB:-railops}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # One-shot: applies migrations then seeds reference data. Idempotent, safe to re-run.
+  migrate:
+    build:
+      context: .
+      target: dev
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://railops:railops@db:5432/railops}
+      TZ: ${TZ:-Asia/Baku}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@ady.az}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-railops}
+      # Sample locomotives, train numbers and per-station operators. Off in the prod overlay.
+      SEED_DEMO: ${SEED_DEMO:-1}
+    command: sh -c "npm run db:migrate && npm run db:seed"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+
+  app:
+    build:
+      context: .
+      target: dev
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://railops:railops@db:5432/railops}
+      AUTH_SECRET: ${AUTH_SECRET:-dev-only-secret-change-me-in-production}
+      # Corridor wall-clock zone; both AZ and GE are UTC+4.
+      TZ: ${TZ:-Asia/Baku}
+      NODE_ENV: development
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  db-data:

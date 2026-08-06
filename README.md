@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RailOps
 
-## Getting Started
+Locomotive turnaround logging and registry for the Böyük Kəsik (AZ) → Gardabani (GE) → Tbilisi corridor.
 
-First, run the development server:
+Replaces the `Учёт оборота локомотивов` spreadsheet with a system that has access control, a
+database-enforced audit trail, and validation of the operation sequence — while still printing and
+exporting the same monthly journal the staff already read.
+
+## Running
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env      # set AUTH_SECRET and ADMIN_PASSWORD
+docker compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App on http://localhost:3000. The `migrate` service applies migrations and seeds reference data
+before the app starts; it is idempotent, so every `up` is safe.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Production:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
 
-## Learn More
+The prod overlay builds the standalone `runner` image, drops the source bind-mount, closes the
+database port, and disables demo seed data.
 
-To learn more about Next.js, take a look at the following resources:
+## Concepts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**One record = one locomotive turnaround.** A turnaround carries the 28 ordered operations that run
+from Böyük Kəsik out to Tbilisi and back. Train numbers (AZ, GR-even, GR-odd) attach to it as the
+locomotive moves.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**The operation sequence is data, not code.** `operation_types` is seeded from `docs/Operations.xlsx`
+and editable at `/admin/operations`. Each row declares its station, whether it is required, optional
+or conditional, which operation it runs in parallel with, and which extra fields it collects. Adding
+or reordering a step never requires a code change.
 
-## Deploy on Vercel
+**Operators write only their own station.** An operator sees the whole turnaround but can only edit
+the operations belonging to their assigned station. Admins are unrestricted.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Nothing is edited silently.** A Postgres trigger writes every insert, update and delete to
+`audit_log` with the acting user, taken from the transaction-local `railops.actor_id` that
+`withActor()` sets. Application code cannot bypass it.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Times are corridor wall-clock.** `datetime-local` inputs carry no offset, so containers run with
+`TZ=Asia/Baku` (Azerbaijan and Georgia are both UTC+4) and Postgres with the same zone.
+
+## Layout
+
+```
+src/db/schema.ts              tables, enums, relations
+src/db/migrations/            generated SQL + 0001_audit_triggers.sql
+src/db/seed.mts               stations, the 28 operations, reference lists, admin user
+src/db/actor.ts               withActor() — the only sanctioned write path
+src/lib/turnaround-rules.ts   station scoping, chronology, close-completeness (pure, tested)
+src/lib/journal.ts            the monthly grid, shared by the print page and the Excel export
+src/actions/                  server actions (turnaround, registry, auth)
+src/app/(app)/                authenticated pages; /admin requires the admin role
+messages/{az,ru,en,ka}.json   UI strings, cookie-selected locale
+```
+
+## Checks
+
+```bash
+npm test        # turnaround rule tests
+npm run lint
+npx next build
+```
+
+## Commands
+
+```bash
+npm run db:generate   # after editing src/db/schema.ts
+npm run db:migrate
+npm run db:seed
+```

@@ -1,0 +1,201 @@
+{
+  "app": {
+    "name": "RailOps",
+    "subtitle": "Locomotive turnaround log and registry"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "turnarounds": "Turnarounds",
+    "journal": "Journal",
+    "admin": "Administration",
+    "users": "Users",
+    "locomotives": "Locomotives",
+    "trainNumbers": "Train numbers",
+    "maintenance": "Technical work",
+    "reference": "Reference lists",
+    "operations": "Operation catalogue",
+    "audit": "Audit trail",
+    "signOut": "Sign out",
+    "language": "Language"
+  },
+  "login": {
+    "title": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "submit": "Sign in",
+    "invalid": "Wrong email or password, or the account is deactivated.",
+    "hint": "Accounts are created by the administrator."
+  },
+  "common": {
+    "station": "Station",
+    "stations": "Stations",
+    "date": "Date",
+    "from": "From",
+    "to": "To",
+    "status": "Status",
+    "locomotive": "Locomotive",
+    "trainNumber": "Train number",
+    "save": "Save",
+    "saved": "Saved",
+    "clear": "Clear",
+    "cancel": "Cancel",
+    "create": "Create",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deactivate": "Deactivate",
+    "activate": "Activate",
+    "active": "Active",
+    "inactive": "Inactive",
+    "actions": "Actions",
+    "filter": "Filter",
+    "reset": "Reset",
+    "all": "All",
+    "none": "—",
+    "note": "Note",
+    "reason": "Reason",
+    "time": "Time",
+    "elapsed": "Elapsed",
+    "total": "Total",
+    "print": "Print",
+    "exportExcel": "Export to Excel",
+    "search": "Search",
+    "loading": "Loading…",
+    "empty": "No records",
+    "yes": "Yes",
+    "no": "No",
+    "required": "Required",
+    "optional": "Optional",
+    "conditional": "Conditional",
+    "recordedBy": "Recorded by",
+    "month": "Month",
+    "back": "Back"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "openTurnarounds": "Turnarounds in progress",
+    "completedToday": "Completed today",
+    "openMaintenance": "Locomotives in technical work",
+    "locomotivesActive": "Active locomotives",
+    "byStation": "Operations recorded today, by station",
+    "recent": "Recent turnarounds",
+    "avgElapsed": "Average turnaround time (last 30 days)"
+  },
+  "turnarounds": {
+    "title": "Turnarounds",
+    "new": "New turnaround",
+    "createTitle": "Open a new turnaround",
+    "cycleDate": "Turnaround date",
+    "openedBy": "Opened by",
+    "progress": "Progress",
+    "detail": "Turnaround {id}",
+    "close": "Close turnaround",
+    "reopen": "Reopen",
+    "closed": "Closed",
+    "missingOperations": "Cannot close: {count} mandatory operation(s) not recorded.",
+    "closeSuccess": "Turnaround closed.",
+    "notYourStation": "Recorded at another station — read only for you.",
+    "alreadyExists": "This locomotive already has a turnaround on that date.",
+    "operationsFilled": "{filled} of {total} operations recorded"
+  },
+  "errors": {
+    "wrong_station": "You may only record operations for your own station.",
+    "before_earlier_operation": "The time is earlier than operation {seq}, which is already recorded.",
+    "after_later_operation": "The time is later than operation {seq}, which is already recorded.",
+    "missing_field": "Operation {seq} requires the field \"{field}\".",
+    "invalid_timestamp": "Enter a valid date and time.",
+    "operation_inactive": "This operation is disabled in the catalogue.",
+    "forbidden": "You do not have permission for this action.",
+    "notFound": "Record not found.",
+    "duplicate": "A record with these values already exists.",
+    "generic": "The change could not be saved."
+  },
+  "fields": {
+    "train_number": "Train number",
+    "locomotive": "Locomotive",
+    "detach_reason": "Detachment reason",
+    "maintenance_reason": "Technical work reason",
+    "maintenance_type": "Technical work type"
+  },
+  "journal": {
+    "title": "Monthly journal",
+    "heading": "Record of train movement and handling times",
+    "subheading": "{station} corridor — {month}",
+    "operationColumn": "Operation / Time",
+    "totalRow": "Total elapsed time",
+    "footnote": "Times are shown as hh:mm. Cells marked — have no record."
+  },
+  "admin": {
+    "users": {
+      "title": "Users",
+      "fullName": "Full name",
+      "role": "Role",
+      "admin": "Administrator",
+      "operator": "Operator",
+      "password": "Password",
+      "newPassword": "New password",
+      "passwordHint": "Leave blank to keep the current password.",
+      "create": "Create user",
+      "stationRequired": "An operator must be assigned to a station."
+    },
+    "locomotives": {
+      "title": "Locomotives",
+      "number": "Number",
+      "owner": "Owner",
+      "depot": "Depot",
+      "currentStation": "Current station",
+      "create": "Add locomotive"
+    },
+    "trainNumbers": {
+      "title": "Train numbers",
+      "number": "Number",
+      "parity": "Parity",
+      "even": "Even",
+      "odd": "Odd",
+      "country": "Railway",
+      "create": "Add train number"
+    },
+    "maintenance": {
+      "title": "Technical work",
+      "type": "Type",
+      "sentAt": "Sent",
+      "returnedAt": "Returned",
+      "open": "In progress",
+      "markReturned": "Mark returned"
+    },
+    "reference": {
+      "title": "Reference lists",
+      "kind": "List",
+      "code": "Code",
+      "label": "Name",
+      "create": "Add value",
+      "kinds": {
+        "maintenance_type": "Technical work types",
+        "maintenance_reason": "Technical work reasons",
+        "detach_reason": "Detachment reasons",
+        "turnaround_status": "Turnaround statuses"
+      }
+    },
+    "operations": {
+      "title": "Operation catalogue",
+      "seq": "No.",
+      "operation": "Operation",
+      "obligation": "Obligation",
+      "conditionalOn": "Required if",
+      "parallelWith": "Parallel with",
+      "fields": "Extra fields",
+      "hint": "The turnaround sequence is data. Editing a row changes every turnaround form immediately."
+    },
+    "audit": {
+      "title": "Audit trail",
+      "table": "Table",
+      "row": "Record",
+      "action": "Action",
+      "actor": "User",
+      "at": "Time",
+      "changes": "Changes",
+      "insert": "Created",
+      "update": "Changed",
+      "delete": "Deleted"
+    }
+  }
+}

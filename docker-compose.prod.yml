@@ -1,0 +1,19 @@
+# Production overlay:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Requires a real .env with POSTGRES_PASSWORD and AUTH_SECRET set.
+services:
+  db:
+    ports: []
+
+  migrate:
+    build:
+      target: dev
+    environment:
+      SEED_DEMO: "0"
+    volumes: []
+
+  app:
+    build:
+      target: runner
+    environment:
+      NODE_ENV: production
+    volumes: []

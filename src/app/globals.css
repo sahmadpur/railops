@@ -1,26 +1,107 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --foreground: #14181d;
+  --muted: #626b78;
+  --border: #d8dde5;
+  --accent: #0f5c3f;
+  --accent-weak: #e7f1ec;
+  --danger: #a3231f;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-muted: var(--muted);
+  --color-line: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-weak: var(--accent-weak);
+  --color-danger: var(--danger);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: ui-sans-serif, system-ui, "Segoe UI", "Noto Sans Georgian", sans-serif;
+  font-size: 14px;
+}
+
+/* Dense registry tables are the primary surface of this app, so they get real styles. */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+}
+.data-table th,
+.data-table td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.55rem;
+  text-align: start;
+  vertical-align: middle;
+}
+.data-table thead th {
+  background: #eef1f5;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.data-table tbody tr:hover {
+  background: #fafbfc;
+}
+
+.field {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+  background: var(--surface);
+  width: 100%;
+  min-width: 0;
+}
+.field:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.btn {
+  border-radius: 4px;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover {
+  background: #f0f2f5;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover {
+  filter: brightness(1.1);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    font-size: 9px;
+  }
+  .data-table th,
+  .data-table td {
+    padding: 1px 3px;
+  }
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
 }
