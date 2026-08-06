@@ -8,7 +8,9 @@ import { getSession } from "@/lib/session";
 
 /** Reproduces the source workbook's layout: operations down the side, one column per turnaround. */
 export async function GET(request: Request) {
-  if (!(await getSession())) return new Response("Unauthorized", { status: 401 });
+  const session = await getSession();
+  if (!session) return new Response("Unauthorized", { status: 401 });
+  if (session.role !== "admin") return new Response("Forbidden", { status: 403 });
 
   const url = new URL(request.url);
   const monthParam = url.searchParams.get("month") ?? "";

@@ -15,7 +15,7 @@ export async function signIn(_prev: { error?: string } | undefined, formData: Fo
   if (!session) return { error: "invalid" };
 
   await createSessionCookie(session);
-  redirect("/dashboard");
+  redirect("/turnarounds");
 }
 
 export async function signOut() {

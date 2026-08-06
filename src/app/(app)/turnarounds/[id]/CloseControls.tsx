@@ -36,11 +36,25 @@ export default function CloseControls({
 
   if (!isAdmin) {
     return (
-      <div className="text-xs">
+      <div className="flex flex-col items-end gap-1 text-xs">
         {isClosed ? (
           <span className="badge badge-success">{labels.closed}</span>
+        ) : missingCount > 0 ? (
+          <span className="badge badge-warning">{labels.missing}</span>
         ) : (
-          missingCount > 0 && <span className="badge badge-warning">{labels.missing}</span>
+          // Everything required is recorded — the operator wraps the turnaround up themselves.
+          <form action={close}>
+            <input type="hidden" name="turnaroundId" value={turnaroundId} />
+            <button type="submit" disabled={closing} className="btn btn-primary">
+              {labels.close}
+            </button>
+          </form>
+        )}
+        {closeState?.ok === true && <span className="text-success">{labels.success}</span>}
+        {closeState?.ok === false && (
+          <span className="text-danger">
+            {closeState.error === "missingOperations" ? labels.missing : labels.generic}
+          </span>
         )}
       </div>
     );

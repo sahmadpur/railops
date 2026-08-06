@@ -4,10 +4,13 @@ import { test } from "node:test";
 import {
   canEdit,
   checkClearable,
+  checkCurrentLeg,
   checkUnlocked,
+  editableWindow,
   elapsedMinutes,
   formatElapsed,
   missingForClose,
+  nextStationId,
   openingRule,
   unlockedIds,
   validateEntry,
@@ -141,6 +144,61 @@ test("a conditional operation is required only once its trigger is filled", () =
     missingForClose(catalogue, withTrigger).map((o) => o.seq),
     [6],
   );
+});
+
+test("only the current leg is editable: earlier passes are history for operators", () => {
+  // Fresh turnaround: the window is BK's whole opening leg.
+  assert.deepEqual(editableWindow(catalogue, []), { fromSeq: 1, toSeq: 3 });
+
+  // BK's part done: the window moves to GRD, and BK's own recorded steps become untouchable.
+  const leftBk: EntryLike[] = [
+    { operationTypeId: 10, occurredAt: at("2026-08-06T10:00:00Z") },
+    { operationTypeId: 20, occurredAt: at("2026-08-06T10:10:00Z") },
+    { operationTypeId: 30, occurredAt: at("2026-08-06T10:10:00Z") },
+  ];
+  assert.deepEqual(editableWindow(catalogue, leftBk), { fromSeq: 4, toSeq: 6 });
+
+  const error = validateEntry(
+    bkOperator,
+    catalogue[0],
+    { occurredAt: at("2026-08-06T09:00:00Z") },
+    catalogue,
+    leftBk,
+  );
+  assert.equal(error?.code, "past_leg");
+  // Admins still reach back.
+  assert.equal(checkCurrentLeg(admin, catalogue[0], catalogue, leftBk), null);
+  // The GRD operator works the current leg as usual.
+  assert.equal(checkCurrentLeg(grdOperator, catalogue[3], catalogue, leftBk), null);
+
+  // Nothing mandatory missing: the window stays on the final leg until the close, so the
+  // finishing station can still adjust its entries — earlier legs remain history.
+  const done = [...leftBk, { operationTypeId: 40, occurredAt: at("2026-08-06T12:00:00Z") }];
+  assert.deepEqual(editableWindow(catalogue, done), { fromSeq: 4, toSeq: 6 });
+  assert.equal(checkCurrentLeg(grdOperator, catalogue[3], catalogue, done), null);
+  assert.equal(checkCurrentLeg(bkOperator, catalogue[0], catalogue, done)?.code, "past_leg");
+});
+
+test("nextStationId follows the first unfilled mandatory step from station to station", () => {
+  // Fresh turnaround: waiting on seq 1 at BK.
+  assert.equal(nextStationId(catalogue, []), BK);
+
+  // BK's part done (parallel seq 3 too): the record is on its way to GRD.
+  const leftBk: EntryLike[] = [
+    { operationTypeId: 10, occurredAt: at("2026-08-06T10:00:00Z") },
+    { operationTypeId: 20, occurredAt: at("2026-08-06T10:10:00Z") },
+    { operationTypeId: 30, occurredAt: at("2026-08-06T10:10:00Z") },
+  ];
+  assert.equal(nextStationId(catalogue, leftBk), GRD);
+
+  // Everything mandatory filled: no station is waiting — hidden from every operator.
+  // The optional seq 5 does not hold the record at GRD.
+  const done = [...leftBk, { operationTypeId: 40, occurredAt: at("2026-08-06T12:00:00Z") }];
+  assert.equal(nextStationId(catalogue, done), null);
+
+  // Filling the optional trigger makes conditional seq 6 mandatory, so GRD waits again.
+  const withTrigger = [...done, { operationTypeId: 50, occurredAt: at("2026-08-06T13:00:00Z") }];
+  assert.equal(nextStationId(catalogue, withTrigger), GRD);
 });
 
 test("inactive operations neither block a close nor accept writes", () => {

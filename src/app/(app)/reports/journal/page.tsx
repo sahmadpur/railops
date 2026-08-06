@@ -3,12 +3,12 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { getActiveLocomotives, getStations } from "@/lib/catalogue";
 import { buildJournal } from "@/lib/journal";
 import { label, monthLabel } from "@/lib/format";
-import { requireSession } from "@/lib/session";
+import { requireAdmin } from "@/lib/session";
 
 import PrintButton from "./PrintButton";
 
 export default async function JournalPage({ searchParams }: PageProps<"/reports/journal">) {
-  await requireSession();
+  await requireAdmin();
   const [t, locale, query] = await Promise.all([getTranslations(), getLocale(), searchParams]);
 
   const now = new Date();

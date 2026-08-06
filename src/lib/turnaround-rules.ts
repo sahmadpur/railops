@@ -134,6 +134,7 @@ export function validateEntry(
   if (Number.isNaN(input.occurredAt.getTime())) return { code: "invalid_timestamp", seq: operation.seq };
 
   return (
+    checkCurrentLeg(actor, operation, catalogue, entries) ??
     checkRequiredFields(operation, input) ??
     checkChronology(operation, input.occurredAt, catalogue, entries)
   );
@@ -154,6 +155,56 @@ export function missingForClose(catalogue: OperationTypeLike[], entries: EntryLi
     if (o.obligation === "conditional") return o.conditionalOnSeq !== null && filledSeqs.has(o.conditionalOnSeq);
     return false;
   });
+}
+
+/**
+ * The station the turnaround is currently waiting on: where its first unfilled mandatory step
+ * happens. Null once nothing mandatory is missing. An operator's list shows exactly the
+ * turnarounds whose next station is theirs — a record that left the previous station appears,
+ * and disappears again once their own part is filled.
+ */
+export function nextStationId(catalogue: OperationTypeLike[], entries: EntryLike[]): number | null {
+  const blocker = missingForClose(catalogue, entries).sort((a, b) => a.seq - b.seq)[0];
+  return blocker?.stationId ?? null;
+}
+
+/**
+ * The leg of the route the turnaround is currently on: the contiguous same-station run of
+ * active operations around the first unfilled mandatory step. A station visited twice
+ * (Böyük Kəsik, Gardabani) gets a separate window per pass, so the return leg never reopens
+ * the outbound one. Once nothing is missing the window stays on the final leg — the finishing
+ * station can still adjust its entries until the turnaround is closed.
+ */
+export function editableWindow(
+  catalogue: OperationTypeLike[],
+  entries: EntryLike[],
+): { fromSeq: number; toSeq: number } | null {
+  const ordered = catalogue.filter((o) => o.isActive).sort((a, b) => a.seq - b.seq);
+  if (ordered.length === 0) return null;
+
+  const blocker = missingForClose(catalogue, entries).sort((a, b) => a.seq - b.seq)[0];
+  let from = blocker ? ordered.findIndex((o) => o.id === blocker.id) : ordered.length - 1;
+  let to = from;
+  const stationId = ordered[from].stationId;
+  while (from > 0 && ordered[from - 1].stationId === stationId) from -= 1;
+  while (to < ordered.length - 1 && ordered[to + 1].stationId === stationId) to += 1;
+  return { fromSeq: ordered[from].seq, toSeq: ordered[to].seq };
+}
+
+/**
+ * Operators may only touch the leg the turnaround is currently on — once the route moves past
+ * their station, the earlier pass is history. Admins are unrestricted.
+ */
+export function checkCurrentLeg(
+  actor: ActorLike,
+  operation: OperationTypeLike,
+  catalogue: OperationTypeLike[],
+  entries: EntryLike[],
+): RuleError | null {
+  if (actor.role === "admin") return null;
+  const window = editableWindow(catalogue, entries);
+  if (!window || operation.seq < window.fromSeq) return { code: "past_leg", seq: operation.seq };
+  return null;
 }
 
 /**

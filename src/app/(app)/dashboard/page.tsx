@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, isNotNull, isNull, lte } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Fragment } from "react";
@@ -14,10 +14,10 @@ import {
   turnaroundOperations,
   turnarounds,
 } from "@/db/schema";
-import { getCatalogue, getReference, getStations } from "@/lib/catalogue";
+import { getActiveLocomotives, getCatalogue, getReference, getStations } from "@/lib/catalogue";
 import { formatDate, label, todayIso } from "@/lib/format";
-import { operationStats, routeSegments, segmentStats, transitStats } from "@/lib/timeline";
-import { requireSession } from "@/lib/session";
+import { downtimeMinutes, operationStats, routeSegments, segmentStats, transitStats, type Interval } from "@/lib/timeline";
+import { requireAdmin } from "@/lib/session";
 import { formatElapsed } from "@/lib/turnaround-rules";
 
 /** Default window: the trailing month, matching the average the tile used to hardcode. */
@@ -29,8 +29,34 @@ function defaultRange(): { from: string; to: string } {
   return { from: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`, to };
 }
 
+/**
+ * The downtime window in corridor wall-clock, like every timestamp here (containers run
+ * TZ=Asia/Baku). It ends now at the latest, so the rest of today never counts as downtime.
+ */
+function downtimeWindow(from: string, to: string): { from: Date; to: Date } {
+  const end = Math.min(Date.now(), new Date(`${to}T00:00:00`).getTime() + 86_400_000);
+  return { from: new Date(`${from}T00:00:00`), to: new Date(end) };
+}
+
+// Node 24 ships Intl.DurationFormat; TypeScript's lib does not know it yet.
+const { DurationFormat } = Intl as typeof Intl & {
+  DurationFormat: new (
+    locale: string,
+    options?: { style?: string; minutesDisplay?: string },
+  ) => { format: (duration: { days?: number; hours?: number; minutes?: number }) => string };
+};
+
+/** Long spans read as days/hours/minutes ("23 days, 14 hr, 3 min"), localized by the runtime. */
+function formatDowntime(minutes: number, locale: string): string {
+  return new DurationFormat(locale, { style: "short", minutesDisplay: "always" }).format({
+    days: Math.floor(minutes / 1440),
+    hours: Math.floor((minutes % 1440) / 60),
+    minutes: minutes % 60,
+  });
+}
+
 export default async function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
-  await requireSession();
+  await requireAdmin();
   const [t, locale, query, stationRows, statuses, catalogue] = await Promise.all([
     getTranslations(),
     getLocale(),
@@ -46,11 +72,22 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const selected = typeof query.station === "string" ? Number(query.station) : null;
 
   const inRange = and(gte(turnarounds.cycleDate, from), lte(turnarounds.cycleDate, to));
+  const { from: windowFrom, to: windowTo } = downtimeWindow(from, to);
   const statusLabel = new Map(statuses.map((s) => [s.code, label(s.label, locale)]));
   const stationName = new Map(stationRows.map((s) => [s.id, label(s.name, locale)]));
 
-  const [[inProgress], [completed], [openMaintenance], [activeLocomotives], [turnaroundsInRange], recent, rows] =
-    await Promise.all([
+  const [
+    [inProgress],
+    [completed],
+    [openMaintenance],
+    [activeLocomotives],
+    [turnaroundsInRange],
+    recent,
+    rows,
+    locomotiveRows,
+    turnaroundSpans,
+    maintenanceSpans,
+  ] = await Promise.all([
       db.select({ value: count() }).from(turnarounds).where(isNull(turnarounds.closedAt)),
       db
         .select({ value: count() })
@@ -84,7 +121,55 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         .innerJoin(turnarounds, eq(turnarounds.id, turnaroundOperations.turnaroundId))
         .where(inRange)
         .orderBy(asc(turnaroundOperations.turnaroundId), asc(operationTypes.seq)),
+      getActiveLocomotives(),
+      // Busy spans for the downtime card: each turnaround the locomotive served, first to last
+      // recorded operation. ponytail: the whole span counts as busy even though the locomotive
+      // attaches mid-turnaround — split per-operation if dispatch ever needs the finer number.
+      db
+        .select({
+          locomotiveId: turnarounds.locomotiveId,
+          from: sql<string>`min(${turnaroundOperations.occurredAt})`,
+          to: sql<string>`max(${turnaroundOperations.occurredAt})`,
+        })
+        .from(turnarounds)
+        .innerJoin(turnaroundOperations, eq(turnaroundOperations.turnaroundId, turnarounds.id))
+        .where(and(isNotNull(turnarounds.locomotiveId), inRange))
+        .groupBy(turnarounds.id, turnarounds.locomotiveId),
+      // ТОИР intervals that touch the window; an open record runs to now.
+      db
+        .select({
+          locomotiveId: maintenanceRecords.locomotiveId,
+          sentAt: maintenanceRecords.sentAt,
+          returnedAt: maintenanceRecords.returnedAt,
+        })
+        .from(maintenanceRecords)
+        .where(
+          and(
+            lte(maintenanceRecords.sentAt, windowTo),
+            or(isNull(maintenanceRecords.returnedAt), gte(maintenanceRecords.returnedAt, windowFrom)),
+          ),
+        ),
     ]);
+
+  const busyByLocomotive = new Map<number, Interval[]>();
+  const markBusy = (locomotiveId: number, interval: Interval) => {
+    const list = busyByLocomotive.get(locomotiveId);
+    if (list) list.push(interval);
+    else busyByLocomotive.set(locomotiveId, [interval]);
+  };
+  for (const span of turnaroundSpans) {
+    if (span.locomotiveId) markBusy(span.locomotiveId, { from: new Date(span.from), to: new Date(span.to) });
+  }
+  for (const record of maintenanceSpans) {
+    // An open ТОИР record runs to the end of the window — downtimeMinutes clips it anyway.
+    markBusy(record.locomotiveId, { from: record.sentAt, to: record.returnedAt ?? windowTo });
+  }
+  const downtime = locomotiveRows
+    .map((locomotive) => ({
+      locomotive,
+      minutes: downtimeMinutes(windowFrom, windowTo, busyByLocomotive.get(locomotive.id) ?? []),
+    }))
+    .sort((a, b) => b.minutes - a.minutes);
 
   const segments = routeSegments(catalogue);
   const stats = segmentStats(segments, rows);
@@ -278,6 +363,40 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="card">
+        <div className="card-head">
+          <h2 className="card-title">{t("dashboard.locomotiveDowntime")}</h2>
+          <span className="text-muted text-xs">
+            {formatDate(from, locale)} – {formatDate(to, locale)}
+          </span>
+        </div>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t("common.locomotive")}</th>
+              <th className="whitespace-nowrap">{t("dashboard.downtime")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {downtime.length === 0 && (
+              <tr>
+                <td colSpan={2} className="text-muted text-center">
+                  {t("common.empty")}
+                </td>
+              </tr>
+            )}
+            {downtime.map(({ locomotive, minutes }) => (
+              <tr key={locomotive.id}>
+                <td className="font-medium">
+                  {locomotive.number} · {locomotive.owner}
+                </td>
+                <td className="whitespace-nowrap tabular-nums">{formatDowntime(minutes, locale)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {detail && (

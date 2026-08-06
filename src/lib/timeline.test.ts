@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { operationStats, routeSegments, segmentStats, transitStats, type Row } from "./timeline";
+import { downtimeMinutes, operationStats, routeSegments, segmentStats, transitStats, type Row } from "./timeline";
 
 const BK = 1;
 const GRD = 2;
@@ -83,5 +83,37 @@ test("step time is the gap from the preceding recorded step of the same turnarou
       [1, 2, null], // first step of the turnaround has nothing before it
       [2, 2, 30], // mean of 20 and 40
     ],
+  );
+});
+
+test("downtime is the window minus merged busy intervals, clipped to the window", () => {
+  const windowFrom = at("2026-08-06T00:00:00Z");
+  const windowTo = at("2026-08-07T00:00:00Z"); // 1440 minutes
+
+  // No intervals: the whole window is downtime.
+  assert.equal(downtimeMinutes(windowFrom, windowTo, []), 1440);
+
+  // Overlapping intervals count once: 10:00–12:00 and 11:00–13:00 -> 3 busy hours.
+  assert.equal(
+    downtimeMinutes(windowFrom, windowTo, [
+      { from: at("2026-08-06T10:00:00Z"), to: at("2026-08-06T12:00:00Z") },
+      { from: at("2026-08-06T11:00:00Z"), to: at("2026-08-06T13:00:00Z") },
+    ]),
+    1440 - 180,
+  );
+
+  // An interval entirely outside the window changes nothing; one spanning the edge is clipped.
+  assert.equal(
+    downtimeMinutes(windowFrom, windowTo, [
+      { from: at("2026-08-05T00:00:00Z"), to: at("2026-08-05T06:00:00Z") },
+      { from: at("2026-08-06T23:00:00Z"), to: at("2026-08-07T05:00:00Z") },
+    ]),
+    1440 - 60,
+  );
+
+  // A busy interval covering everything leaves zero.
+  assert.equal(
+    downtimeMinutes(windowFrom, windowTo, [{ from: at("2026-08-05T00:00:00Z"), to: at("2026-08-08T00:00:00Z") }]),
+    0,
   );
 });

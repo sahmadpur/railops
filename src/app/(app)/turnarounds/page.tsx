@@ -1,17 +1,20 @@
-import { and, count, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 import RowLink from "@/components/RowLink";
+import SearchSelect from "@/components/SearchSelect";
 import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
 import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users } from "@/db/schema";
 import { getFormOptions } from "@/lib/catalogue";
 import { formatDate, label } from "@/lib/format";
 import { requireSession } from "@/lib/session";
+import { turnaroundFilters } from "@/lib/turnaround-filters";
+import { nextStationId, type EntryLike } from "@/lib/turnaround-rules";
 
 export default async function TurnaroundsPage({ searchParams }: PageProps<"/turnarounds">) {
-  await requireSession();
+  const session = await requireSession();
   const [t, locale, query, options] = await Promise.all([
     getTranslations(),
     getLocale(),
@@ -23,15 +26,13 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
   const to = typeof query.to === "string" ? query.to : "";
   const status = typeof query.status === "string" ? query.status : "";
   const locomotiveId = typeof query.locomotiveId === "string" ? query.locomotiveId : "";
+  const trainNumberId = typeof query.trainNumberId === "string" ? query.trainNumberId : "";
+  const q = typeof query.q === "string" ? query.q.trim() : "";
 
-  const filters: SQL[] = [];
-  if (from) filters.push(gte(turnarounds.cycleDate, from));
-  if (to) filters.push(lte(turnarounds.cycleDate, to));
-  if (status) filters.push(eq(turnarounds.statusCode, status));
-  if (locomotiveId) filters.push(eq(turnarounds.locomotiveId, Number(locomotiveId)));
+  const filters = turnaroundFilters({ from, to, status, locomotiveId, trainNumberId, q });
   const where = filters.length ? and(...filters) : undefined;
 
-  const rows = await db
+  let rows = await db
     .select({
       id: turnarounds.id,
       cycleDate: turnarounds.cycleDate,
@@ -55,10 +56,43 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
     .orderBy(desc(turnarounds.cycleDate), desc(turnarounds.id))
     .limit(200);
 
+  // An operator's list is the station's inbox: only records whose next unfilled mandatory step
+  // is at their station — arrived from the previous station, gone again once their part is done.
+  if (session.role === "operator" && rows.length) {
+    const entryRows = await db
+      .select({
+        turnaroundId: turnaroundOperations.turnaroundId,
+        operationTypeId: turnaroundOperations.operationTypeId,
+        occurredAt: turnaroundOperations.occurredAt,
+      })
+      .from(turnaroundOperations)
+      .where(
+        inArray(
+          turnaroundOperations.turnaroundId,
+          rows.map((r) => r.id),
+        ),
+      );
+    const entriesByTurnaround = new Map<number, EntryLike[]>();
+    for (const entry of entryRows) {
+      const list = entriesByTurnaround.get(entry.turnaroundId);
+      if (list) list.push(entry);
+      else entriesByTurnaround.set(entry.turnaroundId, [entry]);
+    }
+    // The route's final station: a fully filled but still-open turnaround stays on its list
+    // until someone closes it, so finishing the last operation cannot strand the record.
+    const lastStationId =
+      options.catalogue.filter((o) => o.isActive).sort((a, b) => a.seq - b.seq).at(-1)?.stationId ?? null;
+    rows = rows.filter((row) => {
+      const next = nextStationId(options.catalogue, entriesByTurnaround.get(row.id) ?? []);
+      if (next !== null) return next === session.stationId;
+      return row.closedAt === null && lastStationId === session.stationId;
+    });
+  }
+
   const totalOperations = options.catalogue.filter((o) => o.isActive).length;
   const statusLabel = new Map(options.statuses.map((s) => [s.code, label(s.label, locale)]));
   const exportParams = new URLSearchParams(
-    Object.entries({ from, to, status, locomotiveId }).filter(([, v]) => v) as [string, string][],
+    Object.entries({ from, to, status, locomotiveId, trainNumberId, q }).filter(([, v]) => v) as [string, string][],
   );
 
   return (
@@ -71,9 +105,11 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
           </p>
         </div>
         <div className="flex gap-2">
-          <a href={`/api/export/turnarounds?${exportParams}`} className="btn text-xs">
-            {t("common.exportExcel")}
-          </a>
+          {session.role === "admin" && (
+            <a href={`/api/export/turnarounds?${exportParams}`} className="btn text-xs">
+              {t("common.exportExcel")}
+            </a>
+          )}
           <Link href="/turnarounds/new" className="btn btn-primary text-xs">
             {t("turnarounds.new")}
           </Link>
@@ -82,12 +118,32 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
 
       <form className="filter-bar">
         <label className="flex flex-col gap-1">
+          <span className="text-muted">{t("common.search")}</span>
+          <input
+            type="search"
+            name="q"
+            defaultValue={q}
+            placeholder={t("common.search")}
+            className="field w-auto"
+          />
+        </label>
+        <label className="flex flex-col gap-1">
           <span className="text-muted">{t("common.from")}</span>
           <input type="date" name="from" defaultValue={from} className="field w-auto" />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-muted">{t("common.to")}</span>
           <input type="date" name="to" defaultValue={to} className="field w-auto" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-muted">{t("common.trainNumber")}</span>
+          <SearchSelect
+            name="trainNumberId"
+            options={options.trainNumbers.map((n) => ({ id: n.id, text: `${n.number} · ${n.country}` }))}
+            defaultId={trainNumberId || null}
+            placeholder={t("common.all")}
+            className="field w-auto"
+          />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-muted">{t("common.locomotive")}</span>

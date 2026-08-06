@@ -17,11 +17,15 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     ? (await db.select().from(stations).where(eq(stations.id, session.stationId)).limit(1))[0]
     : null;
 
-  const links: NavItem[] = [
-    { href: "/dashboard", text: t("nav.dashboard"), icon: "dashboard" },
-    { href: "/turnarounds", text: t("nav.turnarounds"), icon: "turnarounds" },
-    { href: "/reports/journal", text: t("nav.journal"), icon: "journal" },
-  ];
+  // Operators work the turnaround interface and nothing else.
+  const links: NavItem[] =
+    session.role === "admin"
+      ? [
+          { href: "/dashboard", text: t("nav.dashboard"), icon: "dashboard" },
+          { href: "/turnarounds", text: t("nav.turnarounds"), icon: "turnarounds" },
+          { href: "/reports/journal", text: t("nav.journal"), icon: "journal" },
+        ]
+      : [{ href: "/turnarounds", text: t("nav.turnarounds"), icon: "turnarounds" }];
 
   const adminLinks: NavItem[] =
     session.role === "admin"
