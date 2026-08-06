@@ -1,7 +1,8 @@
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { saveOperationType } from "@/actions/registry";
+import { deleteRow, saveOperationType } from "@/actions/registry";
 import ActionForm from "@/components/ActionForm";
+import DeleteButton from "@/components/DeleteButton";
 import { getCatalogue, getStations } from "@/lib/catalogue";
 import { label } from "@/lib/format";
 import { locales } from "@/i18n/config";
@@ -15,6 +16,12 @@ export default async function AdminOperationsPage() {
   ]);
 
   const messages = { saved: t("common.saved"), duplicate: t("errors.duplicate"), generic: t("errors.generic") };
+  const deleteLabels = {
+    delete: t("common.delete"),
+    confirm: t("common.deleteConfirm"),
+    inUse: t("errors.inUse"),
+    generic: t("errors.generic"),
+  };
 
   return (
     <div className="space-y-3">
@@ -30,6 +37,7 @@ export default async function AdminOperationsPage() {
               <th className="w-8">{t("admin.operations.seq")}</th>
               <th>{t("admin.operations.operation")}</th>
               <th className="w-20">{t("admin.operations.fields")}</th>
+              <th className="w-32">{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -94,6 +102,12 @@ export default async function AdminOperationsPage() {
                 </td>
                 <td className="text-muted">
                   {operation.fields.length === 0 ? "—" : operation.fields.map((f) => t(`fields.${f}`)).join(", ")}
+                </td>
+                <td className="whitespace-nowrap">
+                  <DeleteButton action={deleteRow} labels={deleteLabels}>
+                    <input type="hidden" name="table" value="operationTypes" />
+                    <input type="hidden" name="id" value={operation.id} />
+                  </DeleteButton>
                 </td>
               </tr>
             ))}

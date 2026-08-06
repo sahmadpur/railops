@@ -2,8 +2,9 @@ import { desc, eq } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
-import { markMaintenanceReturned, saveMaintenance } from "@/actions/registry";
+import { deleteRow, markMaintenanceReturned, saveMaintenance } from "@/actions/registry";
 import ActionForm from "@/components/ActionForm";
+import DeleteButton from "@/components/DeleteButton";
 import { db } from "@/db";
 import { locomotives, maintenanceRecords } from "@/db/schema";
 import { getActiveLocomotives, getReference } from "@/lib/catalogue";
@@ -35,6 +36,12 @@ export default async function AdminMaintenancePage() {
   ]);
 
   const messages = { saved: t("common.saved"), duplicate: t("errors.duplicate"), generic: t("errors.generic") };
+  const deleteLabels = {
+    delete: t("common.delete"),
+    confirm: t("common.deleteConfirm"),
+    inUse: t("errors.inUse"),
+    generic: t("errors.generic"),
+  };
   const typeLabel = new Map(types.map((r) => [r.code, label(r.label, locale)]));
   const reasonLabel = new Map(reasons.map((r) => [r.code, label(r.label, locale)]));
 
@@ -108,12 +115,13 @@ export default async function AdminMaintenancePage() {
               <th>{t("admin.maintenance.returnedAt")}</th>
               <th>{t("nav.turnarounds")}</th>
               <th>{t("common.actions")}</th>
+              <th className="w-32">{t("common.delete")}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="text-muted text-center">
+                <td colSpan={8} className="text-muted text-center">
                   {t("common.empty")}
                 </td>
               </tr>
@@ -167,6 +175,12 @@ export default async function AdminMaintenancePage() {
                       <input type="hidden" name="id" value={row.id} />
                     </ActionForm>
                   )}
+                </td>
+                <td className="whitespace-nowrap">
+                  <DeleteButton action={deleteRow} labels={deleteLabels}>
+                    <input type="hidden" name="table" value="maintenanceRecords" />
+                    <input type="hidden" name="id" value={row.id} />
+                  </DeleteButton>
                 </td>
               </tr>
             ))}

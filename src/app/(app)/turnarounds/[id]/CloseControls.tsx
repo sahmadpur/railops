@@ -2,7 +2,8 @@
 
 import { useActionState } from "react";
 
-import { closeTurnaround, reopenTurnaround, type ActionResult } from "@/actions/turnaround";
+import { closeTurnaround, deleteTurnaround, reopenTurnaround, type ActionResult } from "@/actions/turnaround";
+import DeleteButton from "@/components/DeleteButton";
 
 type Labels = {
   close: string;
@@ -12,6 +13,8 @@ type Labels = {
   success: string;
   generic: string;
   forbidden: string;
+  delete: string;
+  deleteConfirm: string;
 };
 
 export default function CloseControls({
@@ -60,6 +63,14 @@ export default function CloseControls({
           </button>
         </form>
       )}
+
+      {/* Removes the turnaround and every operation recorded against it. */}
+      <DeleteButton
+        action={deleteTurnaround}
+        labels={{ delete: labels.delete, confirm: labels.deleteConfirm, generic: labels.generic }}
+      >
+        <input type="hidden" name="turnaroundId" value={turnaroundId} />
+      </DeleteButton>
 
       {isClosed && <span className="badge badge-success">{labels.closed}</span>}
       {!isClosed && missingCount > 0 && <span className="text-warning max-w-[260px] text-end">{labels.missing}</span>}

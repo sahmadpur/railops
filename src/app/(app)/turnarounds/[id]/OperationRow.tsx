@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 
 import type { OperationField } from "@/db/schema";
 import { clearOperation, saveOperation, type ActionResult } from "@/actions/turnaround";
+import { toLocalInputValue } from "@/lib/format";
 
 export type Option = { id: number | string; text: string };
 
@@ -91,6 +92,15 @@ export default function OperationRow({
   const [clearState, clear, clearing] = useActionState(clearOperation, undefined);
   const feedback = message(saveState, labels) ?? message(clearState, labels);
 
+  // An unrecorded step is stamped with the moment the operator opens it, so the usual case is
+  // pressing Save. Filling it here rather than on the server keeps the value in the browser's
+  // own timezone and avoids a hydration mismatch. React clears an uncontrolled form once its
+  // action resolves, so refill after a rejected save too rather than leaving the field empty.
+  const occurredAt = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (occurredAt.current && !occurredAt.current.value) occurredAt.current.value = toLocalInputValue(new Date());
+  }, [saveState, clearState]);
+
   const obligationTone =
     row.obligation === "required" ? "text-muted" : row.obligation === "conditional" ? "text-warning" : "text-faint";
 
@@ -114,11 +124,11 @@ export default function OperationRow({
           <input type="hidden" name="turnaroundId" value={row.turnaroundId} />
           <input type="hidden" name="operationTypeId" value={row.operationTypeId} />
           <input
+            ref={occurredAt}
             type="datetime-local"
             name="occurredAt"
             defaultValue={row.occurredAtValue}
             disabled={!row.editable}
-            required
             className="field w-[190px]"
           />
 

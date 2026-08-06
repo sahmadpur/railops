@@ -1,8 +1,9 @@
 import { asc } from "drizzle-orm";
 import { getTranslations } from "next-intl/server";
 
-import { saveTrainNumber } from "@/actions/registry";
+import { deleteRow, saveTrainNumber } from "@/actions/registry";
 import ActionForm from "@/components/ActionForm";
+import DeleteButton from "@/components/DeleteButton";
 import { db } from "@/db";
 import { trainNumbers } from "@/db/schema";
 
@@ -13,6 +14,12 @@ export default async function AdminTrainNumbersPage() {
   ]);
 
   const messages = { saved: t("common.saved"), duplicate: t("errors.duplicate"), generic: t("errors.generic") };
+  const deleteLabels = {
+    delete: t("common.delete"),
+    confirm: t("common.deleteConfirm"),
+    inUse: t("errors.inUse"),
+    generic: t("errors.generic"),
+  };
 
   return (
     <div className="space-y-4">
@@ -45,6 +52,7 @@ export default async function AdminTrainNumbersPage() {
               <th>{t("admin.trainNumbers.parity")}</th>
               <th>{t("admin.trainNumbers.country")}</th>
               <th>{t("common.status")}</th>
+              <th>{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -73,6 +81,12 @@ export default async function AdminTrainNumbersPage() {
                       <option value="false">{t("common.inactive")}</option>
                     </select>
                   </ActionForm>
+                </td>
+                <td className="whitespace-nowrap">
+                  <DeleteButton action={deleteRow} labels={deleteLabels}>
+                    <input type="hidden" name="table" value="trainNumbers" />
+                    <input type="hidden" name="id" value={row.id} />
+                  </DeleteButton>
                 </td>
               </tr>
             ))}

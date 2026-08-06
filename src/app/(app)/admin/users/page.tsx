@@ -1,8 +1,9 @@
 import { asc, eq } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { saveUser, toggleUser } from "@/actions/registry";
+import { deleteRow, saveUser, toggleUser } from "@/actions/registry";
 import ActionForm from "@/components/ActionForm";
+import DeleteButton from "@/components/DeleteButton";
 import { db } from "@/db";
 import { stations, users } from "@/db/schema";
 import { getStations } from "@/lib/catalogue";
@@ -34,6 +35,13 @@ export default async function AdminUsersPage() {
     stationRequired: t("admin.users.stationRequired"),
     generic: t("errors.generic"),
     forbidden: t("errors.forbidden"),
+  };
+
+  const deleteLabels = {
+    delete: t("common.delete"),
+    confirm: t("common.deleteConfirm"),
+    inUse: t("errors.inUse"),
+    generic: t("errors.generic"),
   };
 
   return (
@@ -88,6 +96,7 @@ export default async function AdminUsersPage() {
               <th>{t("common.station")}</th>
               <th>{t("admin.users.newPassword")}</th>
               <th>{t("common.status")}</th>
+              <th>{t("common.actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -138,6 +147,12 @@ export default async function AdminUsersPage() {
                       {row.isActive ? t("common.active") : t("common.inactive")}
                     </span>
                   </ActionForm>
+                </td>
+                <td className="whitespace-nowrap">
+                  <DeleteButton action={deleteRow} labels={deleteLabels}>
+                    <input type="hidden" name="table" value="users" />
+                    <input type="hidden" name="id" value={row.id} />
+                  </DeleteButton>
                 </td>
               </tr>
             ))}

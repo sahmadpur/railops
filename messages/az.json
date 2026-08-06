@@ -43,6 +43,7 @@
     "create": "Yarat",
     "edit": "Dəyiş",
     "delete": "Sil",
+    "deleteConfirm": "Bu qeyd silinsin? Geri qaytarmaq mümkün deyil.",
     "deactivate": "Deaktiv et",
     "activate": "Aktiv et",
     "active": "Aktiv",
@@ -74,12 +75,21 @@
   "dashboard": {
     "title": "İcmal",
     "openTurnarounds": "Davam edən dövriyyələr",
-    "completedToday": "Bu gün tamamlanan",
+    "completedInRange": "Seçilmiş dövrdə tamamlanan",
     "openMaintenance": "TOİR-də olan lokomotivlər",
     "locomotivesActive": "Aktiv lokomotivlər",
-    "byStation": "Bu gün qeyd olunan əməliyyatlar (stansiyalar üzrə)",
     "recent": "Son dövriyyələr",
-    "avgElapsed": "Orta dövriyyə vaxtı (son 30 gün)"
+    "avgElapsed": "Orta dövriyyə vaxtı",
+    "timeline": {
+      "title": "Stansiyalar üzrə sərf olunan vaxt",
+      "basedOn": "Seçilmiş dövrdə {count} dövriyyə",
+      "avgTime": "Stansiyada orta vaxt",
+      "turnarounds": "Ölçülən dövriyyələr",
+      "operations": "Qeyd olunan əməliyyatlar",
+      "recorded": "Qeyd sayı",
+      "stepTime": "Addım vaxtı",
+      "returnLeg": "qayıdış"
+    }
   },
   "turnarounds": {
     "title": "Dövriyyələr",
@@ -97,7 +107,8 @@
     "notYourStation": "Başqa stansiyanın əməliyyatı — yalnız oxumaq üçün.",
     "alreadyExists": "Bu qatarın həmin tarixə artıq dövriyyəsi var.",
     "cannotOpenHere": "Sizin stansiyanızda dövriyyə açılmır.",
-    "operationsFilled": "{total} əməliyyatdan {filled} qeyd olunub"
+    "operationsFilled": "{total} əməliyyatdan {filled} qeyd olunub",
+    "deleteConfirm": "Bu dövriyyə və ona aid bütün əməliyyatlar silinsin? Geri qaytarmaq mümkün deyil."
   },
   "errors": {
     "wrong_station": "Yalnız öz stansiyanızın əməliyyatlarını qeyd edə bilərsiniz.",
@@ -106,6 +117,9 @@
     "missing_field": "{seq} nömrəli əməliyyat üçün «{field}» sahəsi tələb olunur.",
     "invalid_timestamp": "Düzgün tarix və vaxt daxil edin.",
     "operation_inactive": "Bu əməliyyat kataloqda deaktivdir.",
+    "locked_operation": "Əvvəlcə {seq} nömrəli əməliyyatı qeyd edin — dövriyyə ardıcıllıqla doldurulur.",
+    "clear_later_first": "Əvvəlcə {seq} nömrəli əməliyyatı təmizləyin — yalnız sonuncu qeyd silinə bilər.",
+    "inUse": "Bu qeyd mövcud yazılarda istifadə olunur və silinə bilməz. Əvəzində deaktiv edin.",
     "forbidden": "Bu əməliyyat üçün icazəniz yoxdur.",
     "notFound": "Qeyd tapılmadı.",
     "duplicate": "Bu dəyərlərlə qeyd artıq mövcuddur.",
@@ -197,7 +211,8 @@
       "changes": "Dəyişikliklər",
       "insert": "Yaradıldı",
       "update": "Dəyişdirildi",
-      "delete": "Silindi"
+      "delete": "Silindi",
+      "deleteConfirm": "Bu jurnal qeydi silinsin? Jurnalın özü izlənmir, ona görə heç bir iz qalmayacaq."
     }
   }
 }

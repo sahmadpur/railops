@@ -3,10 +3,13 @@ import { test } from "node:test";
 
 import {
   canEdit,
+  checkClearable,
+  checkUnlocked,
   elapsedMinutes,
   formatElapsed,
   missingForClose,
   openingRule,
+  unlockedIds,
   validateEntry,
   type EntryLike,
   type OperationTypeLike,
@@ -152,6 +155,55 @@ test("inactive operations neither block a close nor accept writes", () => {
     [],
   );
   assert.equal(error?.code, "operation_inactive");
+});
+
+const unlockedSeqs = (entries: EntryLike[]) =>
+  catalogue.filter((o) => unlockedIds(catalogue, entries).has(o.id)).map((o) => o.seq);
+
+test("only the next unfilled step is open, and everything after it is locked", () => {
+  // Nothing recorded: seq 1 is the blocker, so seq 1 is the only step open.
+  assert.deepEqual(unlockedSeqs([]), [1]);
+  assert.equal(checkUnlocked(catalogue[3], catalogue, [])?.code, "locked_operation");
+
+  const first: EntryLike[] = [{ operationTypeId: 10, occurredAt: at("2026-08-06T10:00:00Z") }];
+  assert.deepEqual(unlockedSeqs(first), [1, 2, 3]); // seq 3 runs parallel to the blocker seq 2
+  assert.equal(checkUnlocked(catalogue[2], catalogue, first), null);
+  assert.equal(checkUnlocked(catalogue[3], catalogue, first)?.code, "locked_operation");
+});
+
+test("an unfilled optional step does not wedge the sequence", () => {
+  const throughSeq4: EntryLike[] = [
+    { operationTypeId: 10, occurredAt: at("2026-08-06T10:00:00Z") },
+    { operationTypeId: 20, occurredAt: at("2026-08-06T10:10:00Z") },
+    { operationTypeId: 30, occurredAt: at("2026-08-06T10:10:00Z") },
+    { operationTypeId: 40, occurredAt: at("2026-08-06T12:00:00Z") },
+  ];
+  // Optional seq 5 is skipped and its conditional seq 6 is not triggered, so nothing is
+  // mandatory any more — the whole catalogue stays open.
+  assert.deepEqual(unlockedSeqs(throughSeq4), [1, 2, 3, 4, 5, 6]);
+
+  // Fill the optional step and its conditional partner becomes the blocker, not a lock.
+  const withTrigger = [...throughSeq4, { operationTypeId: 50, occurredAt: at("2026-08-06T13:00:00Z") }];
+  assert.deepEqual(unlockedSeqs(withTrigger), [1, 2, 3, 4, 5, 6]);
+});
+
+test("a recorded step stays open even when an earlier one is cleared", () => {
+  // seq 4 was filled, then seq 2 cleared: seq 2 blocks, but seq 4 is still editable.
+  const withHole: EntryLike[] = [
+    { operationTypeId: 10, occurredAt: at("2026-08-06T10:00:00Z") },
+    { operationTypeId: 40, occurredAt: at("2026-08-06T12:00:00Z") },
+  ];
+  assert.deepEqual(unlockedSeqs(withHole), [1, 2, 3, 4]);
+});
+
+test("only the newest step may be cleared, and admins are exempt", () => {
+  const entries: EntryLike[] = [
+    { operationTypeId: 10, occurredAt: at("2026-08-06T10:00:00Z") },
+    { operationTypeId: 20, occurredAt: at("2026-08-06T10:10:00Z") },
+  ];
+  assert.equal(checkClearable(bkOperator, catalogue[0], catalogue, entries)?.code, "clear_later_first");
+  assert.equal(checkClearable(bkOperator, catalogue[1], catalogue, entries), null);
+  assert.equal(checkClearable(admin, catalogue[0], catalogue, entries), null);
 });
 
 test("elapsed time spans first to last operation", () => {
