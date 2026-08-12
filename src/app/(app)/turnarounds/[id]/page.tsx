@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import AutoRefresh from "@/components/AutoRefresh";
 import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
 import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users, type OperationField } from "@/db/schema";
@@ -167,6 +168,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
 
   return (
     <div className="space-y-5">
+      <AutoRefresh />
       <div>
         <Link href="/turnarounds" className="text-muted text-xs hover:underline">
           ← {t("turnarounds.title")}

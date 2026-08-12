@@ -61,7 +61,8 @@ src/lib/turnaround-rules.ts   station scoping, chronology, close-completeness (p
 src/lib/journal.ts            the monthly grid, shared by the print page and the Excel export
 src/actions/                  server actions (turnaround, registry, auth)
 src/app/(app)/                authenticated pages; /admin requires the admin role
-messages/{az,ru,en,ka}.json   UI strings, cookie-selected locale
+messages/{az,ru,en,ka}.json   UI strings and the user manual text, cookie-selected locale
+scripts/manual-shots.mjs      re-shoots public/manual/ — the manual's figures, one set per locale
 ```
 
 ## Checks

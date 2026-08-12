@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "RailOps",
+    "name": "Monstyk",
     "subtitle": "Lokomotiv dövriyyəsinin qeydiyyatı və reyestrlər"
   },
   "nav": {
@@ -17,7 +17,8 @@
     "operations": "Əməliyyat kataloqu",
     "audit": "Dəyişiklik jurnalı",
     "signOut": "Çıxış",
-    "language": "Dil"
+    "language": "Dil",
+    "manual": "İstifadəçi təlimatı"
   },
   "login": {
     "title": "Giriş",
@@ -230,6 +231,132 @@
       "update": "Dəyişdirildi",
       "delete": "Silindi",
       "deleteConfirm": "Bu jurnal qeydi silinsin? Jurnalın özü izlənmir, ona görə heç bir iz qalmayacaq."
+    }
+  },
+  "manual": {
+    "title": "İstifadəçi təlimatı",
+    "intro": "Dövriyyə jurnalının Monstyk-də aparılması — ekran-ekran. Şəkillər proqramı seçdiyiniz dildə göstərir.",
+    "operator": "Operatorlar üçün",
+    "admin": "Administratorlar üçün",
+    "sections": {
+      "signIn": {
+        "title": "Sistemə giriş",
+        "body": "Hesabları administrator yaradır. Hər hesab bir stansiyaya bağlıdır: proqram əməliyyatları yalnız öz stansiyanız üzrə qəbul edir.",
+        "steps": [
+          "Giriş səhifəsinin yuxarısındakı seçicidə dilinizi seçin — seçim proqramın içində də qüvvədə qalır.",
+          "Administratorun verdiyi e-poçt ünvanını və şifrəni daxil edin.",
+          "Sessiya on iki saat — bir növbə çəkir. Müddət bitəndə yenidən daxil olun.",
+          "Deaktiv edilmiş hesabla sistemə girmək olmur; hesabın yenidən aktivləşdirilməsi üçün administratora müraciət edin."
+        ]
+      },
+      "list": {
+        "title": "Dövriyyə siyahınız",
+        "body": "Siyahıda stansiyanızı gözləyən dövriyyələr görünür. Qeyd əvvəlki stansiya öz hissəsini bitirəndə peyda olur, sizinki bitəndə siyahıdan çıxır. Bütün əməliyyatları yazılmış, amma hələ açıq qalan dövriyyə bağlanana qədər marşrutun son stansiyasında qalır.",
+        "steps": [
+          "Siyahını tarix aralığına, qatar nömrəsinə, lokomotivə və ya statusa görə daraldıb «Süzgəc» düyməsini basın; «Sıfırla» bütün süzgəcləri təmizləyir.",
+          "Dövriyyəni birinci sütundakı nömrəyə və ya sətrə iki dəfə klikləməklə açın.",
+          "«Doldurulub» yazılmış əməliyyatların sayını, «Sərf olunan vaxt» ilk əməliyyatdan keçən müddəti göstərir.",
+          "Siyahı öz-özünə yenilənir — başqa stansiyanın təhvil verdiyi dövriyyə səhifəni yeniləmədən görünür."
+        ]
+      },
+      "open": {
+        "title": "Dövriyyənin açılması",
+        "body": "Cüt qatar nömrələrini Böyük Kəsik, təkləri Tbilisi açır: nömrənin cütlüyü istiqaməti müəyyən edir. Qardabani dövriyyə açmır — yalnız qəbul edir.",
+        "steps": [
+          "«Yeni dövriyyə» düyməsini basın.",
+          "Qatar nömrəsini yazmağa başlayıb siyahıdan seçin; yalnız hazırda boş olan nömrələr təklif edilir.",
+          "Dövriyyə tarixi standart olaraq bugünkü gündür; daha əvvəl başlamış növbə üçün yazırsınızsa, tarixi dəyişin.",
+          "«Yarat» düyməsini basın. Qatar artıq bitməmiş dövriyyədədirsə, proqram imtina edib bunu bildirəcək."
+        ]
+      },
+      "record": {
+        "title": "Əməliyyatların qeydi",
+        "body": "Dövriyyənin əməliyyatları dəyişməz ardıcıllıqla gedir. Yalnız növbəti yazılmamış addımı və yalnız öz stansiyanızın sətirlərini doldurmaq olur; qalan sətirlər qatarın harada olduğunu görəsiniz deyə ancaq oxunuş üçün göstərilir.",
+        "steps": [
+          "«Vaxt» xanasına əməliyyatın tarixini və saatını yazın. Vaxt əvvəlki və sonrakı əməliyyatların arasına düşməlidir — ardıcıllığı pozan vaxt qəbul edilmir.",
+          "Bəzi addımlar bir əlavə dəyər də istəyir: qatar nömrəsi, lokomotiv, ayrılma səbəbi və ya texniki işin növü ilə səbəbi.",
+          "«Yadda saxla» düyməsini basın — sətirdə yaşıl işarə və qeydi aparanın adı görünəcək.",
+          "«Təmizlə» qeydi silir, amma yalnız ən son qeydi: daha əvvəlki addımı düzəltmək üçün əvvəlcə sonrakıları təmizləyin.",
+          "«Əvvəlki əməliyyatları göstər» marşrutun artıq keçilmiş hissəsini açır."
+        ]
+      },
+      "close": {
+        "title": "Dövriyyənin bağlanması",
+        "body": "Dövriyyə bütün mütləq əməliyyatlar yazılandan sonra bağlanır. İxtiyari addımlar boş qala bilər; şərtli addım isə yalnız onu şərtləndirən əməliyyat baş verəndə tələb olunur.",
+        "steps": [
+          "Mütləq əməliyyat çatışmadıqca başlıqda neçəsinin qaldığı göstərilir və bağlama düyməsi çıxmır.",
+          "Çatışmayan qalmayanda «Dövriyyəni bağla» düyməsini basın.",
+          "Bağlanmış dövriyyə yalnız oxunuş üçündür; onu yenidən yalnız administrator aça bilər."
+        ]
+      },
+      "dashboard": {
+        "title": "İcmal",
+        "body": "İcmal tarix süzgəcində seçilmiş dövrün yekununu göstərir.",
+        "steps": [
+          "«Başlanğıc» və «Son» tarixlərini qeyd edib «Süzgəc» düyməsini basın — göstəricilər, vaxtlar və dayanmalar həmin aralıq üzrə hesablanır.",
+          "«Stansiyalar üzrə sərf olunan vaxt» hər stansiyanın qatarı orta hesabla nə qədər saxladığını və stansiyalar arasındakı yol vaxtını göstərir.",
+          "«Lokomotivlərin boş dayanması» dövr ərzində hər lokomotivin nə qədər boş dayandığını göstərir.",
+          "«Son dövriyyələr» birbaşa qeydlərin özünə aparır."
+        ]
+      },
+      "journal": {
+        "title": "Aylıq jurnal",
+        "body": "Jurnal işçilərin öyrəşdiyi cədvəlin eynidir: əməliyyatlar sətirlərdə, dövriyyələr sütunlarda.",
+        "steps": [
+          "Ayı, lazım gələrsə bir lokomotivi də seçib «Süzgəc» düyməsini basın.",
+          "«Çap et» kağız formanı proqramın menyusu olmadan verir.",
+          "«Excel-ə çıxar» eyni cədvəli fayla yazır.",
+          "Tire həmin əməliyyat üzrə heç bir qeydin olmadığını bildirir."
+        ]
+      },
+      "users": {
+        "title": "İstifadəçilər",
+        "body": "Bütün hesablar burada yaradılır. Operator stansiyaya bağlıdır, administrator isə yox.",
+        "steps": [
+          "Soyadı və adı, e-poçtu, rolu və şifrəni doldurub «İstifadəçi yarat» düyməsini basın.",
+          "Operatora mütləq stansiya təyin olunmalıdır — stansiyasız forma yadda saxlanmır.",
+          "Mövcud istifadəçini dəyişmək üçün sətri redaktə edib yadda saxlayın; şifrə xanasını boş buraxsanız, köhnə şifrə qalır.",
+          "Hesablar silinmir, deaktiv edilir: deaktiv istifadəçi sistemə girə bilmir, amma apardığı qeydlərdə adı qalır."
+        ]
+      },
+      "fleet": {
+        "title": "Lokomotivlər, qatar nömrələri və sorğu kitabçaları",
+        "body": "Açılan siyahıların arxasındakı reyestrlər «İdarəetmə» bölməsində aparılır.",
+        "steps": [
+          "Lokomotivi nömrəsi, mənsubiyyəti və deposu ilə əlavə edin.",
+          "Qatar nömrəsinin öz dəmir yolu və cütlüyü var; hərəkət istiqamətini məhz cütlük müəyyən edir.",
+          "Sorğu kitabçalarında dövriyyə formasının təklif etdiyi «TOİR növləri», «TOİR səbəbləri» və «Ayrılma səbəbləri» saxlanılır.",
+          "Dövriyyədə artıq istifadə olunmuş qeydi silmək olmur — onu deaktiv edin: açılan siyahılardan çıxır, tarixçə isə toxunulmaz qalır."
+        ]
+      },
+      "maintenance": {
+        "title": "Texniki işlər",
+        "body": "Texniki iş lokomotivi istismardan çıxarır: qeyd açıq olduğu müddətdə həmin lokomotiv heç bir dövriyyədə təklif edilmir.",
+        "steps": [
+          "Lokomotivi, işin növünü və səbəbini, göndərilmə vaxtını seçib yadda saxlayın.",
+          "Lokomotiv qayıdanda «Qaytarılmış kimi qeyd et» düyməsini basın — lokomotiv yenidən əlçatan olur.",
+          "Dövriyyə əməliyyatından açılmış qeyddə onun hansı dövriyyədən gəldiyi göstərilir."
+        ]
+      },
+      "operations": {
+        "title": "Əməliyyat kataloqu",
+        "body": "Əməliyyat ardıcıllığı kod deyil, məlumatdır: buradakı dəyişiklik bütün dövriyyə formalarına eyni anda təsir edir.",
+        "steps": [
+          "Hər sətir ardıcıllıqdakı nömrəsini, stansiyasını, mütləq, ixtiyari, yoxsa şərtli olduğunu və topladığı əlavə sahələri göstərir.",
+          "«Paralel» sütunu addımın başqa addımdan sonra yox, onunla eyni vaxtda yazıla biləcəyini bildirir.",
+          "Dəyişiklik dərhal qüvvəyə minir; artıq yazılmış əməliyyatlar öz dəyərlərini saxlayır.",
+          "Daha toplanmamalı addımı silməyin — deaktiv edin."
+        ]
+      },
+      "audit": {
+        "title": "Dəyişiklik jurnalı",
+        "body": "Hər əlavəni, dəyişikliyi və silinməni verilənlər bazasının özü, əməliyyatı aparan istifadəçi ilə birlikdə yazır. Proqram kodu bundan yan keçə bilmir.",
+        "steps": [
+          "Bir qeydin bütün tarixçəsini izləmək üçün cədvəl, qeyd və ya istifadəçi üzrə süzün.",
+          "«Dəyişikliklər» sütunu dəyişən sahələri əvvəlki və sonrakı dəyərlərlə göstərir.",
+          "Audit qeydinin silinməsi özündən iz qoymur — təsdiq pəncərəsi bu barədə xəbərdarlıq edir."
+        ]
+      }
     }
   }
 }

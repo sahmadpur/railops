@@ -21,6 +21,7 @@ const ICONS = {
   reference: "M5 5h6v14H5zM13 5h6v14h-6M8 9h0M16 9h0",
   operations: "M7 4v16M17 4v16M4 8h6M14 16h6",
   audit: "M12 8v4l3 2M21 12a9 9 0 1 1-9-9",
+  manual: "M9.6 9.2a2.4 2.4 0 1 1 3.3 2.2c-.6.3-1 .9-1 1.6v.5M12 17h0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0",
 } as const;
 
 function Icon({ name }: { name: IconName }) {
@@ -75,7 +76,7 @@ export default function AppShell({
         }`}
       >
         <div className="flex h-[77px] items-center gap-3 px-5">
-          <span className="bg-accent grid size-9 place-items-center rounded-lg text-sm font-bold text-white">RO</span>
+          <span className="bg-accent grid size-9 place-items-center rounded-lg text-sm font-bold text-white">MS</span>
           <span className="text-lg font-semibold">{appName}</span>
         </div>
 
