@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "RailOps",
+    "name": "Monstyk",
     "subtitle": "Locomotive turnaround log and registry"
   },
   "nav": {
@@ -17,7 +17,8 @@
     "operations": "Operation catalogue",
     "audit": "Audit trail",
     "signOut": "Sign out",
-    "language": "Language"
+    "language": "Language",
+    "manual": "User manual"
   },
   "login": {
     "title": "Sign in",
@@ -230,6 +231,132 @@
       "update": "Changed",
       "delete": "Deleted",
       "deleteConfirm": "Delete this audit entry? Nothing records the audit trail itself, so this leaves no trace."
+    }
+  },
+  "manual": {
+    "title": "User manual",
+    "intro": "How the turnaround log is kept in Monstyk, screen by screen. The figures show the app in the language you have selected.",
+    "operator": "For operators",
+    "admin": "For administrators",
+    "sections": {
+      "signIn": {
+        "title": "Signing in",
+        "body": "Accounts are issued by the administrator, and each one is tied to a station: the app accepts operations only for the station on your account.",
+        "steps": [
+          "Pick your language in the selector at the top of the sign-in page; the choice carries over into the app.",
+          "Sign in with the email address and password the administrator gave you.",
+          "A session lasts twelve hours — one shift. When it runs out, sign in again.",
+          "A deactivated account cannot sign in; the administrator has to reactivate it."
+        ]
+      },
+      "list": {
+        "title": "Your turnaround list",
+        "body": "The list shows the turnarounds currently waiting on your station. A record appears when the previous station finishes its part and drops off once yours is done; a fully recorded turnaround that is still open stays with the last station on the route until it is closed.",
+        "steps": [
+          "Narrow the list by date range, train number, locomotive or status, then press Filter; Reset clears every filter.",
+          "Open a turnaround by clicking the number in the first column or double-clicking its row.",
+          "Progress counts the operations already recorded; Elapsed is the time since the first one.",
+          "The list refreshes on its own — a turnaround handed over by another station shows up without reloading the page."
+        ]
+      },
+      "open": {
+        "title": "Opening a turnaround",
+        "body": "Böyük Kəsik opens even train numbers, Tbilisi odd ones: the parity of the number carries the direction. Gardabani opens no turnarounds — it only receives them.",
+        "steps": [
+          "Press New turnaround.",
+          "Start typing the train number and pick it from the suggestions; only numbers that are currently free are offered.",
+          "The turnaround date defaults to today; change it when recording for a shift that started earlier.",
+          "Press Create. If the train is already on an unfinished turnaround, the app refuses and says so."
+        ]
+      },
+      "record": {
+        "title": "Recording operations",
+        "body": "Operations follow a fixed sequence. You can enter only the next unrecorded step, and only on rows that belong to your station; everything else is shown read-only so you can see where the train is.",
+        "steps": [
+          "Enter the operation's date and time in the Time field. It has to fall between the neighbouring operations — anything out of sequence is rejected.",
+          "Some steps ask for one extra value: a train number, a locomotive, a detachment reason, or the type and reason of technical work.",
+          "Press Save. The row gets a green tick and the name of whoever recorded it.",
+          "Clear removes a record, but only the most recent one — to correct an earlier step, clear the later ones first.",
+          "Show earlier operations expands the part of the route that is already behind the train."
+        ]
+      },
+      "close": {
+        "title": "Closing a turnaround",
+        "body": "A turnaround can be closed once every required operation is recorded. Optional steps may stay empty; a conditional step is demanded only when the operation that triggers it took place.",
+        "steps": [
+          "While required operations are missing, the header counts how many remain and no close button is shown.",
+          "When nothing is missing, press Close turnaround.",
+          "A closed turnaround becomes read-only; only an administrator can reopen it."
+        ]
+      },
+      "dashboard": {
+        "title": "Dashboard",
+        "body": "The dashboard summarises the period chosen in the date filter.",
+        "steps": [
+          "Set From and To and press Filter; every counter, timing and downtime figure follows that range.",
+          "Time spent per station shows the average time each station holds the train, and the running time between stations.",
+          "Locomotive downtime shows how long each locomotive stood idle over the period.",
+          "Recent turnarounds links straight through to the records."
+        ]
+      },
+      "journal": {
+        "title": "Monthly journal",
+        "body": "The journal reproduces the sheet the staff has always kept: operations down the rows, turnarounds across the columns.",
+        "steps": [
+          "Pick a month — and a single locomotive if you want — then press Filter.",
+          "Print outputs the paper form without the app's navigation.",
+          "Export to Excel writes the same grid to a file.",
+          "A dash means no record was made for that operation."
+        ]
+      },
+      "users": {
+        "title": "Users",
+        "body": "Every account is created here. Operators belong to a station; administrators do not.",
+        "steps": [
+          "Fill in the full name, email, role and password, then press Create user.",
+          "An operator must be assigned a station — the form will not save without one.",
+          "To change an existing user, edit the row and save; leave the password blank to keep the current one.",
+          "Accounts are deactivated, never deleted: a deactivated user cannot sign in but remains on every record they made."
+        ]
+      },
+      "fleet": {
+        "title": "Locomotives, train numbers and reference lists",
+        "body": "The registries behind the app's drop-downs live under Administration.",
+        "steps": [
+          "Add a locomotive with its number, owner and depot.",
+          "A train number carries its railway and its parity — and the parity decides the direction it runs.",
+          "Reference lists hold the technical work types, technical work reasons and detachment reasons offered on the turnaround form.",
+          "A record already used by a turnaround cannot be deleted. Deactivate it instead: it leaves the drop-downs while the history stays intact."
+        ]
+      },
+      "maintenance": {
+        "title": "Technical work",
+        "body": "Technical work takes a locomotive out of service; while the record stays open, that locomotive is not offered on any turnaround.",
+        "steps": [
+          "Pick the locomotive, the type and reason of the work and the time it was sent off, then save.",
+          "When the locomotive comes back, press Mark returned — it becomes available again.",
+          "A record opened from a turnaround operation shows which turnaround it came from."
+        ]
+      },
+      "operations": {
+        "title": "Operation catalogue",
+        "body": "The operation sequence is data, not code: a change here reshapes every turnaround form at once.",
+        "steps": [
+          "Each row declares its place in the sequence, its station, whether it is required, optional or conditional, and the extra fields it collects.",
+          "Parallel with marks a step that may be recorded alongside another rather than after it.",
+          "Edits take effect immediately; operations already recorded keep their values.",
+          "When a step should no longer be collected, disable it rather than delete it."
+        ]
+      },
+      "audit": {
+        "title": "Audit trail",
+        "body": "Every insert, change and deletion is written by the database itself, along with the user who made it — application code cannot bypass it.",
+        "steps": [
+          "Filter by table, record or user to follow one object through its entire history.",
+          "Changes lists the fields that moved, with the values before and after.",
+          "Deleting an audit entry leaves no trace of its own — the confirmation warns you about exactly that."
+        ]
+      }
     }
   }
 }

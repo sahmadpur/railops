@@ -5,7 +5,7 @@ import { getLocale } from "next-intl/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RailOps",
+  title: "Monstyk",
   description: "Locomotive turnaround log and registry",
 };
 

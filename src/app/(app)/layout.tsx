@@ -24,8 +24,12 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           { href: "/dashboard", text: t("nav.dashboard"), icon: "dashboard" },
           { href: "/turnarounds", text: t("nav.turnarounds"), icon: "turnarounds" },
           { href: "/reports/journal", text: t("nav.journal"), icon: "journal" },
+          { href: "/manual", text: t("nav.manual"), icon: "manual" },
         ]
-      : [{ href: "/turnarounds", text: t("nav.turnarounds"), icon: "turnarounds" }];
+      : [
+          { href: "/turnarounds", text: t("nav.turnarounds"), icon: "turnarounds" },
+          { href: "/manual", text: t("nav.manual"), icon: "manual" },
+        ];
 
   const adminLinks: NavItem[] =
     session.role === "admin"

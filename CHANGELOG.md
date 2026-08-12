@@ -6,12 +6,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- User manual at `/manual`, linked from the sidebar for every role: operator sections for everyone, administrator sections for admins. Written in all four languages, illustrated with screenshots of the app in the reader's language (`public/manual/*.{az,ru,en,ka}.webp`), re-shot by `node scripts/manual-shots.mjs`.
 - Searchable dropdowns (`SearchSelect`) for locomotive and train number on operation entry rows; the list shows only matching results as you type.
 - Free-text search (train or locomotive number) and a train-number filter on the turnarounds list; the Excel export honours them.
 - Locomotive downtime statistics on the dashboard: time each locomotive spent off routes (neither on a turnaround nor in ТОИР) within the selected range.
 - `CHANGELOG.md` — every update appends here.
 
 ### Changed
+- User manual copy rewritten in all four languages for natural, native-reader prose; quoted UI labels now match the actual button and column labels in each language file.
+- Turnarounds list and detail pages refresh themselves every 30 seconds while the tab is visible, so work recorded at another station appears without a manual reload.
+- Favicon letters are now MS, matching the new product name; the sidebar and sign-in badges carry the same MS mark.
+- Product name shown in the UI is now Monstyk ("Монстык" in Russian); internal identifiers (package name, database, cookies, audit settings) keep the `railops` name.
 - The per-operation comment moved out of the Time cell into its own Note column on the turnaround detail page.
 - Locomotives on an unfinished turnaround or in open ТОИР are excluded from operation entry dropdowns (and rejected server-side).
 - Post-login landing page is `/turnarounds` for all users.

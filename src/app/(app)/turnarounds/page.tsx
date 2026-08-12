@@ -2,6 +2,7 @@ import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
+import AutoRefresh from "@/components/AutoRefresh";
 import RowLink from "@/components/RowLink";
 import SearchSelect from "@/components/SearchSelect";
 import StatusBadge from "@/components/StatusBadge";
@@ -97,6 +98,7 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
 
   return (
     <div className="space-y-5">
+      <AutoRefresh />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="page-title">{t("turnarounds.title")}</h1>

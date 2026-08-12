@@ -16,7 +16,7 @@ export default async function LoginPage() {
       <div className="w-full max-w-[760px]">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="bg-accent grid size-12 place-items-center rounded-xl text-lg font-bold text-white">RO</span>
+            <span className="bg-accent grid size-12 place-items-center rounded-xl text-lg font-bold text-white">MS</span>
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">{t("app.name")}</h1>
               <p className="text-muted text-xs">{t("app.subtitle")}</p>
