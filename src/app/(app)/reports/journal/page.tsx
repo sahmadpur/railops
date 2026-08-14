@@ -83,7 +83,7 @@ export default async function JournalPage({ searchParams }: PageProps<"/reports/
             <tbody>
               {journal.operations.map((operation) => (
                 <tr key={operation.id}>
-                  <td className="text-muted text-center tabular-nums">{operation.seq}</td>
+                  <td className="text-muted text-center tabular-nums">{operation.no}</td>
                   <td>{label(operation.label as never, locale)}</td>
                   <td className="text-muted whitespace-nowrap">{stationName.get(operation.stationId) ?? "—"}</td>
                   {journal.columns.map((column) => (

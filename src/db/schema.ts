@@ -98,11 +98,17 @@ export type OperationField =
 
 /**
  * The operation catalogue — seeded from docs/Operations.xlsx, editable at /admin/operations.
- * The 28-step turnaround is data, not code: reordering or adding a step is a row change.
+ * The 29-step turnaround is data, not code: reordering or adding a step is a row change.
  */
 export const operationTypes = pgTable("operation_types", {
   id: serial("id").primaryKey(),
   seq: integer("seq").notNull().unique(),
+  /**
+   * The number docs/Operations.xlsx prints for this step ("16.1" for one inserted between 16
+   * and 17). Shown wherever an operator reads an operation number; `seq` stays the ordering key
+   * and the target of `conditionalOnSeq` / `parallelWithSeq`.
+   */
+  displayNo: text("display_no"),
   code: text("code").notNull().unique(),
   label: jsonb("label").$type<Localized>().notNull(),
   stationId: integer("station_id")

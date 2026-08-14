@@ -54,7 +54,7 @@ export async function GET(request: Request) {
 
   journal.operations.forEach((operation, index) => {
     sheet.getRow(5 + index).values = [
-      operation.seq,
+      operation.no,
       label(operation.label as never, locale),
       stationName.get(operation.stationId) ?? "",
       ...journal.columns.map((c) => c.times.get(operation.id) ?? ""),

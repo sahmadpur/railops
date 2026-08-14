@@ -2,7 +2,7 @@ import { and, asc, eq, gte, lte } from "drizzle-orm";
 
 import { db } from "@/db";
 import { locomotives, operationTypes, trainNumbers, turnaroundOperations, turnarounds } from "@/db/schema";
-import { formatTime } from "@/lib/format";
+import { formatTime, operationNo } from "@/lib/format";
 import { elapsedMinutes, formatElapsed } from "@/lib/turnaround-rules";
 
 /**
@@ -25,7 +25,7 @@ export type JournalColumn = {
 export type Journal = {
   year: number;
   month: number;
-  operations: { id: number; seq: number; label: Record<string, string>; stationId: number }[];
+  operations: { id: number; no: string; label: Record<string, string>; stationId: number }[];
   columns: JournalColumn[];
 };
 
@@ -96,7 +96,7 @@ export async function buildJournal(year: number, month: number, locomotiveId?: n
   return {
     year,
     month,
-    operations: operations.map((o) => ({ id: o.id, seq: o.seq, label: o.label, stationId: o.stationId })),
+    operations: operations.map((o) => ({ id: o.id, no: operationNo(o), label: o.label, stationId: o.stationId })),
     columns,
   };
 }

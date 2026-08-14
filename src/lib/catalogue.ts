@@ -14,7 +14,7 @@ import {
 } from "@/db/schema";
 import { FINISHED_STATUSES } from "@/lib/turnaround-rules";
 
-/** The 28-step turnaround sequence, ordered. Cached per request. */
+/** The 29-step turnaround sequence, ordered. Cached per request. */
 export const getCatalogue = cache(async () => db.select().from(operationTypes).orderBy(asc(operationTypes.seq)));
 
 export const getStations = cache(async () => db.select().from(stations).orderBy(asc(stations.sortOrder)));
