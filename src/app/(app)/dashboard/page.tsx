@@ -15,7 +15,7 @@ import {
   turnarounds,
 } from "@/db/schema";
 import { getActiveLocomotives, getCatalogue, getReference, getStations } from "@/lib/catalogue";
-import { formatDate, label, todayIso } from "@/lib/format";
+import { formatDate, label, operationNo, todayIso } from "@/lib/format";
 import { downtimeMinutes, operationStats, routeSegments, segmentStats, transitStats, type Interval } from "@/lib/timeline";
 import { requireAdmin } from "@/lib/session";
 import { formatElapsed } from "@/lib/turnaround-rules";
@@ -177,6 +177,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const detail = selected !== null ? stats[selected] : undefined;
   const detailOperations = detail ? operationStats(detail.segment, rows) : [];
   const operationName = new Map(catalogue.map((o) => [o.id, label(o.label, locale)]));
+  const operationNumber = new Map(catalogue.map((o) => [o.id, operationNo(o)]));
 
   // Whole-route average: first to last operation of each turnaround.
   const spans = [...new Set(rows.map((r) => r.turnaroundId))]
@@ -433,7 +434,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             <tbody>
               {detailOperations.map((operation) => (
                 <tr key={operation.operationTypeId}>
-                  <td className="text-faint text-center tabular-nums">{operation.seq}</td>
+                  <td className="text-faint text-center tabular-nums">{operationNumber.get(operation.operationTypeId) ?? "—"}</td>
                   <td className="font-medium">{operationName.get(operation.operationTypeId) ?? "—"}</td>
                   <td className="tabular-nums">{operation.count}</td>
                   <td className="tabular-nums">{formatElapsed(operation.avgStepMinutes)}</td>

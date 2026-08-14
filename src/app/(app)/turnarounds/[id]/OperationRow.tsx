@@ -16,6 +16,8 @@ export type RowLabels = {
   saved: string;
   readOnly: string;
   fieldNames: Record<OperationField, string>;
+  /** Ordering key -> the number the sheet prints, for errors that name another operation. */
+  displayNos: Record<number, string>;
   /** Pre-rendered error text keyed by rule code — the server returns codes, not sentences. */
   errors: Record<string, string>;
 };
@@ -24,6 +26,8 @@ export type RowData = {
   turnaroundId: number;
   operationTypeId: number;
   seq: number;
+  /** `seq` as the sheet prints it — what the operator reads. */
+  no: string;
   name: string;
   stationName: string;
   obligationText: string;
@@ -78,7 +82,7 @@ function message(result: ActionResult | undefined, labels: RowLabels): { text: s
 
   const template = labels.errors[result.error] ?? labels.errors.generic;
   const text = template
-    .replace("{seq}", String(result.seq ?? ""))
+    .replace("{seq}", result.seq === undefined ? "" : (labels.displayNos[result.seq] ?? String(result.seq)))
     .replace("{field}", result.field ? labels.fieldNames[result.field as OperationField] : "");
   return { text, ok: false };
 }
@@ -115,7 +119,7 @@ export default function OperationRow({
         newStationGroup ? "border-t-2 border-t-[color:var(--accent)]" : "",
       ].join(" ")}
     >
-      <td className="text-faint text-center tabular-nums">{row.seq}</td>
+      <td className="text-faint text-center tabular-nums">{row.no}</td>
       <td>
         <div className="flex items-center gap-1.5">
           {/* A recorded step is marked, so it never reads as one that is merely open for entry. */}

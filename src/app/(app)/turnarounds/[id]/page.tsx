@@ -8,7 +8,7 @@ import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
 import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users, type OperationField } from "@/db/schema";
 import { getAvailableLocomotives, getFormOptions } from "@/lib/catalogue";
-import { formatDate, label, toLocalInputValue } from "@/lib/format";
+import { formatDate, label, operationNo, toLocalInputValue } from "@/lib/format";
 import { requireSession } from "@/lib/session";
 import { canEdit, editableWindow, elapsedMinutes, formatElapsed, missingForClose, unlockedIds } from "@/lib/turnaround-rules";
 
@@ -68,6 +68,9 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
     maintenance_type: t("fields.maintenance_type"),
   } satisfies Record<OperationField, string>;
 
+  // The server reports rule failures by `seq`; operators read the sheet numbers.
+  const displayNos: Record<number, string> = Object.fromEntries(options.catalogue.map((o) => [o.seq, operationNo(o)]));
+
   const labels: RowLabels = {
     save: t("common.save"),
     saving: t("common.saving"),
@@ -75,6 +78,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
     saved: t("common.saved"),
     readOnly: t("turnarounds.notYourStation"),
     fieldNames,
+    displayNos,
     errors: {
       wrong_station: t("errors.wrong_station"),
       before_earlier_operation: t("errors.before_earlier_operation", { seq: "{seq}" }),
@@ -111,6 +115,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
         turnaroundId: id,
         operationTypeId: operation.id,
         seq: operation.seq,
+        no: operationNo(operation),
         name: label(operation.label, locale),
         stationName: stationName.get(operation.stationId) ?? "—",
         obligation: operation.obligation,
@@ -119,7 +124,9 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
             ? t("common.required")
             : operation.obligation === "optional"
               ? t("common.optional")
-              : `${t("common.conditional")} · ${t("admin.operations.conditionalOn")} ${operation.conditionalOnSeq ?? "—"}`,
+              : `${t("common.conditional")} · ${t("admin.operations.conditionalOn")} ${
+                  operation.conditionalOnSeq === null ? "—" : (displayNos[operation.conditionalOnSeq] ?? operation.conditionalOnSeq)
+                }`,
         fields: operation.fields,
         editable:
           canEdit(session, operation) &&

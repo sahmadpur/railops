@@ -43,7 +43,14 @@ export default async function AdminOperationsPage() {
           <tbody>
             {catalogue.map((operation) => (
               <tr key={operation.id}>
-                <td className="text-center tabular-nums">{operation.seq}</td>
+                {/* Ordering key first: it is what the conditional/parallel inputs below refer to.
+                    The sheet number rides along when the two have drifted apart. */}
+                <td className="text-center tabular-nums">
+                  {operation.seq}
+                  {operation.displayNo && operation.displayNo !== String(operation.seq) && (
+                    <span className="text-faint block text-[10px]">{operation.displayNo}</span>
+                  )}
+                </td>
                 <td className="p-0">
                   <ActionForm
                     action={saveOperationType}

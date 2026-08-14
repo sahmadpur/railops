@@ -1,0 +1,1 @@
+ALTER TABLE "operation_types" ADD COLUMN "display_no" text;

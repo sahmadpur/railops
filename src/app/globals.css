@@ -182,7 +182,7 @@ body {
     background: var(--surface-muted);
     color: var(--muted);
   }
-  /* Inside a grid of 28 operations, full-height inputs waste the screen. */
+  /* Inside a grid of 29 operations, full-height inputs waste the screen. */
   .data-table .field,
   .field-sm {
     padding: 0.3125rem 0.5rem;

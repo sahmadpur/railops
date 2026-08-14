@@ -27,7 +27,7 @@ database port, and disables demo seed data.
 
 ## Concepts
 
-**One record = one locomotive turnaround.** A turnaround carries the 28 ordered operations that run
+**One record = one locomotive turnaround.** A turnaround carries the 29 ordered operations that run
 from Böyük Kəsik out to Tbilisi and back. Train numbers (AZ, GR-even, GR-odd) attach to it as the
 locomotive moves.
 
@@ -55,7 +55,7 @@ interface — dashboard, journal and admin pages are admin-only. Admins are unre
 ```
 src/db/schema.ts              tables, enums, relations
 src/db/migrations/            generated SQL + 0001_audit_triggers.sql
-src/db/seed.mts               stations, the 28 operations, reference lists, admin user
+src/db/seed.mts               stations, the 29 operations, reference lists, admin user
 src/db/actor.ts               withActor() — the only sanctioned write path
 src/lib/turnaround-rules.ts   station scoping, chronology, close-completeness (pure, tested)
 src/lib/journal.ts            the monthly grid, shared by the print page and the Excel export

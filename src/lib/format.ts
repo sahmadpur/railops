@@ -8,6 +8,11 @@ export function label(value: Localized | null | undefined, locale: string): stri
   return value[key] || value[defaultLocale] || Object.values(value).find(Boolean) || "—";
 }
 
+/** The operation number an operator reads ("16.1"), falling back to the ordering key. */
+export function operationNo(operation: { seq: number; displayNo?: string | null }): string {
+  return operation.displayNo || String(operation.seq);
+}
+
 /** `datetime-local` input value in the browser's own wall-clock terms. */
 export function toLocalInputValue(date: Date | null | undefined): string {
   if (!date) return "";

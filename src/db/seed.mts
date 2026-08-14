@@ -91,6 +91,11 @@ const TRAIN_COUNTRY = "AZ" as const;
 
 type OpSeed = {
   seq: number;
+  /**
+   * The number the sheet prints, when it differs from `seq` — the "16.1" step pushed every
+   * later row's ordering key one ahead of its sheet number. Defaults to `seq`.
+   */
+  no?: string;
   code: string;
   station: "BK" | "GRD" | "TBS";
   obligation: "required" | "optional" | "conditional";
@@ -302,6 +307,20 @@ const OPERATIONS: OpSeed[] = [
   },
   {
     seq: 17,
+    no: "16.1",
+    code: "technical_inspection_wagons_gardabani",
+    station: "GRD",
+    obligation: "optional",
+    label: {
+      az: "Vaqonların texniki müayinəsi (zərurət olduqda)",
+      ru: "Технический осмотр вагонов (по необходимости)",
+      en: "Technical inspection of wagons (if required)",
+      ka: "ვაგონების ტექნიკური შემოწმება (საჭიროების შემთხვევაში)",
+    },
+  },
+  {
+    seq: 18,
+    no: "17",
     code: "departure_gardabani_1",
     station: "GRD",
     obligation: "required",
@@ -313,7 +332,8 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 18,
+    seq: 19,
+    no: "18",
     code: "arrival_tbilisi",
     station: "TBS",
     obligation: "required",
@@ -325,7 +345,8 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 19,
+    seq: 20,
+    no: "19",
     code: "locomotive_to_maintenance_tbilisi",
     maintenanceEffect: "send",
     station: "TBS",
@@ -339,12 +360,13 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 20,
+    seq: 21,
+    no: "20",
     code: "locomotive_from_maintenance_tbilisi",
     maintenanceEffect: "return",
     station: "TBS",
     obligation: "conditional",
-    conditionalOnSeq: 19,
+    conditionalOnSeq: 20,
     fields: ["maintenance_type"],
     label: {
       az: "Lokomotiv TOİR-dən qaytarılıb",
@@ -354,7 +376,8 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 21,
+    seq: 22,
+    no: "21",
     code: "attach_locomotive_tbilisi",
     station: "TBS",
     obligation: "optional",
@@ -367,7 +390,8 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 22,
+    seq: 23,
+    no: "22",
     code: "assign_train_number_gr_odd",
     station: "TBS",
     obligation: "required",
@@ -380,7 +404,8 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 23,
+    seq: 24,
+    no: "23",
     code: "departure_tbilisi",
     station: "TBS",
     obligation: "required",
@@ -392,7 +417,8 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 24,
+    seq: 25,
+    no: "24",
     code: "arrival_gardabani_2",
     station: "GRD",
     obligation: "required",
@@ -404,7 +430,8 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 25,
+    seq: 26,
+    no: "25",
     code: "departure_gardabani_2",
     station: "GRD",
     obligation: "required",
@@ -416,7 +443,8 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 26,
+    seq: 27,
+    no: "26",
     code: "arrival_bk_return",
     station: "BK",
     obligation: "required",
@@ -428,11 +456,12 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 27,
+    seq: 28,
+    no: "27",
     code: "locomotive_to_maintenance_bk",
     maintenanceEffect: "send",
     station: "BK",
-    obligation: "required", // Sheet marks this one obligatory (unlike its Tbilisi twin at seq 19).
+    obligation: "required", // Sheet marks this one obligatory (unlike its Tbilisi twin at seq 20).
     fields: ["maintenance_reason", "maintenance_type"],
     label: {
       az: "Lokomotiv TOİR-ə göndərilib",
@@ -442,12 +471,13 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 28,
+    seq: 29,
+    no: "28",
     code: "locomotive_from_maintenance_bk",
     maintenanceEffect: "return",
     station: "BK",
     obligation: "conditional",
-    conditionalOnSeq: 27,
+    conditionalOnSeq: 28,
     fields: ["maintenance_type"],
     label: {
       az: "Lokomotiv TOİR-dən qaytarılıb",
@@ -595,34 +625,50 @@ async function main() {
       and not exists (select 1 from turnaround_operations o where o.train_number_id = ${trainNumbers.id})`,
   );
 
-  await db
-    .insert(operationTypes)
-    .values(
-      OPERATIONS.map((o) => ({
-        seq: o.seq,
-        code: o.code,
-        label: o.label,
-        stationId: stationIds.get(o.station)!,
-        obligation: o.obligation,
-        conditionalOnSeq: o.conditionalOnSeq ?? null,
-        parallelWithSeq: o.parallelWithSeq ?? null,
-        fields: o.fields ?? [],
-        maintenanceEffect: o.maintenanceEffect ?? null,
-      })),
-    )
-    .onConflictDoUpdate({
-      target: operationTypes.seq,
-      set: {
-        code: sql`excluded.code`,
-        label: sql`excluded.label`,
-        stationId: sql`excluded.station_id`,
-        obligation: sql`excluded.obligation`,
-        conditionalOnSeq: sql`excluded.conditional_on_seq`,
-        parallelWithSeq: sql`excluded.parallel_with_seq`,
-        fields: sql`excluded.fields`,
-        maintenanceEffect: sql`excluded.maintenance_effect`,
-      },
-    });
+  // Inserting a step mid-sequence renumbers everything after it. `seq` is unique, so park the
+  // existing numbers out of range first — otherwise the upsert collides with the row that still
+  // holds the number being moved into. Identity travels with `code`, which is what the recorded
+  // operations point at through the row id, so history keeps its labels.
+  // One transaction: a failure between the two statements would otherwise leave the catalogue
+  // parked at 1001+ and the sequence numbers meaningless.
+  const seeded = new Map(OPERATIONS.map((o) => [o.code, o.seq]));
+  const renumbering = (await db.select().from(operationTypes)).some((row) => seeded.get(row.code) !== row.seq);
+
+  await db.transaction(async (tx) => {
+    // Parking rewrites every row, so skip it when the numbering already matches — otherwise
+    // each seed run on an unchanged catalogue would write two audit entries per operation.
+    if (renumbering) await tx.execute(sql`update operation_types set seq = seq + 1000 where seq < 1000`);
+    await tx
+      .insert(operationTypes)
+      .values(
+        OPERATIONS.map((o) => ({
+          seq: o.seq,
+          displayNo: o.no ?? String(o.seq),
+          code: o.code,
+          label: o.label,
+          stationId: stationIds.get(o.station)!,
+          obligation: o.obligation,
+          conditionalOnSeq: o.conditionalOnSeq ?? null,
+          parallelWithSeq: o.parallelWithSeq ?? null,
+          fields: o.fields ?? [],
+          maintenanceEffect: o.maintenanceEffect ?? null,
+        })),
+      )
+      .onConflictDoUpdate({
+        target: operationTypes.code,
+        set: {
+          seq: sql`excluded.seq`,
+          displayNo: sql`excluded.display_no`,
+          label: sql`excluded.label`,
+          stationId: sql`excluded.station_id`,
+          obligation: sql`excluded.obligation`,
+          conditionalOnSeq: sql`excluded.conditional_on_seq`,
+          parallelWithSeq: sql`excluded.parallel_with_seq`,
+          fields: sql`excluded.fields`,
+          maintenanceEffect: sql`excluded.maintenance_effect`,
+        },
+      });
+  });
 
   await db
     .insert(referenceValues)
