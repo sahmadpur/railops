@@ -117,11 +117,9 @@
     "missingOperations": "Cannot close: {count} mandatory operation(s) not recorded.",
     "closeSuccess": "Turnaround closed.",
     "notYourStation": "Recorded at another station — read only for you.",
-    "alreadyExists": "This train already has a turnaround on that date.",
     "cannotOpenHere": "Turnarounds are not opened at your station.",
     "operationsFilled": "{filled} of {total} operations recorded",
     "deleteConfirm": "Delete this turnaround and every operation recorded against it? This cannot be undone.",
-    "trainBusy": "This train is already on an unfinished turnaround.",
     "noTrainMatch": "Pick a train number from the list.",
     "showEarlier": "Show {count} earlier operations",
     "hideEarlier": "Hide earlier operations"

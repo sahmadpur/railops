@@ -1,36 +1,21 @@
-import { notInArray } from "drizzle-orm";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
-import { db } from "@/db";
-import { turnarounds } from "@/db/schema";
 import { getActiveTrainNumbers, getStations } from "@/lib/catalogue";
 import { todayIso } from "@/lib/format";
 import { requireSession } from "@/lib/session";
-import { FINISHED_STATUSES, openingRule } from "@/lib/turnaround-rules";
+import { openingRule } from "@/lib/turnaround-rules";
 
 import NewTurnaroundForm from "./NewTurnaroundForm";
 
 export default async function NewTurnaroundPage() {
   const session = await requireSession();
-  const [t, trainRows, stations, running] = await Promise.all([
-    getTranslations(),
-    getActiveTrainNumbers(),
-    getStations(),
-    db
-      .select({ trainNumberId: turnarounds.trainNumberId })
-      .from(turnarounds)
-      .where(notInArray(turnarounds.statusCode, [...FINISHED_STATUSES])),
-  ]);
+  const [t, trainRows, stations] = await Promise.all([getTranslations(), getActiveTrainNumbers(), getStations()]);
 
   const stationCode = stations.find((s) => s.id === session.stationId)?.code ?? null;
   const opening = openingRule(session.role, stationCode);
-  // Böyük Kəsik opens even trains, Tbilisi odd ones; admins see every parity. A train already
-  // on an unfinished turnaround is not offered at all — the action rejects it either way.
-  const busy = new Set(running.map((r) => r.trainNumberId));
-  const trains = opening.allowed
-    ? trainRows.filter((n) => (!opening.parity || n.parity === opening.parity) && !busy.has(n.id))
-    : [];
+  // Böyük Kəsik opens even trains, Tbilisi odd ones; admins see every parity.
+  const trains = opening.allowed ? trainRows.filter((n) => !opening.parity || n.parity === opening.parity) : [];
 
   return (
     <div className="max-w-md space-y-4">
@@ -49,8 +34,6 @@ export default async function NewTurnaroundPage() {
             submit: t("common.create"),
             search: t("common.search"),
             noTrainMatch: t("turnarounds.noTrainMatch"),
-            alreadyExists: t("turnarounds.alreadyExists"),
-            trainBusy: t("turnarounds.trainBusy"),
             generic: t("errors.generic"),
           }}
         />

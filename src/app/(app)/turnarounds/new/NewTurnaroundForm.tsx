@@ -18,8 +18,6 @@ export default function NewTurnaroundForm({
     submit: string;
     search: string;
     noTrainMatch: string;
-    alreadyExists: string;
-    trainBusy: string;
     generic: string;
   };
 }) {
@@ -48,11 +46,7 @@ export default function NewTurnaroundForm({
 
       {state?.ok === false && (
         <p role="alert" className="text-danger text-xs">
-          {state.error === "alreadyExists"
-            ? labels.alreadyExists
-            : state.error === "trainBusy"
-              ? labels.trainBusy
-              : labels.generic}
+          {labels.generic}
         </p>
       )}
 

@@ -36,6 +36,13 @@
       "when": 1786697963179,
       "tag": "0004_stale_fixer",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786794329326,
+      "tag": "0005_daily_stone_men",
+      "breakpoints": true
     }
   ]
 }

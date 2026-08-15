@@ -1,12 +1,11 @@
 "use server";
 
-import { and, asc, eq, isNull, notInArray } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
 import { withActor } from "@/db/actor";
-import { isUniqueViolation } from "@/db/errors";
 import { maintenanceRecords, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
 import { getActiveTrainNumbers, getStations } from "@/lib/catalogue";
 import {
@@ -14,7 +13,7 @@ import {
   checkClearable,
   checkCurrentLeg,
   checkUnlocked,
-  FINISHED_STATUSES,
+  currentTrainNumberId,
   missingForClose,
   openingRule,
   validateEntry,
@@ -64,54 +63,35 @@ export async function createTurnaround(_prev: ActionResult | undefined, formData
   if (!train) return { ok: false, error: "generic" };
   if (opening.parity && train.parity !== opening.parity) return { ok: false, error: "generic" };
 
-  // A train still on the road cannot start a second turnaround.
-  const [busy] = await db
-    .select({ id: turnarounds.id })
-    .from(turnarounds)
-    .where(
-      and(
-        eq(turnarounds.trainNumberId, trainNumberId),
-        notInArray(turnarounds.statusCode, [...FINISHED_STATUSES]),
-      ),
-    )
-    .limit(1);
-  if (busy) return { ok: false, error: "trainBusy" };
+  const created = await withActor(session.userId, async (tx) => {
+    const [row] = await tx
+      .insert(turnarounds)
+      .values({ trainNumberId, cycleDate, openedBy: session.userId, statusCode: "open" })
+      .returning({ id: turnarounds.id });
 
-  let created: { id: number } | undefined;
-  try {
-    created = await withActor(session.userId, async (tx) => {
-      const [row] = await tx
-        .insert(turnarounds)
-        .values({ trainNumberId, cycleDate, openedBy: session.userId, statusCode: "open" })
-        .returning({ id: turnarounds.id });
+    // The first step is the arrival that opens the turnaround, so it is recorded here rather
+    // than typed again: its time is the moment of creation and its train is the one chosen.
+    // Skipped when that step wants anything else, since there is nothing to fill it from.
+    const [first] = await tx
+      .select()
+      .from(operationTypes)
+      .where(eq(operationTypes.isActive, true))
+      .orderBy(asc(operationTypes.seq))
+      .limit(1);
 
-      // The first step is the arrival that opens the turnaround, so it is recorded here rather
-      // than typed again: its time is the moment of creation and its train is the one chosen.
-      // Skipped when that step wants anything else, since there is nothing to fill it from.
-      const [first] = await tx
-        .select()
-        .from(operationTypes)
-        .where(eq(operationTypes.isActive, true))
-        .orderBy(asc(operationTypes.seq))
-        .limit(1);
+    if (first && first.fields.every((f) => f === "train_number")) {
+      await tx.insert(turnaroundOperations).values({
+        turnaroundId: row.id,
+        operationTypeId: first.id,
+        occurredAt: new Date(),
+        trainNumberId: first.fields.includes("train_number") ? trainNumberId : null,
+        recordedBy: session.userId,
+      });
+      await tx.update(turnarounds).set({ statusCode: "in_progress" }).where(eq(turnarounds.id, row.id));
+    }
 
-      if (first && first.fields.every((f) => f === "train_number")) {
-        await tx.insert(turnaroundOperations).values({
-          turnaroundId: row.id,
-          operationTypeId: first.id,
-          occurredAt: new Date(),
-          trainNumberId: first.fields.includes("train_number") ? trainNumberId : null,
-          recordedBy: session.userId,
-        });
-        await tx.update(turnarounds).set({ statusCode: "in_progress" }).where(eq(turnarounds.id, row.id));
-      }
-
-      return row;
-    });
-  } catch (error) {
-    if (isUniqueViolation(error, "turnarounds_train_date_key")) return { ok: false, error: "alreadyExists" };
-    throw error;
-  }
+    return row;
+  });
 
   revalidatePath("/turnarounds");
   revalidatePath("/dashboard");
@@ -151,25 +131,15 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
 
   const note = optionalText(formData.get("note"));
 
-  // Operation 1 is where the arrival train number is recorded, and the turnaround is identified by
-  // that number everywhere else — correcting it on the step has to move the turnaround with it.
+  // The train is renumbered along the route, so the turnaround carries whichever number was
+  // assigned last — that is what the list, dashboard and export show. The per-step numbers stay
+  // as they were recorded, so the row for every station is the history of the renumbering.
+  const latestTrainNumberId = currentTrainNumberId(context.catalogue, [
+    ...context.entries.filter((e) => e.operationTypeId !== operationTypeId),
+    { operationTypeId, occurredAt: input.occurredAt, trainNumberId: input.trainNumberId ?? null },
+  ]);
   const newTrainNumberId =
-    operation.seq === 1 && input.trainNumberId && input.trainNumberId !== context.turnaround.trainNumberId
-      ? input.trainNumberId
-      : null;
-  if (newTrainNumberId) {
-    const [busy] = await db
-      .select({ id: turnarounds.id })
-      .from(turnarounds)
-      .where(
-        and(
-          eq(turnarounds.trainNumberId, newTrainNumberId),
-          notInArray(turnarounds.statusCode, [...FINISHED_STATUSES]),
-        ),
-      )
-      .limit(1);
-    if (busy) return { ok: false, error: "trainBusy", seq: operation.seq };
-  }
+    latestTrainNumberId && latestTrainNumberId !== context.turnaround.trainNumberId ? latestTrainNumberId : null;
 
   // The turnaround itself carries no locomotive until one is attached, so ТОИР falls back to
   // whatever an earlier step recorded.
@@ -182,7 +152,7 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
     return { ok: false, error: "missing_field", seq: operation.seq, field: "locomotive" };
   }
 
-  const conflict = await withActor(session.userId, async (tx) => {
+  await withActor(session.userId, async (tx) => {
     await tx
       .insert(turnaroundOperations)
       .values({
@@ -237,13 +207,7 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
         })
         .where(eq(turnarounds.id, turnaroundId));
     }
-  }).catch((error: unknown) => {
-    // Moving the turnaround onto a train that already has one on this date.
-    if (isUniqueViolation(error, "turnarounds_train_date_key")) return "duplicate" as const;
-    throw error;
   });
-
-  if (conflict) return { ok: false, error: conflict, seq: operation.seq };
 
   revalidatePath(`/turnarounds/${turnaroundId}`);
   revalidatePath("/dashboard");
@@ -330,18 +294,32 @@ export async function clearOperation(_prev: ActionResult | undefined, formData: 
   const blocked = checkClearable(session, operation, context.catalogue, context.entries);
   if (blocked) return { ok: false, error: blocked.code, seq: blocked.seq };
 
-  await withActor(session.userId, (tx) =>
-    tx
+  // Clearing the step that assigned the current number falls the turnaround back to the last
+  // number still recorded on it.
+  const remaining = context.entries.filter((e) => e.operationTypeId !== operationTypeId);
+  const fallbackTrainNumberId = currentTrainNumberId(context.catalogue, remaining);
+
+  await withActor(session.userId, async (tx) => {
+    await tx
       .delete(turnaroundOperations)
       .where(
         and(
           eq(turnaroundOperations.turnaroundId, turnaroundId),
           eq(turnaroundOperations.operationTypeId, operationTypeId),
         ),
-      ),
-  );
+      );
+
+    if (fallbackTrainNumberId && fallbackTrainNumberId !== context.turnaround.trainNumberId) {
+      await tx
+        .update(turnarounds)
+        .set({ trainNumberId: fallbackTrainNumberId, updatedAt: new Date() })
+        .where(eq(turnarounds.id, turnaroundId));
+    }
+  });
 
   revalidatePath(`/turnarounds/${turnaroundId}`);
+  revalidatePath("/turnarounds");
+  revalidatePath("/dashboard");
   return { ok: true };
 }
 

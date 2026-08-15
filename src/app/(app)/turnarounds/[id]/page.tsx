@@ -83,8 +83,6 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
       invalid_timestamp: t("errors.invalid_timestamp"),
       operation_inactive: t("errors.operation_inactive"),
       locked_operation: t("errors.locked_operation", { seq: "{seq}" }),
-      trainBusy: t("turnarounds.trainBusy"),
-      duplicate: t("errors.duplicate"),
       past_leg: t("errors.past_leg"),
       clear_later_first: t("errors.clear_later_first", { seq: "{seq}" }),
       forbidden: t("errors.forbidden"),

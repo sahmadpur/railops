@@ -17,9 +17,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Removed
 - Locomotive availability guard: any active locomotive can now be recorded on any operation. The dropdown no longer hides locomotives that are on another turnaround or in ТОИР, the server-side `locomotive_busy` check is gone, and so is `getAvailableLocomotives`.
+- Train availability guard: a train may now be opened on a turnaround while an earlier one is still unfinished. The create dropdown no longer hides busy trains, the `trainBusy` check is gone from both write paths, and the unique index on (train, cycle date) is dropped — with the number following the route's renumbering, two turnarounds on one date can legitimately share it.
 
 ### Changed
-- Changing the train number on operation 1 now also updates the turnaround's own train number, so the list, dashboard and export follow the correction. Rejected if that train is already on an unfinished turnaround or already has one on the same date.
+- The turnaround now carries whichever train number was assigned last: the number given at Böyük Kəsik is superseded by the reassignment at Gardabani and again at Tbilisi, and the list, dashboard, journal and export follow it. Each operation keeps the number it recorded, so the step rows are the history of the renumbering; clearing the step that assigned the current number falls back to the last one still recorded.
 - The seed keys operations by `code` instead of `seq`, so inserting a step mid-sequence renumbers the rest without recorded history following the wrong step.
 - User manual copy rewritten in all four languages for natural, native-reader prose; quoted UI labels now match the actual button and column labels in each language file.
 - Turnarounds list and detail pages refresh themselves every 30 seconds while the tab is visible, so work recorded at another station appears without a manual reload.

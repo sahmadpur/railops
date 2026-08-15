@@ -11,7 +11,6 @@ import {
   text,
   timestamp,
   unique,
-  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 /** Localised label: { az, ru, en, ka }. Every user-facing registry name uses this shape. */
@@ -154,8 +153,9 @@ export const turnarounds = pgTable(
   (t) => [
     index("turnarounds_cycle_date_idx").on(t.cycleDate),
     index("turnarounds_status_idx").on(t.statusCode),
-    // A train runs at most one turnaround per calendar date. A locomotive may serve several.
-    uniqueIndex("turnarounds_train_date_key").on(t.trainNumberId, t.cycleDate),
+    // Not unique on (train, date): the number follows the renumbering along the route, so two
+    // turnarounds on one date can legitimately end up on the same number.
+    index("turnarounds_train_date_idx").on(t.trainNumberId, t.cycleDate),
   ],
 );
 

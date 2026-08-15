@@ -20,6 +20,7 @@ export type OperationTypeLike = {
 export type EntryLike = {
   operationTypeId: number;
   occurredAt: Date;
+  trainNumberId?: number | null;
 };
 
 export type ActorLike = {
@@ -249,6 +250,21 @@ export function checkClearable(
   const seqById = new Map(catalogue.map((o) => [o.id, o.seq]));
   const later = entries.find((e) => (seqById.get(e.operationTypeId) ?? 0) > operation.seq);
   return later ? { code: "clear_later_first", seq: seqById.get(later.operationTypeId) } : null;
+}
+
+/**
+ * The number the train currently runs under: it is given at Böyük Kəsik and reassigned at
+ * Gardabani and Tbilisi, so the latest step that carries one wins. Every step keeps the number it
+ * recorded, which is the history of the change; this is only the head of it. Null before any step
+ * records a number, and unaffected by a late correction to an earlier step.
+ */
+export function currentTrainNumberId(catalogue: OperationTypeLike[], entries: EntryLike[]): number | null {
+  const seqById = new Map(catalogue.map((o) => [o.id, o.seq]));
+  const latest = entries
+    .filter((e) => e.trainNumberId != null)
+    .sort((a, b) => (seqById.get(a.operationTypeId) ?? 0) - (seqById.get(b.operationTypeId) ?? 0))
+    .at(-1);
+  return latest?.trainNumberId ?? null;
 }
 
 /** Elapsed turnaround time in minutes — the spreadsheet's "Общее затраченное время" row. */

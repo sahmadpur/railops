@@ -6,6 +6,7 @@ import {
   checkClearable,
   checkCurrentLeg,
   checkUnlocked,
+  currentTrainNumberId,
   editableWindow,
   elapsedMinutes,
   formatElapsed,
@@ -273,4 +274,16 @@ test("elapsed time spans first to last operation", () => {
   assert.equal(formatElapsed(330), "05:30");
   assert.equal(elapsedMinutes([entries[0]]), null);
   assert.equal(formatElapsed(null), "—");
+});
+
+test("the current train number is the one assigned latest along the route", () => {
+  const entries: EntryLike[] = [
+    { operationTypeId: 40, occurredAt: at("2026-08-06T12:00:00Z"), trainNumberId: 77 },
+    { operationTypeId: 10, occurredAt: at("2026-08-06T10:00:00Z"), trainNumberId: 55 },
+    { operationTypeId: 20, occurredAt: at("2026-08-06T11:00:00Z") },
+  ];
+  // Step 40 (seq 4) assigned last, so a correction to step 10 (seq 1) does not take the head back.
+  assert.equal(currentTrainNumberId(catalogue, entries), 77);
+  assert.equal(currentTrainNumberId(catalogue, entries.slice(1)), 55);
+  assert.equal(currentTrainNumberId(catalogue, [entries[2]]), null);
 });
