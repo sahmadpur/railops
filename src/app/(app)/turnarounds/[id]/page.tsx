@@ -7,7 +7,7 @@ import AutoRefresh from "@/components/AutoRefresh";
 import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
 import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users, type OperationField } from "@/db/schema";
-import { getAvailableLocomotives, getFormOptions } from "@/lib/catalogue";
+import { getFormOptions } from "@/lib/catalogue";
 import { formatDate, label, operationNo, toLocalInputValue } from "@/lib/format";
 import { requireSession } from "@/lib/session";
 import { canEdit, editableWindow, elapsedMinutes, formatElapsed, missingForClose, unlockedIds } from "@/lib/turnaround-rules";
@@ -26,7 +26,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
   const [turnaround] = await db.select().from(turnarounds).where(eq(turnarounds.id, id)).limit(1);
   if (!turnaround) notFound();
 
-  const [[train], [locomotive], entries, options, available] = await Promise.all([
+  const [[train], [locomotive], entries, options] = await Promise.all([
     db.select().from(trainNumbers).where(eq(trainNumbers.id, turnaround.trainNumberId)).limit(1),
     // Null until an attachment step records the locomotive.
     turnaround.locomotiveId
@@ -34,7 +34,6 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
       : [],
     db.select().from(turnaroundOperations).where(eq(turnaroundOperations.turnaroundId, id)),
     getFormOptions(),
-    getAvailableLocomotives(id),
   ]);
 
   const recorderIds = [...new Set(entries.map((e) => e.recordedBy))];
@@ -50,13 +49,10 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
     id: n.id,
     text: `${n.number} · ${n.country}`,
   }));
-  // Only free locomotives are offered, but one already recorded on this turnaround must keep
-  // showing its value even if it has since gone busy elsewhere.
-  const recordedLocomotiveIds = new Set(entries.map((e) => e.locomotiveId).filter((v) => v !== null));
-  const availableIds = new Set(available.map((l) => l.id));
-  const locomotiveOptions: Option[] = options.locomotives
-    .filter((l) => availableIds.has(l.id) || recordedLocomotiveIds.has(l.id))
-    .map((l) => ({ id: l.id, text: `${l.number} · ${l.owner}` }));
+  const locomotiveOptions: Option[] = options.locomotives.map((l) => ({
+    id: l.id,
+    text: `${l.number} · ${l.owner}`,
+  }));
   const referenceOptions = (rows: { code: string; label: Parameters<typeof label>[0] }[]): Option[] =>
     rows.map((r) => ({ id: r.code, text: label(r.label, locale) }));
 
@@ -87,7 +83,8 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
       invalid_timestamp: t("errors.invalid_timestamp"),
       operation_inactive: t("errors.operation_inactive"),
       locked_operation: t("errors.locked_operation", { seq: "{seq}" }),
-      locomotive_busy: t("errors.locomotive_busy"),
+      trainBusy: t("turnarounds.trainBusy"),
+      duplicate: t("errors.duplicate"),
       past_leg: t("errors.past_leg"),
       clear_later_first: t("errors.clear_later_first", { seq: "{seq}" }),
       forbidden: t("errors.forbidden"),

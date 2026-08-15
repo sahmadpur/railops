@@ -6,6 +6,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Train numbers 2680–2688 and 2690–2698 (even, Böyük Kəsik → Tbilisi) in the seeded registry.
 - Operation 16.1 at Gardabani: "Технический осмотр вагонов (по необходимости)" — optional, recorded between document processing and departure on the outbound leg.
 - Operations carry a display number (`operation_types.display_no`) alongside the ordering key, so the app shows the numbers docs/Operations.xlsx prints — 16.1 for the new step, and 17–28 unchanged for the steps after it even though their ordering keys shifted to 18–29. Turnaround, dashboard, journal and Excel export all read it; the admin catalogue keeps showing the ordering key, since that is what its "conditional on" and "parallel with" inputs refer to.
 - User manual at `/manual`, linked from the sidebar for every role: operator sections for everyone, administrator sections for admins. Written in all four languages, illustrated with screenshots of the app in the reader's language (`public/manual/*.{az,ru,en,ka}.webp`), re-shot by `node scripts/manual-shots.mjs`.
@@ -14,7 +15,11 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Locomotive downtime statistics on the dashboard: time each locomotive spent off routes (neither on a turnaround nor in ТОИР) within the selected range.
 - `CHANGELOG.md` — every update appends here.
 
+### Removed
+- Locomotive availability guard: any active locomotive can now be recorded on any operation. The dropdown no longer hides locomotives that are on another turnaround or in ТОИР, the server-side `locomotive_busy` check is gone, and so is `getAvailableLocomotives`.
+
 ### Changed
+- Changing the train number on operation 1 now also updates the turnaround's own train number, so the list, dashboard and export follow the correction. Rejected if that train is already on an unfinished turnaround or already has one on the same date.
 - The seed keys operations by `code` instead of `seq`, so inserting a step mid-sequence renumbers the rest without recorded history following the wrong step.
 - User manual copy rewritten in all four languages for natural, native-reader prose; quoted UI labels now match the actual button and column labels in each language file.
 - Turnarounds list and detail pages refresh themselves every 30 seconds while the tab is visible, so work recorded at another station appears without a manual reload.

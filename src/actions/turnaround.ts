@@ -8,7 +8,7 @@ import { db } from "@/db";
 import { withActor } from "@/db/actor";
 import { isUniqueViolation } from "@/db/errors";
 import { maintenanceRecords, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
-import { getActiveTrainNumbers, getAvailableLocomotives, getStations } from "@/lib/catalogue";
+import { getActiveTrainNumbers, getStations } from "@/lib/catalogue";
 import {
   canEdit,
   checkClearable,
@@ -149,16 +149,27 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
     checkUnlocked(operation, context.catalogue, context.entries);
   if (failure) return { ok: false, error: failure.code, seq: failure.seq, field: failure.field };
 
-  // The filtered dropdown is a convenience; the availability rule is enforced here. A locomotive
-  // already recorded on this turnaround stays legal so its steps can be re-saved.
-  if (input.locomotiveId && !context.entries.some((e) => e.locomotiveId === input.locomotiveId)) {
-    const available = await getAvailableLocomotives(turnaroundId);
-    if (!available.some((l) => l.id === input.locomotiveId)) {
-      return { ok: false, error: "locomotive_busy", seq: operation.seq };
-    }
-  }
-
   const note = optionalText(formData.get("note"));
+
+  // Operation 1 is where the arrival train number is recorded, and the turnaround is identified by
+  // that number everywhere else — correcting it on the step has to move the turnaround with it.
+  const newTrainNumberId =
+    operation.seq === 1 && input.trainNumberId && input.trainNumberId !== context.turnaround.trainNumberId
+      ? input.trainNumberId
+      : null;
+  if (newTrainNumberId) {
+    const [busy] = await db
+      .select({ id: turnarounds.id })
+      .from(turnarounds)
+      .where(
+        and(
+          eq(turnarounds.trainNumberId, newTrainNumberId),
+          notInArray(turnarounds.statusCode, [...FINISHED_STATUSES]),
+        ),
+      )
+      .limit(1);
+    if (busy) return { ok: false, error: "trainBusy", seq: operation.seq };
+  }
 
   // The turnaround itself carries no locomotive until one is attached, so ТОИР falls back to
   // whatever an earlier step recorded.
@@ -171,7 +182,7 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
     return { ok: false, error: "missing_field", seq: operation.seq, field: "locomotive" };
   }
 
-  await withActor(session.userId, async (tx) => {
+  const conflict = await withActor(session.userId, async (tx) => {
     await tx
       .insert(turnaroundOperations)
       .values({
@@ -215,17 +226,24 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
 
     // An attachment step is what gives the turnaround its locomotive; the latest one wins.
     const attachedLocomotiveId = operation.fields.includes("locomotive") ? input.locomotiveId : null;
-    if (attachedLocomotiveId || context.turnaround.statusCode === "open") {
+    if (attachedLocomotiveId || newTrainNumberId || context.turnaround.statusCode === "open") {
       await tx
         .update(turnarounds)
         .set({
           ...(attachedLocomotiveId ? { locomotiveId: attachedLocomotiveId } : {}),
+          ...(newTrainNumberId ? { trainNumberId: newTrainNumberId } : {}),
           ...(context.turnaround.statusCode === "open" ? { statusCode: "in_progress" as const } : {}),
           updatedAt: new Date(),
         })
         .where(eq(turnarounds.id, turnaroundId));
     }
+  }).catch((error: unknown) => {
+    // Moving the turnaround onto a train that already has one on this date.
+    if (isUniqueViolation(error, "turnarounds_train_date_key")) return "duplicate" as const;
+    throw error;
   });
+
+  if (conflict) return { ok: false, error: conflict, seq: operation.seq };
 
   revalidatePath(`/turnarounds/${turnaroundId}`);
   revalidatePath("/dashboard");

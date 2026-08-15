@@ -140,7 +140,6 @@
     "notFound": "Qeyd tapılmadı.",
     "duplicate": "Bu dəyərlərlə qeyd artıq mövcuddur.",
     "generic": "Dəyişiklik yadda saxlanılmadı.",
-    "locomotive_busy": "Lokomotiv başqa dövriyyədədir və ya təmirdədir.",
     "past_leg": "Marşrutun bu hissəsi artıq keçilib — redaktə mümkün deyil."
   },
   "fields": {

@@ -1,18 +1,8 @@
-import { and, asc, eq, isNotNull, isNull, notInArray } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { cache } from "react";
 
 import { db } from "@/db";
-import {
-  locomotives,
-  maintenanceRecords,
-  operationTypes,
-  referenceValues,
-  stations,
-  trainNumbers,
-  turnaroundOperations,
-  turnarounds,
-} from "@/db/schema";
-import { FINISHED_STATUSES } from "@/lib/turnaround-rules";
+import { locomotives, operationTypes, referenceValues, stations, trainNumbers } from "@/db/schema";
 
 /** The 29-step turnaround sequence, ordered. Cached per request. */
 export const getCatalogue = cache(async () => db.select().from(operationTypes).orderBy(asc(operationTypes.seq)));
@@ -30,40 +20,6 @@ export const getReference = cache(async (kind: string) =>
 export const getActiveLocomotives = cache(async () =>
   db.select().from(locomotives).where(eq(locomotives.isActive, true)).orderBy(asc(locomotives.number)),
 );
-
-/**
- * Active locomotives minus those occupied: on an unfinished turnaround (whether the turnaround
- * already carries the locomotive or only an operation recorded it) or in open ТОИР.
- * `forTurnaroundId` keeps that turnaround's own locomotives selectable, so its steps stay editable.
- */
-export const getAvailableLocomotives = cache(async (forTurnaroundId?: number) => {
-  const unfinished = notInArray(turnarounds.statusCode, [...FINISHED_STATUSES]);
-  const [locos, viaTurnaround, viaOperation, inMaintenance] = await Promise.all([
-    getActiveLocomotives(),
-    db
-      .select({ locomotiveId: turnarounds.locomotiveId, turnaroundId: turnarounds.id })
-      .from(turnarounds)
-      .where(and(isNotNull(turnarounds.locomotiveId), unfinished)),
-    db
-      .select({
-        locomotiveId: turnaroundOperations.locomotiveId,
-        turnaroundId: turnaroundOperations.turnaroundId,
-      })
-      .from(turnaroundOperations)
-      .innerJoin(turnarounds, eq(turnarounds.id, turnaroundOperations.turnaroundId))
-      .where(and(isNotNull(turnaroundOperations.locomotiveId), unfinished)),
-    db
-      .select({ locomotiveId: maintenanceRecords.locomotiveId })
-      .from(maintenanceRecords)
-      .where(isNull(maintenanceRecords.returnedAt)),
-  ]);
-
-  const busy = new Set(inMaintenance.map((r) => r.locomotiveId));
-  for (const r of [...viaTurnaround, ...viaOperation]) {
-    if (r.locomotiveId !== null && r.turnaroundId !== forTurnaroundId) busy.add(r.locomotiveId);
-  }
-  return locos.filter((l) => !busy.has(l.id));
-});
 
 export const getActiveTrainNumbers = cache(async () =>
   db.select().from(trainNumbers).where(eq(trainNumbers.isActive, true)).orderBy(asc(trainNumbers.number)),

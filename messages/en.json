@@ -140,7 +140,6 @@
     "notFound": "Record not found.",
     "duplicate": "A record with these values already exists.",
     "generic": "The change could not be saved.",
-    "locomotive_busy": "The locomotive is on another turnaround or in maintenance.",
     "past_leg": "This part of the route is already completed and can no longer be edited."
   },
   "fields": {
