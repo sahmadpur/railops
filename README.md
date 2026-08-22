@@ -28,8 +28,8 @@ database port, and disables demo seed data.
 ## Concepts
 
 **One record = one locomotive turnaround.** A turnaround carries the 29 ordered operations that run
-from Böyük Kəsik out to Tbilisi and back. Train numbers (AZ, GR-even, GR-odd) attach to it as the
-locomotive moves.
+from Böyük Kəsik out to Tbilisi and back. The train number is typed free-form and follows the
+renumbering along the route; its last digit (even/odd) carries the direction.
 
 **The operation sequence is data, not code.** `operation_types` is seeded from `docs/Operations.xlsx`
 and editable at `/admin/operations`. Each row declares its station, whether it is required, optional

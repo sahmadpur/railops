@@ -23,7 +23,6 @@ import {
   maintenanceRecords,
   operationTypes,
   stations,
-  trainNumbers,
   turnaroundOperations,
   turnarounds,
   users,
@@ -77,11 +76,10 @@ const TRANSIT = {
 const MAINTENANCE_MINUTES = [90, 320] as const;
 
 async function main() {
-  const [stationRows, catalogue, locomotiveRows, trainRows, userRows] = await Promise.all([
+  const [stationRows, catalogue, locomotiveRows, userRows] = await Promise.all([
     db.select().from(stations),
     db.select().from(operationTypes).orderBy(asc(operationTypes.seq)),
     db.select().from(locomotives).where(eq(locomotives.isActive, true)).orderBy(asc(locomotives.id)),
-    db.select().from(trainNumbers).where(eq(trainNumbers.isActive, true)).orderBy(asc(trainNumbers.number)),
     db.select().from(users),
   ]);
 
@@ -96,8 +94,7 @@ async function main() {
   );
 
   // Böyük Kəsik opens the outbound leg, so a turnaround that walks this catalogue is an even train.
-  const evenTrains = trainRows.filter((n) => n.parity === "even");
-  if (evenTrains.length < PER_DAY) throw new Error("not enough even train numbers — run `npm run db:seed` first");
+  const evenTrains = ["2602", "2604", "2606", "2608", "2610", "2682", "2684", "2686", "2688", "2690"];
 
   const bySeq = new Map(catalogue.map((o) => [o.seq, o]));
   const lastSeq = Math.max(...catalogue.map((o) => o.seq));
@@ -166,7 +163,7 @@ async function main() {
       const [turnaround] = await db
         .insert(turnarounds)
         .values({
-          trainNumberId: train.id,
+          trainNumber: train,
           locomotiveId: locomotive.id,
           cycleDate,
           statusCode: cancelled ? "cancelled" : justArrived ? "open" : unfinished ? "in_progress" : "completed",
@@ -209,7 +206,7 @@ async function main() {
           operationTypeId: operation.id,
           occurredAt: at,
           // Only the fields the operation declares — the same set the form would demand.
-          trainNumberId: operation.fields.includes("train_number") ? train.id : null,
+          trainNumber: operation.fields.includes("train_number") ? train : null,
           locomotiveId: operation.fields.includes("locomotive") ? locomotive.id : null,
           detachReasonCode: operation.fields.includes("detach_reason")
             ? pick(["technical", "commercial", "customs", "other"])

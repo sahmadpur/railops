@@ -7,15 +7,16 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { withActor } from "@/db/actor";
 import { maintenanceRecords, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
-import { getActiveTrainNumbers, getStations } from "@/lib/catalogue";
+import { getStations } from "@/lib/catalogue";
 import {
   canEdit,
   checkClearable,
   checkCurrentLeg,
   checkUnlocked,
-  currentTrainNumberId,
+  currentTrainNumber,
   missingForClose,
   openingRule,
+  parityOf,
   validateEntry,
   type EntryInput,
 } from "@/lib/turnaround-rules";
@@ -49,24 +50,21 @@ async function loadContext(turnaroundId: number) {
 
 export async function createTurnaround(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
   const session = await requireSession();
-  const trainNumberId = optionalInt(formData.get("trainNumberId"));
+  const trainNumber = optionalText(formData.get("trainNumber"));
   const cycleDate = optionalText(formData.get("cycleDate"));
-  if (!trainNumberId || !cycleDate) return { ok: false, error: "generic" };
+  if (!trainNumber || !cycleDate) return { ok: false, error: "generic" };
 
-  // The filtered select is a convenience; the station rule is enforced here.
-  const [stations, trains] = await Promise.all([getStations(), getActiveTrainNumbers()]);
+  const stations = await getStations();
   const stationCode = stations.find((s) => s.id === session.stationId)?.code ?? null;
   const opening = openingRule(session.role, stationCode);
   if (!opening.allowed) return { ok: false, error: "forbidden" };
-
-  const train = trains.find((n) => n.id === trainNumberId);
-  if (!train) return { ok: false, error: "generic" };
-  if (opening.parity && train.parity !== opening.parity) return { ok: false, error: "generic" };
+  // Böyük Kəsik opens even trains, Tbilisi odd ones; the number itself says which it is.
+  if (opening.parity && parityOf(trainNumber) !== opening.parity) return { ok: false, error: "wrong_parity" };
 
   const created = await withActor(session.userId, async (tx) => {
     const [row] = await tx
       .insert(turnarounds)
-      .values({ trainNumberId, cycleDate, openedBy: session.userId, statusCode: "open" })
+      .values({ trainNumber, cycleDate, openedBy: session.userId, statusCode: "open" })
       .returning({ id: turnarounds.id });
 
     // The first step is the arrival that opens the turnaround, so it is recorded here rather
@@ -84,7 +82,7 @@ export async function createTurnaround(_prev: ActionResult | undefined, formData
         turnaroundId: row.id,
         operationTypeId: first.id,
         occurredAt: new Date(),
-        trainNumberId: first.fields.includes("train_number") ? trainNumberId : null,
+        trainNumber: first.fields.includes("train_number") ? trainNumber : null,
         recordedBy: session.userId,
       });
       await tx.update(turnarounds).set({ statusCode: "in_progress" }).where(eq(turnarounds.id, row.id));
@@ -117,7 +115,7 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
     // The form prefills the current time, so a blank field means the operator submitted before
     // that landed (or with JavaScript off) — stamp it here rather than rejecting the entry.
     occurredAt: occurredAtRaw ? new Date(occurredAtRaw) : new Date(),
-    trainNumberId: optionalInt(formData.get("trainNumberId")),
+    trainNumber: optionalText(formData.get("trainNumber")),
     locomotiveId: optionalInt(formData.get("locomotiveId")),
     detachReasonCode: optionalText(formData.get("detachReasonCode")),
     maintenanceReasonCode: optionalText(formData.get("maintenanceReasonCode")),
@@ -134,12 +132,12 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
   // The train is renumbered along the route, so the turnaround carries whichever number was
   // assigned last — that is what the list, dashboard and export show. The per-step numbers stay
   // as they were recorded, so the row for every station is the history of the renumbering.
-  const latestTrainNumberId = currentTrainNumberId(context.catalogue, [
+  const latestTrainNumber = currentTrainNumber(context.catalogue, [
     ...context.entries.filter((e) => e.operationTypeId !== operationTypeId),
-    { operationTypeId, occurredAt: input.occurredAt, trainNumberId: input.trainNumberId ?? null },
+    { operationTypeId, occurredAt: input.occurredAt, trainNumber: input.trainNumber ?? null },
   ]);
-  const newTrainNumberId =
-    latestTrainNumberId && latestTrainNumberId !== context.turnaround.trainNumberId ? latestTrainNumberId : null;
+  const newTrainNumber =
+    latestTrainNumber && latestTrainNumber !== context.turnaround.trainNumber ? latestTrainNumber : null;
 
   // The turnaround itself carries no locomotive until one is attached, so ТОИР falls back to
   // whatever an earlier step recorded.
@@ -159,7 +157,7 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
         turnaroundId,
         operationTypeId,
         occurredAt: input.occurredAt,
-        trainNumberId: input.trainNumberId ?? null,
+        trainNumber: input.trainNumber ?? null,
         locomotiveId: input.locomotiveId ?? null,
         detachReasonCode: input.detachReasonCode ?? null,
         maintenanceReasonCode: input.maintenanceReasonCode ?? null,
@@ -171,7 +169,7 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
         target: [turnaroundOperations.turnaroundId, turnaroundOperations.operationTypeId],
         set: {
           occurredAt: input.occurredAt,
-          trainNumberId: input.trainNumberId ?? null,
+          trainNumber: input.trainNumber ?? null,
           locomotiveId: input.locomotiveId ?? null,
           detachReasonCode: input.detachReasonCode ?? null,
           maintenanceReasonCode: input.maintenanceReasonCode ?? null,
@@ -196,12 +194,12 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
 
     // An attachment step is what gives the turnaround its locomotive; the latest one wins.
     const attachedLocomotiveId = operation.fields.includes("locomotive") ? input.locomotiveId : null;
-    if (attachedLocomotiveId || newTrainNumberId || context.turnaround.statusCode === "open") {
+    if (attachedLocomotiveId || newTrainNumber || context.turnaround.statusCode === "open") {
       await tx
         .update(turnarounds)
         .set({
           ...(attachedLocomotiveId ? { locomotiveId: attachedLocomotiveId } : {}),
-          ...(newTrainNumberId ? { trainNumberId: newTrainNumberId } : {}),
+          ...(newTrainNumber ? { trainNumber: newTrainNumber } : {}),
           ...(context.turnaround.statusCode === "open" ? { statusCode: "in_progress" as const } : {}),
           updatedAt: new Date(),
         })
@@ -297,7 +295,7 @@ export async function clearOperation(_prev: ActionResult | undefined, formData: 
   // Clearing the step that assigned the current number falls the turnaround back to the last
   // number still recorded on it.
   const remaining = context.entries.filter((e) => e.operationTypeId !== operationTypeId);
-  const fallbackTrainNumberId = currentTrainNumberId(context.catalogue, remaining);
+  const fallbackTrainNumber = currentTrainNumber(context.catalogue, remaining);
 
   await withActor(session.userId, async (tx) => {
     await tx
@@ -309,10 +307,10 @@ export async function clearOperation(_prev: ActionResult | undefined, formData: 
         ),
       );
 
-    if (fallbackTrainNumberId && fallbackTrainNumberId !== context.turnaround.trainNumberId) {
+    if (fallbackTrainNumber && fallbackTrainNumber !== context.turnaround.trainNumber) {
       await tx
         .update(turnarounds)
-        .set({ trainNumberId: fallbackTrainNumberId, updatedAt: new Date() })
+        .set({ trainNumber: fallbackTrainNumber, updatedAt: new Date() })
         .where(eq(turnarounds.id, turnaroundId));
     }
   });

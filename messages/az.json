@@ -11,7 +11,6 @@
     "admin": "İdarəetmə",
     "users": "İstifadəçilər",
     "locomotives": "Lokomotivlər",
-    "trainNumbers": "Qatar nömrələri",
     "maintenance": "Texniki işlər",
     "reference": "Sorğu kitabçaları",
     "operations": "Əməliyyat kataloqu",
@@ -120,12 +119,12 @@
     "cannotOpenHere": "Sizin stansiyanızda dövriyyə açılmır.",
     "operationsFilled": "{total} əməliyyatdan {filled} qeyd olunub",
     "deleteConfirm": "Bu dövriyyə və ona aid bütün əməliyyatlar silinsin? Geri qaytarmaq mümkün deyil.",
-    "noTrainMatch": "Siyahıdan qatar nömrəsi seçin.",
     "showEarlier": "Əvvəlki əməliyyatları göstər ({count})",
     "hideEarlier": "Əvvəlki əməliyyatları gizlət"
   },
   "errors": {
     "wrong_station": "Yalnız öz stansiyanızın əməliyyatlarını qeyd edə bilərsiniz.",
+    "wrong_parity": "Cüt qatar nömrələrini Böyük Kəsik, təkləri Tbilisi açır — bu nömrə sizin stansiyaya uyğun deyil.",
     "before_earlier_operation": "Vaxt artıq qeyd olunmuş {seq} nömrəli əməliyyatdan əvvəldir.",
     "after_later_operation": "Vaxt artıq qeyd olunmuş {seq} nömrəli əməliyyatdan sonradır.",
     "missing_field": "{seq} nömrəli əməliyyat üçün «{field}» sahəsi tələb olunur.",
@@ -175,15 +174,6 @@
       "depot": "Depo",
       "currentStation": "Cari stansiya",
       "create": "Lokomotiv əlavə et"
-    },
-    "trainNumbers": {
-      "title": "Qatar nömrələri",
-      "number": "Nömrə",
-      "parity": "Cütlük",
-      "even": "Cüt",
-      "odd": "Tək",
-      "country": "Dəmir yolu",
-      "create": "Nömrə əlavə et"
     },
     "maintenance": {
       "title": "Texniki işlər",
@@ -250,7 +240,7 @@
         "title": "Dövriyyə siyahınız",
         "body": "Siyahıda stansiyanızı gözləyən dövriyyələr görünür. Qeyd əvvəlki stansiya öz hissəsini bitirəndə peyda olur, sizinki bitəndə siyahıdan çıxır. Bütün əməliyyatları yazılmış, amma hələ açıq qalan dövriyyə bağlanana qədər marşrutun son stansiyasında qalır.",
         "steps": [
-          "Siyahını tarix aralığına, qatar nömrəsinə, lokomotivə və ya statusa görə daraldıb «Süzgəc» düyməsini basın; «Sıfırla» bütün süzgəcləri təmizləyir.",
+          "Siyahını tarix aralığına, lokomotivə və ya statusa görə daraldın, yaxud qatar və ya lokomotiv nömrəsi ilə axtarın və «Süzgəc» düyməsini basın; «Sıfırla» bütün süzgəcləri təmizləyir.",
           "Dövriyyəni birinci sütundakı nömrəyə və ya sətrə iki dəfə klikləməklə açın.",
           "«Doldurulub» yazılmış əməliyyatların sayını, «Sərf olunan vaxt» ilk əməliyyatdan keçən müddəti göstərir.",
           "Siyahı öz-özünə yenilənir — başqa stansiyanın təhvil verdiyi dövriyyə səhifəni yeniləmədən görünür."
@@ -261,7 +251,7 @@
         "body": "Cüt qatar nömrələrini Böyük Kəsik, təkləri Tbilisi açır: nömrənin cütlüyü istiqaməti müəyyən edir. Qardabani dövriyyə açmır — yalnız qəbul edir.",
         "steps": [
           "«Yeni dövriyyə» düyməsini basın.",
-          "Qatar nömrəsini yazmağa başlayıb siyahıdan seçin; yalnız hazırda boş olan nömrələr təklif edilir.",
+          "Qatar nömrəsini yazın. Cüt nömrələri Böyük Kəsik, təkləri Tbilisi açır — son rəqəm həll edir.",
           "Dövriyyə tarixi standart olaraq bugünkü gündür; daha əvvəl başlamış növbə üçün yazırsınızsa, tarixi dəyişin.",
           "«Yarat» düyməsini basın. Qatar artıq bitməmiş dövriyyədədirsə, proqram imtina edib bunu bildirəcək."
         ]
@@ -317,11 +307,10 @@
         ]
       },
       "fleet": {
-        "title": "Lokomotivlər, qatar nömrələri və sorğu kitabçaları",
+        "title": "Lokomotivlər və sorğu kitabçaları",
         "body": "Açılan siyahıların arxasındakı reyestrlər «İdarəetmə» bölməsində aparılır.",
         "steps": [
           "Lokomotivi nömrəsi, mənsubiyyəti və deposu ilə əlavə edin.",
-          "Qatar nömrəsinin öz dəmir yolu və cütlüyü var; hərəkət istiqamətini məhz cütlük müəyyən edir.",
           "Sorğu kitabçalarında dövriyyə formasının təklif etdiyi «TOİR növləri», «TOİR səbəbləri» və «Ayrılma səbəbləri» saxlanılır.",
           "Dövriyyədə artıq istifadə olunmuş qeydi silmək olmur — onu deaktiv edin: açılan siyahılardan çıxır, tarixçə isə toxunulmaz qalır."
         ]

@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import AutoRefresh from "@/components/AutoRefresh";
 import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
-import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users, type OperationField } from "@/db/schema";
+import { locomotives, turnaroundOperations, turnarounds, users, type OperationField } from "@/db/schema";
 import { getFormOptions } from "@/lib/catalogue";
 import { formatDate, label, operationNo, toLocalInputValue } from "@/lib/format";
 import { requireSession } from "@/lib/session";
@@ -26,8 +26,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
   const [turnaround] = await db.select().from(turnarounds).where(eq(turnarounds.id, id)).limit(1);
   if (!turnaround) notFound();
 
-  const [[train], [locomotive], entries, options] = await Promise.all([
-    db.select().from(trainNumbers).where(eq(trainNumbers.id, turnaround.trainNumberId)).limit(1),
+  const [[locomotive], entries, options] = await Promise.all([
     // Null until an attachment step records the locomotive.
     turnaround.locomotiveId
       ? db.select().from(locomotives).where(eq(locomotives.id, turnaround.locomotiveId)).limit(1)
@@ -45,10 +44,6 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
   const stationName = new Map(options.stations.map((s) => [s.id, label(s.name, locale)]));
   const entryByOperation = new Map(entries.map((e) => [e.operationTypeId, e]));
 
-  const trainOptions: Option[] = options.trainNumbers.map((n) => ({
-    id: n.id,
-    text: `${n.number} · ${n.country}`,
-  }));
   const locomotiveOptions: Option[] = options.locomotives.map((l) => ({
     id: l.id,
     text: `${l.number} · ${l.owner}`,
@@ -129,7 +124,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
           (!isClosed || session.role === "admin"),
         recorded: Boolean(entry),
         occurredAtValue: toLocalInputValue(entry?.occurredAt ?? null),
-        trainNumberId: entry?.trainNumberId ?? null,
+        trainNumber: entry?.trainNumber ?? null,
         locomotiveId: entry?.locomotiveId ?? null,
         detachReasonCode: entry?.detachReasonCode ?? null,
         maintenanceReasonCode: entry?.maintenanceReasonCode ?? null,
@@ -137,7 +132,6 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
         note: entry?.note ?? null,
         recordedByName: entry ? (recorderName.get(entry.recordedBy) ?? null) : null,
         options: {
-          train_number: trainOptions,
           locomotive: locomotiveOptions,
           detach_reason: referenceOptions(options.detachReasons),
           maintenance_reason: referenceOptions(options.maintenanceReasons),
@@ -182,7 +176,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
         <dl className="grid flex-1 grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-4">
           <div>
             <dt className="text-muted text-xs">{t("common.trainNumber")}</dt>
-            <dd className="mt-0.5 font-medium">{train?.number ?? "—"}</dd>
+            <dd className="mt-0.5 font-medium">{turnaround.trainNumber}</dd>
           </div>
           <div>
             <dt className="text-muted text-xs">{t("common.locomotive")}</dt>

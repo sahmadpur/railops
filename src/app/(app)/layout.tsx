@@ -36,7 +36,6 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       ? [
           { href: "/admin/users", text: t("nav.users"), icon: "users" },
           { href: "/admin/locomotives", text: t("nav.locomotives"), icon: "locomotives" },
-          { href: "/admin/train-numbers", text: t("nav.trainNumbers"), icon: "trainNumbers" },
           { href: "/admin/maintenance", text: t("nav.maintenance"), icon: "maintenance" },
           { href: "/admin/reference", text: t("nav.reference"), icon: "reference" },
           { href: "/admin/operations", text: t("nav.operations"), icon: "operations" },

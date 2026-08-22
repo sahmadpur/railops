@@ -11,7 +11,6 @@
     "admin": "Administration",
     "users": "Users",
     "locomotives": "Locomotives",
-    "trainNumbers": "Train numbers",
     "maintenance": "Technical work",
     "reference": "Reference lists",
     "operations": "Operation catalogue",
@@ -120,12 +119,12 @@
     "cannotOpenHere": "Turnarounds are not opened at your station.",
     "operationsFilled": "{filled} of {total} operations recorded",
     "deleteConfirm": "Delete this turnaround and every operation recorded against it? This cannot be undone.",
-    "noTrainMatch": "Pick a train number from the list.",
     "showEarlier": "Show {count} earlier operations",
     "hideEarlier": "Hide earlier operations"
   },
   "errors": {
     "wrong_station": "You may only record operations for your own station.",
+    "wrong_parity": "Böyük Kəsik opens even train numbers, Tbilisi odd ones — this number does not match your station.",
     "before_earlier_operation": "The time is earlier than operation {seq}, which is already recorded.",
     "after_later_operation": "The time is later than operation {seq}, which is already recorded.",
     "missing_field": "Operation {seq} requires the field \"{field}\".",
@@ -175,15 +174,6 @@
       "depot": "Depot",
       "currentStation": "Current station",
       "create": "Add locomotive"
-    },
-    "trainNumbers": {
-      "title": "Train numbers",
-      "number": "Number",
-      "parity": "Parity",
-      "even": "Even",
-      "odd": "Odd",
-      "country": "Railway",
-      "create": "Add train number"
     },
     "maintenance": {
       "title": "Technical work",
@@ -250,7 +240,7 @@
         "title": "Your turnaround list",
         "body": "The list shows the turnarounds currently waiting on your station. A record appears when the previous station finishes its part and drops off once yours is done; a fully recorded turnaround that is still open stays with the last station on the route until it is closed.",
         "steps": [
-          "Narrow the list by date range, train number, locomotive or status, then press Filter; Reset clears every filter.",
+          "Narrow the list by date range, locomotive or status, or search by train or locomotive number, then press Filter; Reset clears every filter.",
           "Open a turnaround by clicking the number in the first column or double-clicking its row.",
           "Progress counts the operations already recorded; Elapsed is the time since the first one.",
           "The list refreshes on its own — a turnaround handed over by another station shows up without reloading the page."
@@ -261,7 +251,7 @@
         "body": "Böyük Kəsik opens even train numbers, Tbilisi odd ones: the parity of the number carries the direction. Gardabani opens no turnarounds — it only receives them.",
         "steps": [
           "Press New turnaround.",
-          "Start typing the train number and pick it from the suggestions; only numbers that are currently free are offered.",
+          "Type the train number. Böyük Kəsik opens even numbers, Tbilisi odd ones — the last digit decides.",
           "The turnaround date defaults to today; change it when recording for a shift that started earlier.",
           "Press Create. If the train is already on an unfinished turnaround, the app refuses and says so."
         ]
@@ -317,11 +307,10 @@
         ]
       },
       "fleet": {
-        "title": "Locomotives, train numbers and reference lists",
+        "title": "Locomotives and reference lists",
         "body": "The registries behind the app's drop-downs live under Administration.",
         "steps": [
           "Add a locomotive with its number, owner and depot.",
-          "A train number carries its railway and its parity — and the parity decides the direction it runs.",
           "Reference lists hold the technical work types, technical work reasons and detachment reasons offered on the turnaround form.",
           "A record already used by a turnaround cannot be deleted. Deactivate it instead: it leaves the drop-downs while the history stays intact."
         ]

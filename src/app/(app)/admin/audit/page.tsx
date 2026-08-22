@@ -13,7 +13,6 @@ const TABLES = [
   "turnaround_operations",
   "maintenance_records",
   "locomotives",
-  "train_numbers",
   "operation_types",
   "reference_values",
   "users",

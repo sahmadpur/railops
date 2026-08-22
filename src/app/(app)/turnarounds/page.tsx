@@ -4,10 +4,9 @@ import Link from "next/link";
 
 import AutoRefresh from "@/components/AutoRefresh";
 import RowLink from "@/components/RowLink";
-import SearchSelect from "@/components/SearchSelect";
 import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
-import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users } from "@/db/schema";
+import { locomotives, turnaroundOperations, turnarounds, users } from "@/db/schema";
 import { getFormOptions } from "@/lib/catalogue";
 import { formatDate, label } from "@/lib/format";
 import { requireSession } from "@/lib/session";
@@ -27,10 +26,9 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
   const to = typeof query.to === "string" ? query.to : "";
   const status = typeof query.status === "string" ? query.status : "";
   const locomotiveId = typeof query.locomotiveId === "string" ? query.locomotiveId : "";
-  const trainNumberId = typeof query.trainNumberId === "string" ? query.trainNumberId : "";
   const q = typeof query.q === "string" ? query.q.trim() : "";
 
-  const filters = turnaroundFilters({ from, to, status, locomotiveId, trainNumberId, q });
+  const filters = turnaroundFilters({ from, to, status, locomotiveId, q });
   const where = filters.length ? and(...filters) : undefined;
 
   let rows = await db
@@ -39,7 +37,7 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
       cycleDate: turnarounds.cycleDate,
       statusCode: turnarounds.statusCode,
       closedAt: turnarounds.closedAt,
-      trainNumber: trainNumbers.number,
+      trainNumber: turnarounds.trainNumber,
       // Null until an attachment step records the locomotive.
       locomotiveNumber: locomotives.number,
       openedByName: users.fullName,
@@ -48,12 +46,11 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
       lastAt: sql<Date | null>`max(${turnaroundOperations.occurredAt})`,
     })
     .from(turnarounds)
-    .innerJoin(trainNumbers, eq(trainNumbers.id, turnarounds.trainNumberId))
     .leftJoin(locomotives, eq(locomotives.id, turnarounds.locomotiveId))
     .innerJoin(users, eq(users.id, turnarounds.openedBy))
     .leftJoin(turnaroundOperations, eq(turnaroundOperations.turnaroundId, turnarounds.id))
     .where(where)
-    .groupBy(turnarounds.id, trainNumbers.number, locomotives.number, users.fullName)
+    .groupBy(turnarounds.id, locomotives.number, users.fullName)
     .orderBy(desc(turnarounds.cycleDate), desc(turnarounds.id))
     .limit(200);
 
@@ -93,7 +90,7 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
   const totalOperations = options.catalogue.filter((o) => o.isActive).length;
   const statusLabel = new Map(options.statuses.map((s) => [s.code, label(s.label, locale)]));
   const exportParams = new URLSearchParams(
-    Object.entries({ from, to, status, locomotiveId, trainNumberId, q }).filter(([, v]) => v) as [string, string][],
+    Object.entries({ from, to, status, locomotiveId, q }).filter(([, v]) => v) as [string, string][],
   );
 
   return (
@@ -136,16 +133,6 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
         <label className="flex flex-col gap-1">
           <span className="text-muted">{t("common.to")}</span>
           <input type="date" name="to" defaultValue={to} className="field w-auto" />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-muted">{t("common.trainNumber")}</span>
-          <SearchSelect
-            name="trainNumberId"
-            options={options.trainNumbers.map((n) => ({ id: n.id, text: `${n.number} · ${n.country}` }))}
-            defaultId={trainNumberId || null}
-            placeholder={t("common.all")}
-            className="field w-auto"
-          />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-muted">{t("common.locomotive")}</span>

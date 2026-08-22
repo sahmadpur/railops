@@ -12,7 +12,6 @@ import {
   maintenanceRecords,
   operationTypes,
   referenceValues,
-  trainNumbers,
   users,
   type Localized,
 } from "@/db/schema";
@@ -69,7 +68,6 @@ async function run(path: string, work: (actorId: number) => Promise<void>): Prom
  */
 const DELETABLE = {
   locomotives,
-  trainNumbers,
   referenceValues,
   operationTypes,
   users,
@@ -79,7 +77,6 @@ const DELETABLE = {
 
 const DELETE_PATHS: Record<keyof typeof DELETABLE, string> = {
   locomotives: "/admin/locomotives",
-  trainNumbers: "/admin/train-numbers",
   referenceValues: "/admin/reference",
   operationTypes: "/admin/operations",
   users: "/admin/users",
@@ -165,27 +162,6 @@ export async function saveLocomotive(_prev: ActionResult | undefined, formData: 
       id
         ? tx.update(locomotives).set({ number, owner, depot, currentStationId, isActive }).where(eq(locomotives.id, id))
         : tx.insert(locomotives).values({ number, owner, depot, currentStationId, isActive }),
-    );
-  });
-}
-
-/* ---------- train numbers ---------- */
-
-export async function saveTrainNumber(_prev: ActionResult | undefined, formData: FormData): Promise<ActionResult> {
-  const id = optionalNumber(formData, "id");
-  const number = text(formData, "number");
-  const country = text(formData, "country") === "GR" ? "GR" : "AZ";
-  const isActive = text(formData, "isActive") !== "false";
-  // Parity is a property of the number, not a choice: the last digit decides it.
-  const lastDigit = number.replace(/\D/g, "").at(-1);
-  if (!number || !lastDigit) return { ok: false, error: "generic" };
-  const parity = Number(lastDigit) % 2 === 0 ? "even" : "odd";
-
-  return run("/admin/train-numbers", async (actorId) => {
-    await withActor(actorId, (tx) =>
-      id
-        ? tx.update(trainNumbers).set({ number, parity, country, isActive }).where(eq(trainNumbers.id, id))
-        : tx.insert(trainNumbers).values({ number, parity, country, isActive }),
     );
   });
 }

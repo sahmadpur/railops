@@ -37,7 +37,7 @@ export type RowData = {
   /** True once the step has a row in the database, as opposed to merely being open for entry. */
   recorded: boolean;
   occurredAtValue: string;
-  trainNumberId: number | null;
+  trainNumber: string | null;
   locomotiveId: number | null;
   detachReasonCode: string | null;
   maintenanceReasonCode: string | null;
@@ -45,7 +45,6 @@ export type RowData = {
   note: string | null;
   recordedByName: string | null;
   options: {
-    train_number: Option[];
     locomotive: Option[];
     detach_reason: Option[];
     maintenance_reason: Option[];
@@ -54,7 +53,7 @@ export type RowData = {
 };
 
 const FIELD_TO_INPUT: Record<OperationField, string> = {
-  train_number: "trainNumberId",
+  train_number: "trainNumber",
   locomotive: "locomotiveId",
   detach_reason: "detachReasonCode",
   maintenance_reason: "maintenanceReasonCode",
@@ -64,7 +63,7 @@ const FIELD_TO_INPUT: Record<OperationField, string> = {
 function currentValue(row: RowData, field: OperationField): string {
   switch (field) {
     case "train_number":
-      return row.trainNumberId?.toString() ?? "";
+      return row.trainNumber ?? "";
     case "locomotive":
       return row.locomotiveId?.toString() ?? "";
     case "detach_reason":
@@ -154,7 +153,7 @@ export default function OperationRow({
         <form
           key={[
             row.occurredAtValue,
-            row.trainNumberId,
+            row.trainNumber,
             row.locomotiveId,
             row.detachReasonCode,
             row.maintenanceReasonCode,
@@ -177,7 +176,20 @@ export default function OperationRow({
           />
 
           {row.fields.map((field) =>
-            field === "train_number" || field === "locomotive" ? (
+            field === "train_number" ? (
+              <input
+                key={field}
+                type="text"
+                name={FIELD_TO_INPUT[field]}
+                defaultValue={currentValue(row, field)}
+                placeholder={labels.fieldNames[field]}
+                aria-label={labels.fieldNames[field]}
+                disabled={!row.editable}
+                autoComplete="off"
+                inputMode="numeric"
+                className="field w-[110px]"
+              />
+            ) : field === "locomotive" ? (
               <SearchSelect
                 key={field}
                 name={FIELD_TO_INPUT[field]}

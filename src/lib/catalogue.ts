@@ -2,7 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { cache } from "react";
 
 import { db } from "@/db";
-import { locomotives, operationTypes, referenceValues, stations, trainNumbers } from "@/db/schema";
+import { locomotives, operationTypes, referenceValues, stations } from "@/db/schema";
 
 /** The 29-step turnaround sequence, ordered. Cached per request. */
 export const getCatalogue = cache(async () => db.select().from(operationTypes).orderBy(asc(operationTypes.seq)));
@@ -21,23 +21,18 @@ export const getActiveLocomotives = cache(async () =>
   db.select().from(locomotives).where(eq(locomotives.isActive, true)).orderBy(asc(locomotives.number)),
 );
 
-export const getActiveTrainNumbers = cache(async () =>
-  db.select().from(trainNumbers).where(eq(trainNumbers.isActive, true)).orderBy(asc(trainNumbers.number)),
-);
-
 /** Everything the turnaround form needs to render its selects, in one round of queries. */
 export async function getFormOptions() {
-  const [catalogue, stationRows, locos, trains, maintenanceTypes, maintenanceReasons, detachReasons, statuses] =
+  const [catalogue, stationRows, locos, maintenanceTypes, maintenanceReasons, detachReasons, statuses] =
     await Promise.all([
       getCatalogue(),
       getStations(),
       getActiveLocomotives(),
-      getActiveTrainNumbers(),
       getReference("maintenance_type"),
       getReference("maintenance_reason"),
       getReference("detach_reason"),
       getReference("turnaround_status"),
     ]);
 
-  return { catalogue, stations: stationRows, locomotives: locos, trainNumbers: trains, maintenanceTypes, maintenanceReasons, detachReasons, statuses };
+  return { catalogue, stations: stationRows, locomotives: locos, maintenanceTypes, maintenanceReasons, detachReasons, statuses };
 }

@@ -6,13 +6,14 @@ import {
   checkClearable,
   checkCurrentLeg,
   checkUnlocked,
-  currentTrainNumberId,
+  currentTrainNumber,
   editableWindow,
   elapsedMinutes,
   formatElapsed,
   missingForClose,
   nextStationId,
   openingRule,
+  parityOf,
   unlockedIds,
   validateEntry,
   type EntryLike,
@@ -278,12 +279,19 @@ test("elapsed time spans first to last operation", () => {
 
 test("the current train number is the one assigned latest along the route", () => {
   const entries: EntryLike[] = [
-    { operationTypeId: 40, occurredAt: at("2026-08-06T12:00:00Z"), trainNumberId: 77 },
-    { operationTypeId: 10, occurredAt: at("2026-08-06T10:00:00Z"), trainNumberId: 55 },
+    { operationTypeId: 40, occurredAt: at("2026-08-06T12:00:00Z"), trainNumber: "2177" },
+    { operationTypeId: 10, occurredAt: at("2026-08-06T10:00:00Z"), trainNumber: "2155" },
     { operationTypeId: 20, occurredAt: at("2026-08-06T11:00:00Z") },
   ];
   // Step 40 (seq 4) assigned last, so a correction to step 10 (seq 1) does not take the head back.
-  assert.equal(currentTrainNumberId(catalogue, entries), 77);
-  assert.equal(currentTrainNumberId(catalogue, entries.slice(1)), 55);
-  assert.equal(currentTrainNumberId(catalogue, [entries[2]]), null);
+  assert.equal(currentTrainNumber(catalogue, entries), "2177");
+  assert.equal(currentTrainNumber(catalogue, entries.slice(1)), "2155");
+  assert.equal(currentTrainNumber(catalogue, [entries[2]]), null);
+});
+
+test("parity comes from the last digit of the number", () => {
+  assert.equal(parityOf("2602"), "even");
+  assert.equal(parityOf("2601"), "odd");
+  assert.equal(parityOf("2601a"), "odd");
+  assert.equal(parityOf("abc"), null);
 });

@@ -16,7 +16,6 @@ import {
   operationTypes,
   referenceValues,
   stations,
-  trainNumbers,
   users,
   type Localized,
   type OperationField,
@@ -25,7 +24,7 @@ import {
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is not set");
 const client = postgres(url, { max: 1 });
-const db = drizzle(client, { schema: { stations, users, locomotives, trainNumbers, referenceValues, operationTypes } });
+const db = drizzle(client, { schema: { stations, users, locomotives, referenceValues, operationTypes } });
 
 const STATIONS = [
   {
@@ -64,32 +63,6 @@ const LOCOMOTIVES = [
   { number: "VL10-1581", owner: "AZ", depot: "Gəncə", station: "BK" },
 ] satisfies { number: string; owner: "AZ" | "GR"; depot: string; station: "BK" | "GRD" | "TBS" }[];
 
-/**
- * Corridor train numbers, authoritative in the same way as LOCOMOTIVES above.
- * Parity carries the direction — even runs Böyük Kəsik → Tbilisi, odd runs Tbilisi → Böyük Kəsik —
- * which is why it is derived from the last digit here instead of being listed per row. That is the
- * same rule the registry form applies (see src/actions/registry.ts).
- */
-const TRAIN_NUMBERS = [
-  // Böyük Kəsik → Tbilisi
-  "1200", "1202", "1204", "1206", "1208", "1210",
-  "2100", "2102", "2104", "2106", "2108", "2110",
-  "2500", "2502", "2504", "2506", "2508", "2510",
-  "2600", "2602", "2604", "2606", "2608", "2610",
-  "2680", "2682", "2684", "2686", "2688",
-  "2690", "2692", "2694", "2696", "2698",
-  "2700", "2702", "2704", "2706", "2708", "2710",
-  "2800", "2802", "2804", "2806", "2808", "2810",
-  "3000", "3002", "3004", "3006", "3008", "3010",
-  // Tbilisi → Böyük Kəsik
-  "1201", "1203", "1205", "1207", "1209",
-  "2101", "2103", "2105", "2107", "2109",
-  "2301", "2303", "2305", "2307", "2309",
-  "2401", "2403", "2405", "2407", "2409",
-  "3001", "3003", "3005", "3007", "3009",
-];
-
-const TRAIN_COUNTRY = "AZ" as const;
 
 type OpSeed = {
   seq: number;
@@ -605,27 +578,6 @@ async function main() {
       and not exists (select 1 from maintenance_records m where m.locomotive_id = ${locomotives.id})`,
   );
 
-  await db
-    .insert(trainNumbers)
-    .values(
-      TRAIN_NUMBERS.map((number) => ({
-        number,
-        parity: Number(number.at(-1)) % 2 === 0 ? ("even" as const) : ("odd" as const),
-        country: TRAIN_COUNTRY,
-      })),
-    )
-    .onConflictDoUpdate({
-      target: [trainNumbers.number, trainNumbers.country],
-      set: { parity: sql`excluded.parity`, isActive: true },
-    });
-
-  const retiredTrains = notInArray(trainNumbers.number, TRAIN_NUMBERS);
-  await db.update(trainNumbers).set({ isActive: false }).where(retiredTrains);
-  await db.delete(trainNumbers).where(
-    sql`${retiredTrains}
-      and not exists (select 1 from turnarounds t where t.train_number_id = ${trainNumbers.id})
-      and not exists (select 1 from turnaround_operations o where o.train_number_id = ${trainNumbers.id})`,
-  );
 
   // Inserting a step mid-sequence renumbers everything after it. `seq` is unique, so park the
   // existing numbers out of range first — otherwise the upsert collides with the row that still
@@ -709,7 +661,7 @@ async function main() {
   }
 
   console.log(
-    `seeded: ${STATIONS.length} stations, ${OPERATIONS.length} operations, ${LOCOMOTIVES.length} locomotives, ${TRAIN_NUMBERS.length} train numbers, ${REFERENCE.length} reference values, admin ${adminEmail}`,
+    `seeded: ${STATIONS.length} stations, ${OPERATIONS.length} operations, ${LOCOMOTIVES.length} locomotives, ${REFERENCE.length} reference values, admin ${adminEmail}`,
   );
 }
 

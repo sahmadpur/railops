@@ -16,7 +16,6 @@ const ICONS = {
   admin: "M12 3 4 6v6c0 4 3.4 7.4 8 9 4.6-1.6 8-5 8-9V6z",
   users: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M3 20a6 6 0 0 1 12 0M17 20a5 5 0 0 0-3-4.6M16 4.6a3.5 3.5 0 0 1 0 6.8",
   locomotives: "M6 4h12v9H6zM4 13h16l-2 5H6zM8 20h2M14 20h2M9 7h6",
-  trainNumbers: "M4 7h16M4 12h16M4 17h9",
   maintenance: "m14.5 5.5 4 4M4 20l4.5-1 9-9a2.1 2.1 0 0 0-3-3l-9 9z",
   reference: "M5 5h6v14H5zM13 5h6v14h-6M8 9h0M16 9h0",
   operations: "M7 4v16M17 4v16M4 8h6M14 16h6",

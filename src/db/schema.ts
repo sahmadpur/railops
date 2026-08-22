@@ -18,7 +18,6 @@ export type Localized = { az: string; ru: string; en: string; ka: string };
 
 export const roleEnum = pgEnum("role", ["admin", "operator"]);
 export const ownerEnum = pgEnum("owner", ["AZ", "GR"]);
-export const parityEnum = pgEnum("parity", ["even", "odd"]);
 export const obligationEnum = pgEnum("obligation", ["required", "optional", "conditional"]);
 /** Whether recording an operation opens or closes a technical-work (ТОИР) record. */
 export const maintenanceEffectEnum = pgEnum("maintenance_effect", ["send", "return"]);
@@ -52,18 +51,6 @@ export const locomotives = pgTable("locomotives", {
   currentStationId: integer("current_station_id").references(() => stations.id),
   isActive: boolean("is_active").notNull().default(true),
 });
-
-export const trainNumbers = pgTable(
-  "train_numbers",
-  {
-    id: serial("id").primaryKey(),
-    number: text("number").notNull(),
-    parity: parityEnum("parity").notNull(),
-    country: ownerEnum("country").notNull(),
-    isActive: boolean("is_active").notNull().default(true),
-  },
-  (t) => [unique().on(t.number, t.country)],
-);
 
 /**
  * Small controlled vocabularies in one table, discriminated by `kind`:
@@ -136,9 +123,8 @@ export const turnarounds = pgTable(
   "turnarounds",
   {
     id: serial("id").primaryKey(),
-    trainNumberId: integer("train_number_id")
-      .notNull()
-      .references(() => trainNumbers.id),
+    /** Free text, as the operator types it. Parity (last digit) decides the direction. */
+    trainNumber: text("train_number").notNull(),
     locomotiveId: integer("locomotive_id").references(() => locomotives.id),
     cycleDate: date("cycle_date").notNull(),
     statusCode: text("status_code").notNull().default("open"),
@@ -155,7 +141,7 @@ export const turnarounds = pgTable(
     index("turnarounds_status_idx").on(t.statusCode),
     // Not unique on (train, date): the number follows the renumbering along the route, so two
     // turnarounds on one date can legitimately end up on the same number.
-    index("turnarounds_train_date_idx").on(t.trainNumberId, t.cycleDate),
+    index("turnarounds_train_date_idx").on(t.trainNumber, t.cycleDate),
   ],
 );
 
@@ -170,7 +156,7 @@ export const turnaroundOperations = pgTable(
       .notNull()
       .references(() => operationTypes.id),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
-    trainNumberId: integer("train_number_id").references(() => trainNumbers.id),
+    trainNumber: text("train_number"),
     locomotiveId: integer("locomotive_id").references(() => locomotives.id),
     detachReasonCode: text("detach_reason_code"),
     maintenanceReasonCode: text("maintenance_reason_code"),
@@ -240,7 +226,6 @@ export const operationTypesRelations = relations(operationTypes, ({ one }) => ({
 }));
 
 export const turnaroundsRelations = relations(turnarounds, ({ one, many }) => ({
-  trainNumber: one(trainNumbers, { fields: [turnarounds.trainNumberId], references: [trainNumbers.id] }),
   locomotive: one(locomotives, { fields: [turnarounds.locomotiveId], references: [locomotives.id] }),
   openedByUser: one(users, { fields: [turnarounds.openedBy], references: [users.id] }),
   operations: many(turnaroundOperations),
@@ -251,10 +236,6 @@ export const turnaroundOperationsRelations = relations(turnaroundOperations, ({ 
   operationType: one(operationTypes, {
     fields: [turnaroundOperations.operationTypeId],
     references: [operationTypes.id],
-  }),
-  trainNumber: one(trainNumbers, {
-    fields: [turnaroundOperations.trainNumberId],
-    references: [trainNumbers.id],
   }),
   locomotive: one(locomotives, { fields: [turnaroundOperations.locomotiveId], references: [locomotives.id] }),
   recordedByUser: one(users, { fields: [turnaroundOperations.recordedBy], references: [users.id] }),

@@ -16,6 +16,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `CHANGELOG.md` — every update appends here.
 
 ### Removed
+- Train number registry: `train_numbers` table, the `/admin/train-numbers` page and the AZ/GR railway suffix are gone. The train number is now free text typed on the turnaround and on each step that carries one (`turnarounds.train_number`, `turnaround_operations.train_number`, migration 0006 copies the old values across); the list filter dropdown is replaced by the free-text search. Parity (even opens at Böyük Kəsik, odd at Tbilisi) is read from the last digit of the number typed, and a mismatch is reported as `wrong_parity`.
 - Locomotive availability guard: any active locomotive can now be recorded on any operation. The dropdown no longer hides locomotives that are on another turnaround or in ТОИР, the server-side `locomotive_busy` check is gone, and so is `getAvailableLocomotives`.
 - Train availability guard: a train may now be opened on a turnaround while an earlier one is still unfinished. The create dropdown no longer hides busy trains, the `trainBusy` check is gone from both write paths, and the unique index on (train, cycle date) is dropped — with the number following the route's renumbering, two turnarounds on one date can legitimately share it.
 

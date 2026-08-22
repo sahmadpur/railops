@@ -3,22 +3,18 @@
 import { useActionState } from "react";
 
 import { createTurnaround } from "@/actions/turnaround";
-import SearchSelect from "@/components/SearchSelect";
 
 export default function NewTurnaroundForm({
-  trains,
   today,
   labels,
 }: {
-  trains: { id: number; text: string }[];
   today: string;
   labels: {
     trainNumber: string;
     cycleDate: string;
     submit: string;
-    search: string;
-    noTrainMatch: string;
-    generic: string;
+    /** Keyed by the rule code the server returns; `generic` is the fallback. */
+    errors: Record<string, string>;
   };
 }) {
   const [state, action, pending] = useActionState(createTurnaround, undefined);
@@ -28,15 +24,7 @@ export default function NewTurnaroundForm({
     <form action={action} className="card space-y-4 p-6">
       <label className="block">
         <span className="text-muted mb-1.5 block text-xs font-medium">{labels.trainNumber}</span>
-        <SearchSelect
-          name="trainNumberId"
-          options={trains}
-          placeholder={labels.search}
-          ariaLabel={labels.trainNumber}
-          required
-          noMatchText={labels.noTrainMatch}
-          className="field"
-        />
+        <input name="trainNumber" required autoFocus autoComplete="off" inputMode="numeric" className="field" />
       </label>
 
       <label className="block">
@@ -46,7 +34,7 @@ export default function NewTurnaroundForm({
 
       {state?.ok === false && (
         <p role="alert" className="text-danger text-xs">
-          {labels.generic}
+          {labels.errors[state.error] ?? labels.errors.generic}
         </p>
       )}
 

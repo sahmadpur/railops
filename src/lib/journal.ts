@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, lte } from "drizzle-orm";
 
 import { db } from "@/db";
-import { locomotives, operationTypes, trainNumbers, turnaroundOperations, turnarounds } from "@/db/schema";
+import { locomotives, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
 import { formatTime, operationNo } from "@/lib/format";
 import { elapsedMinutes, formatElapsed } from "@/lib/turnaround-rules";
 
@@ -48,11 +48,10 @@ export async function buildJournal(year: number, month: number, locomotiveId?: n
         id: turnarounds.id,
         cycleDate: turnarounds.cycleDate,
         statusCode: turnarounds.statusCode,
-        trainNumber: trainNumbers.number,
+        trainNumber: turnarounds.trainNumber,
         locomotiveNumber: locomotives.number,
       })
       .from(turnarounds)
-      .innerJoin(trainNumbers, eq(trainNumbers.id, turnarounds.trainNumberId))
       .leftJoin(locomotives, eq(locomotives.id, turnarounds.locomotiveId))
       .where(and(...conditions))
       .orderBy(asc(turnarounds.cycleDate), asc(turnarounds.id)),

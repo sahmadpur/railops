@@ -20,7 +20,7 @@ export type OperationTypeLike = {
 export type EntryLike = {
   operationTypeId: number;
   occurredAt: Date;
-  trainNumberId?: number | null;
+  trainNumber?: string | null;
 };
 
 export type ActorLike = {
@@ -30,7 +30,7 @@ export type ActorLike = {
 
 export type EntryInput = {
   occurredAt: Date;
-  trainNumberId?: number | null;
+  trainNumber?: string | null;
   locomotiveId?: number | null;
   detachReasonCode?: string | null;
   maintenanceReasonCode?: string | null;
@@ -39,7 +39,7 @@ export type EntryInput = {
 
 /** Which input each declared field requires. */
 const FIELD_INPUT: Record<OperationField, keyof EntryInput> = {
-  train_number: "trainNumberId",
+  train_number: "trainNumber",
   locomotive: "locomotiveId",
   detach_reason: "detachReasonCode",
   maintenance_reason: "maintenanceReasonCode",
@@ -69,6 +69,13 @@ const OPENING_PARITY = { BK: "even", TBS: "odd" } as const;
 
 /** `parity: null` means every parity is allowed — admins only. */
 export type Opening = { allowed: false } | { allowed: true; parity: "even" | "odd" | null };
+
+/** The last digit decides: even runs Böyük Kəsik → Tbilisi, odd runs back. Null when there is no digit. */
+export function parityOf(trainNumber: string): "even" | "odd" | null {
+  const lastDigit = trainNumber.replace(/\D/g, "").at(-1);
+  if (lastDigit === undefined) return null;
+  return Number(lastDigit) % 2 === 0 ? "even" : "odd";
+}
 
 export function openingRule(role: ActorLike["role"], stationCode: string | null): Opening {
   if (role === "admin") return { allowed: true, parity: null };
@@ -258,13 +265,13 @@ export function checkClearable(
  * recorded, which is the history of the change; this is only the head of it. Null before any step
  * records a number, and unaffected by a late correction to an earlier step.
  */
-export function currentTrainNumberId(catalogue: OperationTypeLike[], entries: EntryLike[]): number | null {
+export function currentTrainNumber(catalogue: OperationTypeLike[], entries: EntryLike[]): string | null {
   const seqById = new Map(catalogue.map((o) => [o.id, o.seq]));
   const latest = entries
-    .filter((e) => e.trainNumberId != null)
+    .filter((e) => e.trainNumber)
     .sort((a, b) => (seqById.get(a.operationTypeId) ?? 0) - (seqById.get(b.operationTypeId) ?? 0))
     .at(-1);
-  return latest?.trainNumberId ?? null;
+  return latest?.trainNumber ?? null;
 }
 
 /** Elapsed turnaround time in minutes — the spreadsheet's "Общее затраченное время" row. */

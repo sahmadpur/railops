@@ -43,6 +43,13 @@
       "when": 1786794329326,
       "tag": "0005_daily_stone_men",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787378957049,
+      "tag": "0006_train_number_text",
+      "breakpoints": true
     }
   ]
 }

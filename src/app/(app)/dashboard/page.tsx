@@ -10,7 +10,6 @@ import {
   locomotives,
   maintenanceRecords,
   operationTypes,
-  trainNumbers,
   turnaroundOperations,
   turnarounds,
 } from "@/db/schema";
@@ -101,10 +100,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           id: turnarounds.id,
           cycleDate: turnarounds.cycleDate,
           statusCode: turnarounds.statusCode,
-          number: trainNumbers.number,
+          number: turnarounds.trainNumber,
         })
         .from(turnarounds)
-        .innerJoin(trainNumbers, eq(trainNumbers.id, turnarounds.trainNumberId))
         .where(inRange)
         .orderBy(desc(turnarounds.cycleDate), desc(turnarounds.id))
         .limit(8),

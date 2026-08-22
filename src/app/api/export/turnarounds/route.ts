@@ -3,7 +3,7 @@ import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { db } from "@/db";
-import { locomotives, trainNumbers, turnaroundOperations, turnarounds, users } from "@/db/schema";
+import { locomotives, turnaroundOperations, turnarounds, users } from "@/db/schema";
 import { getReference } from "@/lib/catalogue";
 import { formatDate, label } from "@/lib/format";
 import { getSession } from "@/lib/session";
@@ -23,7 +23,6 @@ export async function GET(request: Request) {
     to: params.get("to"),
     status: params.get("status"),
     locomotiveId: params.get("locomotiveId"),
-    trainNumberId: params.get("trainNumberId"),
     q: params.get("q")?.trim(),
   });
 
@@ -36,7 +35,7 @@ export async function GET(request: Request) {
         id: turnarounds.id,
         cycleDate: turnarounds.cycleDate,
         statusCode: turnarounds.statusCode,
-        trainNumber: trainNumbers.number,
+        trainNumber: turnarounds.trainNumber,
         locomotiveNumber: locomotives.number,
         openedByName: users.fullName,
         filled: count(turnaroundOperations.id),
@@ -44,12 +43,11 @@ export async function GET(request: Request) {
         lastAt: sql<Date | null>`max(${turnaroundOperations.occurredAt})`,
       })
       .from(turnarounds)
-      .innerJoin(trainNumbers, eq(trainNumbers.id, turnarounds.trainNumberId))
       .leftJoin(locomotives, eq(locomotives.id, turnarounds.locomotiveId))
       .innerJoin(users, eq(users.id, turnarounds.openedBy))
       .leftJoin(turnaroundOperations, eq(turnaroundOperations.turnaroundId, turnarounds.id))
       .where(filters.length ? and(...filters) : undefined)
-      .groupBy(turnarounds.id, trainNumbers.number, locomotives.number, users.fullName)
+      .groupBy(turnarounds.id, locomotives.number, users.fullName)
       .orderBy(desc(turnarounds.cycleDate), asc(turnarounds.id)),
   ]);
 
