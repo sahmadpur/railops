@@ -50,6 +50,13 @@
       "when": 1787378957049,
       "tag": "0006_train_number_text",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790762165218,
+      "tag": "0007_station_is_active",
+      "breakpoints": true
     }
   ]
 }

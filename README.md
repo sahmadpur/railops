@@ -1,6 +1,6 @@
 # RailOps
 
-Locomotive turnaround logging and registry for the Böyük Kəsik (AZ) → Gardabani (GE) → Tbilisi corridor.
+Locomotive turnaround logging and registry for the Böyük Kəsik (AZ) → Gardabani (GE) corridor.
 
 Replaces the `Учёт оборота локомотивов` spreadsheet with a system that has access control, a
 database-enforced audit trail, and validation of the operation sequence — while still printing and
@@ -27,9 +27,9 @@ database port, and disables demo seed data.
 
 ## Concepts
 
-**One record = one locomotive turnaround.** A turnaround carries the 29 ordered operations that run
-from Böyük Kəsik out to Tbilisi and back. The train number is typed free-form and follows the
-renumbering along the route; its last digit (even/odd) carries the direction.
+**One record = one locomotive turnaround.** A turnaround carries the 23 ordered operations that run
+from Böyük Kəsik out to Gardabani and back. Either station can open one. The train number is typed
+free-form and follows the renumbering along the route.
 
 **The operation sequence is data, not code.** `operation_types` is seeded from `docs/Operations.xlsx`
 and editable at `/admin/operations`. Each row declares its station, whether it is required, optional
@@ -55,7 +55,7 @@ interface — dashboard, journal and admin pages are admin-only. Admins are unre
 ```
 src/db/schema.ts              tables, enums, relations
 src/db/migrations/            generated SQL + 0001_audit_triggers.sql
-src/db/seed.mts               stations, the 29 operations, reference lists, admin user
+src/db/seed.mts               stations, the 23 operations, reference lists, admin user
 src/db/actor.ts               withActor() — the only sanctioned write path
 src/lib/turnaround-rules.ts   station scoping, chronology, close-completeness (pure, tested)
 src/lib/journal.ts            the monthly grid, shared by the print page and the Excel export

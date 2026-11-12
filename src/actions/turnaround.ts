@@ -16,7 +16,6 @@ import {
   currentTrainNumber,
   missingForClose,
   openingRule,
-  parityOf,
   validateEntry,
   type EntryInput,
 } from "@/lib/turnaround-rules";
@@ -58,8 +57,6 @@ export async function createTurnaround(_prev: ActionResult | undefined, formData
   const stationCode = stations.find((s) => s.id === session.stationId)?.code ?? null;
   const opening = openingRule(session.role, stationCode);
   if (!opening.allowed) return { ok: false, error: "forbidden" };
-  // Böyük Kəsik opens even trains, Tbilisi odd ones; the number itself says which it is.
-  if (opening.parity && parityOf(trainNumber) !== opening.parity) return { ok: false, error: "wrong_parity" };
 
   const created = await withActor(session.userId, async (tx) => {
     const [row] = await tx

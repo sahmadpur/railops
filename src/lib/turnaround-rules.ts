@@ -61,26 +61,16 @@ export function canEdit(actor: ActorLike, operation: OperationTypeLike): boolean
 }
 
 /**
- * Which train parity a station may open a turnaround with: Böyük Kəsik starts the outbound leg
- * with an even train, Tbilisi the return leg with an odd one. Gardabani never opens a turnaround,
- * and neither does an operator without a station.
+ * The stations that may open a turnaround: both ends of the corridor, with any train number.
+ * An operator without a station, or at a station that has left the route, opens nothing.
  */
-const OPENING_PARITY = { BK: "even", TBS: "odd" } as const;
+const OPENING_STATIONS = new Set(["BK", "GRD"]);
 
-/** `parity: null` means every parity is allowed — admins only. */
-export type Opening = { allowed: false } | { allowed: true; parity: "even" | "odd" | null };
-
-/** The last digit decides: even runs Böyük Kəsik → Tbilisi, odd runs back. Null when there is no digit. */
-export function parityOf(trainNumber: string): "even" | "odd" | null {
-  const lastDigit = trainNumber.replace(/\D/g, "").at(-1);
-  if (lastDigit === undefined) return null;
-  return Number(lastDigit) % 2 === 0 ? "even" : "odd";
-}
+export type Opening = { allowed: boolean };
 
 export function openingRule(role: ActorLike["role"], stationCode: string | null): Opening {
-  if (role === "admin") return { allowed: true, parity: null };
-  const parity = stationCode ? OPENING_PARITY[stationCode as keyof typeof OPENING_PARITY] : undefined;
-  return parity ? { allowed: true, parity } : { allowed: false };
+  if (role === "admin") return { allowed: true };
+  return { allowed: stationCode !== null && OPENING_STATIONS.has(stationCode) };
 }
 
 /**
@@ -106,6 +96,8 @@ export function checkChronology(
   for (const entry of entries) {
     const other = bySeq.get(entry.operationTypeId);
     if (!other || other.id === operation.id) continue;
+    // A step retired from the route keeps its recorded time but no longer orders anything.
+    if (!other.isActive) continue;
     if (areParallel(operation, other)) continue;
 
     if (other.seq < operation.seq && entry.occurredAt.getTime() > occurredAt.getTime()) {
@@ -179,7 +171,7 @@ export function nextStationId(catalogue: OperationTypeLike[], entries: EntryLike
 /**
  * The leg of the route the turnaround is currently on: the contiguous same-station run of
  * active operations around the first unfilled mandatory step. A station visited twice
- * (Böyük Kəsik, Gardabani) gets a separate window per pass, so the return leg never reopens
+ * (Böyük Kəsik) gets a separate window per pass, so the return leg never reopens
  * the outbound one. Once nothing is missing the window stays on the final leg — the finishing
  * station can still adjust its entries until the turnaround is closed.
  */
@@ -254,14 +246,15 @@ export function checkClearable(
   entries: EntryLike[],
 ): RuleError | null {
   if (actor.role === "admin") return null;
-  const seqById = new Map(catalogue.map((o) => [o.id, o.seq]));
+  // Retired steps are left out: they sit past the end of the sequence and would block every clear.
+  const seqById = new Map(catalogue.filter((o) => o.isActive).map((o) => [o.id, o.seq]));
   const later = entries.find((e) => (seqById.get(e.operationTypeId) ?? 0) > operation.seq);
   return later ? { code: "clear_later_first", seq: seqById.get(later.operationTypeId) } : null;
 }
 
 /**
  * The number the train currently runs under: it is given at Böyük Kəsik and reassigned at
- * Gardabani and Tbilisi, so the latest step that carries one wins. Every step keeps the number it
+ * Gardabani, so the latest step that carries one wins. Every step keeps the number it
  * recorded, which is the history of the change; this is only the head of it. Null before any step
  * records a number, and unaffected by a late correction to an earlier step.
  */

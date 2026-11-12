@@ -7,7 +7,7 @@
  * and marked below — confirm with the operations team and edit at /admin/operations.
  */
 import bcrypt from "bcryptjs";
-import { notInArray, sql } from "drizzle-orm";
+import { and, eq, inArray, lt, notInArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
@@ -39,12 +39,6 @@ const STATIONS = [
     sortOrder: 2,
     name: { az: "Qardabani", ru: "Гардабани", en: "Gardabani", ka: "გარდაბანი" },
   },
-  {
-    code: "TBS",
-    country: "GE",
-    sortOrder: 3,
-    name: { az: "Tbilisi", ru: "Тбилиси", en: "Tbilisi", ka: "თბილისი" },
-  },
 ] satisfies { code: string; country: string; sortOrder: number; name: Localized }[];
 
 /**
@@ -61,18 +55,19 @@ const LOCOMOTIVES = [
   { number: "VL10-1639", owner: "AZ", depot: "Gəncə", station: "BK" },
   { number: "VL11-456", owner: "AZ", depot: "Gəncə", station: "BK" },
   { number: "VL10-1581", owner: "AZ", depot: "Gəncə", station: "BK" },
-] satisfies { number: string; owner: "AZ" | "GR"; depot: string; station: "BK" | "GRD" | "TBS" }[];
+] satisfies { number: string; owner: "AZ" | "GR"; depot: string; station: "BK" | "GRD" }[];
 
 
 type OpSeed = {
   seq: number;
   /**
-   * The number the sheet prints, when it differs from `seq` — the "16.1" step pushed every
-   * later row's ordering key one ahead of its sheet number. Defaults to `seq`.
+   * The number the sheet prints, when it differs from `seq` — the "16.1" step and the six
+   * Tbilisi steps that left the route moved the later rows' ordering keys off their sheet
+   * numbers. Defaults to `seq`.
    */
   no?: string;
   code: string;
-  station: "BK" | "GRD" | "TBS";
+  station: "BK" | "GRD";
   obligation: "required" | "optional" | "conditional";
   conditionalOnSeq?: number;
   parallelWithSeq?: number;
@@ -308,91 +303,6 @@ const OPERATIONS: OpSeed[] = [
   },
   {
     seq: 19,
-    no: "18",
-    code: "arrival_tbilisi",
-    station: "TBS",
-    obligation: "required",
-    label: {
-      az: "Tbilisiyə gəliş",
-      ru: "Прибытие в Тбилиси",
-      en: "Arrival at Tbilisi",
-      ka: "ჩამოსვლა თბილისში",
-    },
-  },
-  {
-    seq: 20,
-    no: "19",
-    code: "locomotive_to_maintenance_tbilisi",
-    maintenanceEffect: "send",
-    station: "TBS",
-    obligation: "optional",
-    fields: ["maintenance_reason", "maintenance_type"],
-    label: {
-      az: "Lokomotiv TOİR-ə göndərilib",
-      ru: "Локомотив отправлен в ТОИР",
-      en: "Locomotive sent to maintenance (TOIR)",
-      ka: "ლოკომოტივი გაგზავნილია სარემონტო სამუშაოებზე",
-    },
-  },
-  {
-    seq: 21,
-    no: "20",
-    code: "locomotive_from_maintenance_tbilisi",
-    maintenanceEffect: "return",
-    station: "TBS",
-    obligation: "conditional",
-    conditionalOnSeq: 20,
-    fields: ["maintenance_type"],
-    label: {
-      az: "Lokomotiv TOİR-dən qaytarılıb",
-      ru: "Локомотив вернулся из ТОИР",
-      en: "Locomotive returned from maintenance (TOIR)",
-      ka: "ლოკომოტივი დაბრუნდა სარემონტო სამუშაოებიდან",
-    },
-  },
-  {
-    seq: 22,
-    no: "21",
-    code: "attach_locomotive_tbilisi",
-    station: "TBS",
-    obligation: "optional",
-    fields: ["locomotive"],
-    label: {
-      az: "Lokomotivin bağlanması (qatar–lokomotiv əlaqəsi)",
-      ru: "Привязка локомотива (логическая связка поезда с локо)",
-      en: "Locomotive assignment (train–locomotive link)",
-      ka: "ლოკომოტივის მიბმა (მატარებელი–ლოკომოტივი)",
-    },
-  },
-  {
-    seq: 23,
-    no: "22",
-    code: "assign_train_number_gr_odd",
-    station: "TBS",
-    obligation: "required",
-    fields: ["train_number"],
-    label: {
-      az: "GR qatar nömrəsinin verilməsi (tək)",
-      ru: "Присвоение номера поезда GR (нечётный)",
-      en: "Assignment of GR train number (odd)",
-      ka: "GR მატარებლის ნომრის მინიჭება (კენტი)",
-    },
-  },
-  {
-    seq: 24,
-    no: "23",
-    code: "departure_tbilisi",
-    station: "TBS",
-    obligation: "required",
-    label: {
-      az: "Tbilisidən yola düşmə",
-      ru: "Отправление из Тбилиси",
-      en: "Departure from Tbilisi",
-      ka: "გასვლა თბილისიდან",
-    },
-  },
-  {
-    seq: 25,
     no: "24",
     code: "arrival_gardabani_2",
     station: "GRD",
@@ -405,7 +315,7 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 26,
+    seq: 20,
     no: "25",
     code: "departure_gardabani_2",
     station: "GRD",
@@ -418,7 +328,7 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 27,
+    seq: 21,
     no: "26",
     code: "arrival_bk_return",
     station: "BK",
@@ -431,12 +341,12 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 28,
+    seq: 22,
     no: "27",
     code: "locomotive_to_maintenance_bk",
     maintenanceEffect: "send",
     station: "BK",
-    obligation: "required", // Sheet marks this one obligatory (unlike its Tbilisi twin at seq 20).
+    obligation: "required", // Sheet marks this one obligatory.
     fields: ["maintenance_reason", "maintenance_type"],
     label: {
       az: "Lokomotiv TOİR-ə göndərilib",
@@ -446,13 +356,13 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 29,
+    seq: 23,
     no: "28",
     code: "locomotive_from_maintenance_bk",
     maintenanceEffect: "return",
     station: "BK",
     obligation: "conditional",
-    conditionalOnSeq: 28,
+    conditionalOnSeq: 22,
     fields: ["maintenance_type"],
     label: {
       az: "Lokomotiv TOİR-dən qaytarılıb",
@@ -540,7 +450,12 @@ async function main() {
     .values(STATIONS)
     .onConflictDoUpdate({
       target: stations.code,
-      set: { name: sql`excluded.name`, country: sql`excluded.country`, sortOrder: sql`excluded.sort_order` },
+      set: {
+        name: sql`excluded.name`,
+        country: sql`excluded.country`,
+        sortOrder: sql`excluded.sort_order`,
+        isActive: true,
+      },
     });
 
   const stationIds = new Map((await db.select().from(stations)).map((s) => [s.code, s.id]));
@@ -586,9 +501,31 @@ async function main() {
   // One transaction: a failure between the two statements would otherwise leave the catalogue
   // parked at 1001+ and the sequence numbers meaningless.
   const seeded = new Map(OPERATIONS.map((o) => [o.code, o.seq]));
-  const renumbering = (await db.select().from(operationTypes)).some((row) => seeded.get(row.code) !== row.seq);
+  const existing = await db.select().from(operationTypes);
+  const renumbering = existing.some((row) => seeded.has(row.code) && seeded.get(row.code) !== row.seq);
+  // Steps that left the route. Same rule as the fleet: deactivated where recorded work still
+  // points at them, deleted outright where nothing does.
+  const retiredSteps = notInArray(operationTypes.code, [...seeded.keys()]);
 
   await db.transaction(async (tx) => {
+    // A retired step keeps its row but gives up its place: its number moves far out of range,
+    // clear of both the live sequence and the parking band below. Already-retired rows are
+    // skipped so re-running the seed writes nothing.
+    await tx
+      .update(operationTypes)
+      .set({
+        isActive: false,
+        seq: sql`10000 + ${operationTypes.id}`,
+        conditionalOnSeq: null,
+        parallelWithSeq: null,
+      })
+      .where(and(retiredSteps, lt(operationTypes.seq, 10000)));
+    await tx
+      .delete(operationTypes)
+      .where(
+        sql`${retiredSteps} and not exists (select 1 from turnaround_operations o where o.operation_type_id = ${operationTypes.id})`,
+      );
+
     // Parking rewrites every row, so skip it when the numbering already matches — otherwise
     // each seed run on an unchanged catalogue would write two audit entries per operation.
     if (renumbering) await tx.execute(sql`update operation_types set seq = seq + 1000 where seq < 1000`);
@@ -623,6 +560,32 @@ async function main() {
         },
       });
   });
+
+  // Stations that left the route go the same way, once their steps are retired above. Their
+  // operators can no longer record anything, so those accounts are switched off, and a
+  // locomotive parked there is left without a station rather than at one nobody can pick.
+  const retiredStations = notInArray(
+    stations.code,
+    STATIONS.map((s) => s.code),
+  );
+  const retiredStationIds = db.select({ id: stations.id }).from(stations).where(retiredStations);
+  await db
+    .update(users)
+    .set({ isActive: false })
+    .where(and(inArray(users.stationId, retiredStationIds), eq(users.isActive, true)));
+  await db
+    .update(locomotives)
+    .set({ currentStationId: null })
+    .where(inArray(locomotives.currentStationId, retiredStationIds));
+  await db
+    .update(stations)
+    .set({ isActive: false })
+    .where(and(retiredStations, eq(stations.isActive, true)));
+  await db.delete(stations).where(
+    sql`${retiredStations}
+      and not exists (select 1 from operation_types o where o.station_id = ${stations.id})
+      and not exists (select 1 from users u where u.station_id = ${stations.id})`,
+  );
 
   await db
     .insert(referenceValues)

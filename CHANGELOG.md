@@ -16,11 +16,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `CHANGELOG.md` — every update appends here.
 
 ### Removed
+- Tbilisi: the station and its six operations (sheet numbers 18–23) are off the route, which is now Böyük Kəsik → Gardabani → Böyük Kəsik in 23 operations. The remaining steps keep the numbers the sheet prints (24–28 after Gardabani's departure). The seed retires what it no longer lists: steps and stations nothing refers to are deleted, the rest are deactivated so turnarounds recorded through Tbilisi stay readable, and operator accounts at a retired station are switched off. A turnaround that was waiting on Tbilisi continues at Gardabani.
+- Train number parity rule: any number opens a turnaround at either station, and the `wrong_parity` error is gone.
 - Train number registry: `train_numbers` table, the `/admin/train-numbers` page and the AZ/GR railway suffix are gone. The train number is now free text typed on the turnaround and on each step that carries one (`turnarounds.train_number`, `turnaround_operations.train_number`, migration 0006 copies the old values across); the list filter dropdown is replaced by the free-text search. Parity (even opens at Böyük Kəsik, odd at Tbilisi) is read from the last digit of the number typed, and a mismatch is reported as `wrong_parity`.
 - Locomotive availability guard: any active locomotive can now be recorded on any operation. The dropdown no longer hides locomotives that are on another turnaround or in ТОИР, the server-side `locomotive_busy` check is gone, and so is `getAvailableLocomotives`.
 - Train availability guard: a train may now be opened on a turnaround while an earlier one is still unfinished. The create dropdown no longer hides busy trains, the `trainBusy` check is gone from both write paths, and the unique index on (train, cycle date) is dropped — with the number following the route's renumbering, two turnarounds on one date can legitimately share it.
 
 ### Changed
+- Gardabani opens turnarounds the same way Böyük Kəsik does.
+- Stations carry an active flag (`stations.is_active`, migration 0007); inactive ones are hidden from the user, locomotive and journal pickers.
+- A deactivated operation no longer takes part in the chronology check or blocks clearing a later step.
 - The turnaround now carries whichever train number was assigned last: the number given at Böyük Kəsik is superseded by the reassignment at Gardabani and again at Tbilisi, and the list, dashboard, journal and export follow it. Each operation keeps the number it recorded, so the step rows are the history of the renumbering; clearing the step that assigned the current number falls back to the last one still recorded.
 - The seed keys operations by `code` instead of `seq`, so inserting a step mid-sequence renumbers the rest without recorded history following the wrong step.
 - User manual copy rewritten in all four languages for natural, native-reader prose; quoted UI labels now match the actual button and column labels in each language file.

@@ -5,7 +5,6 @@ import { getTranslations } from "next-intl/server";
 const STOPS = [
   { code: "BK", country: "AZ", nameKey: "login.stops.bk" },
   { code: "GRD", country: "GE", nameKey: "login.stops.grd" },
-  { code: "TBS", country: "GE", nameKey: "login.stops.tbs" },
 ] as const;
 
 export default async function CorridorPanel() {

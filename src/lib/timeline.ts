@@ -2,9 +2,9 @@
  * Where a turnaround's time actually goes, per leg of the route.
  *
  * The legs are derived from the operation catalogue rather than stored: walking the sequence
- * and cutting wherever the station changes yields Böyük Kəsik → Gardabani → Tbilisi →
- * Gardabani → Böyük Kəsik on its own. Reordering the catalogue reshapes the timeline with no
- * code change, and the two passes through the same station stay separate.
+ * and cutting wherever the station changes yields Böyük Kəsik → Gardabani → Böyük Kəsik on
+ * its own. Reordering the catalogue reshapes the timeline with no code change, and the two
+ * passes through the same station stay separate.
  */
 export type SegmentOperation = { id: number; seq: number };
 

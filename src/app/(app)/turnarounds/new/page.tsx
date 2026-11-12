@@ -30,7 +30,6 @@ export default async function NewTurnaroundPage() {
             cycleDate: t("turnarounds.cycleDate"),
             submit: t("common.create"),
             errors: {
-              wrong_parity: t("errors.wrong_parity"),
               forbidden: t("errors.forbidden"),
               generic: t("errors.generic"),
             },

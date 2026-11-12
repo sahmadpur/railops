@@ -29,6 +29,8 @@ export const stations = pgTable("stations", {
   name: jsonb("name").$type<Localized>().notNull(),
   country: text("country").notNull(), // AZ | GE
   sortOrder: integer("sort_order").notNull().default(0),
+  /** False once a station leaves the route: hidden from every picker, kept for the history that names it. */
+  isActive: boolean("is_active").notNull().default(true),
 });
 
 export const users = pgTable("users", {
@@ -84,7 +86,7 @@ export type OperationField =
 
 /**
  * The operation catalogue — seeded from docs/Operations.xlsx, editable at /admin/operations.
- * The 29-step turnaround is data, not code: reordering or adding a step is a row change.
+ * The 23-step turnaround is data, not code: reordering or adding a step is a row change.
  */
 export const operationTypes = pgTable("operation_types", {
   id: serial("id").primaryKey(),
@@ -115,7 +117,7 @@ export const operationTypes = pgTable("operation_types", {
 });
 
 /**
- * One train turnaround: Böyük Kəsik → Gardabani → Tbilisi → Gardabani → Böyük Kəsik.
+ * One train turnaround: Böyük Kəsik → Gardabani → Böyük Kəsik.
  * A turnaround opens when the train arrives; the locomotive is null until an operation
  * that carries a `locomotive` field records the attachment.
  */
@@ -123,7 +125,7 @@ export const turnarounds = pgTable(
   "turnarounds",
   {
     id: serial("id").primaryKey(),
-    /** Free text, as the operator types it. Parity (last digit) decides the direction. */
+    /** Free text, as the operator types it. */
     trainNumber: text("train_number").notNull(),
     locomotiveId: integer("locomotive_id").references(() => locomotives.id),
     cycleDate: date("cycle_date").notNull(),

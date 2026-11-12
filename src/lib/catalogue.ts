@@ -4,10 +4,16 @@ import { cache } from "react";
 import { db } from "@/db";
 import { locomotives, operationTypes, referenceValues, stations } from "@/db/schema";
 
-/** The 29-step turnaround sequence, ordered. Cached per request. */
+/** The turnaround sequence, ordered. Cached per request. */
 export const getCatalogue = cache(async () => db.select().from(operationTypes).orderBy(asc(operationTypes.seq)));
 
-export const getStations = cache(async () => db.select().from(stations).orderBy(asc(stations.sortOrder)));
+/** The stations on the route today — what every picker and the corridor heading show. */
+export const getStations = cache(async () =>
+  db.select().from(stations).where(eq(stations.isActive, true)).orderBy(asc(stations.sortOrder)),
+);
+
+/** Retired stations included, for labelling history recorded while they were still on the route. */
+export const getAllStations = cache(async () => db.select().from(stations).orderBy(asc(stations.sortOrder)));
 
 export const getReference = cache(async (kind: string) =>
   db
@@ -26,7 +32,7 @@ export async function getFormOptions() {
   const [catalogue, stationRows, locos, maintenanceTypes, maintenanceReasons, detachReasons, statuses] =
     await Promise.all([
       getCatalogue(),
-      getStations(),
+      getAllStations(),
       getActiveLocomotives(),
       getReference("maintenance_type"),
       getReference("maintenance_reason"),

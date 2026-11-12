@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   canEdit,
+  checkChronology,
   checkClearable,
   checkCurrentLeg,
   checkUnlocked,
@@ -13,7 +14,6 @@ import {
   missingForClose,
   nextStationId,
   openingRule,
-  parityOf,
   unlockedIds,
   validateEntry,
   type EntryLike,
@@ -61,14 +61,15 @@ test("operator may only write operations at their own station", () => {
   assert.equal(error?.code, "wrong_station");
 });
 
-test("only Böyük Kəsik and Tbilisi open turnarounds, each with its own parity", () => {
-  assert.deepEqual(openingRule("operator", "BK"), { allowed: true, parity: "even" });
-  assert.deepEqual(openingRule("operator", "TBS"), { allowed: true, parity: "odd" });
-  assert.deepEqual(openingRule("operator", "GRD"), { allowed: false });
+test("Böyük Kəsik and Gardabani both open turnarounds", () => {
+  assert.deepEqual(openingRule("operator", "BK"), { allowed: true });
+  assert.deepEqual(openingRule("operator", "GRD"), { allowed: true });
+  // Tbilisi left the route.
+  assert.deepEqual(openingRule("operator", "TBS"), { allowed: false });
   assert.deepEqual(openingRule("operator", "ZZZ"), { allowed: false });
   assert.deepEqual(openingRule("operator", null), { allowed: false });
   // Admins have no station and are never blocked.
-  assert.deepEqual(openingRule("admin", null), { allowed: true, parity: null });
+  assert.deepEqual(openingRule("admin", null), { allowed: true });
 });
 
 test("an operation cannot be timed before an earlier recorded operation", () => {
@@ -289,9 +290,13 @@ test("the current train number is the one assigned latest along the route", () =
   assert.equal(currentTrainNumber(catalogue, [entries[2]]), null);
 });
 
-test("parity comes from the last digit of the number", () => {
-  assert.equal(parityOf("2602"), "even");
-  assert.equal(parityOf("2601"), "odd");
-  assert.equal(parityOf("2601a"), "odd");
-  assert.equal(parityOf("abc"), null);
+test("a step retired from the route no longer orders or blocks the live ones", () => {
+  // Step 40 has left the route; its recorded time sits before step 30's new one.
+  const retired = catalogue.map((o) => (o.id === 40 ? { ...o, isActive: false, seq: 10040 } : o));
+  const entries: EntryLike[] = [
+    { operationTypeId: 30, occurredAt: at("2026-08-06T10:00:00Z") },
+    { operationTypeId: 40, occurredAt: at("2026-08-06T11:00:00Z") },
+  ];
+  assert.equal(checkChronology(retired[2], at("2026-08-06T12:00:00Z"), retired, entries), null);
+  assert.equal(checkClearable(bkOperator, retired[2], retired, entries), null);
 });

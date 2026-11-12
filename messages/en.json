@@ -30,8 +30,7 @@
     "border": "State border",
     "stops": {
       "bk": "Boyuk Kasik",
-      "grd": "Gardabani",
-      "tbs": "Tbilisi"
+      "grd": "Gardabani"
     }
   },
   "common": {
@@ -124,7 +123,6 @@
   },
   "errors": {
     "wrong_station": "You may only record operations for your own station.",
-    "wrong_parity": "Böyük Kəsik opens even train numbers, Tbilisi odd ones — this number does not match your station.",
     "before_earlier_operation": "The time is earlier than operation {seq}, which is already recorded.",
     "after_later_operation": "The time is later than operation {seq}, which is already recorded.",
     "missing_field": "Operation {seq} requires the field \"{field}\".",
@@ -248,10 +246,10 @@
       },
       "open": {
         "title": "Opening a turnaround",
-        "body": "Böyük Kəsik opens even train numbers, Tbilisi odd ones: the parity of the number carries the direction. Gardabani opens no turnarounds — it only receives them.",
+        "body": "Both stations open turnarounds — Böyük Kəsik and Gardabani alike, with any train number.",
         "steps": [
           "Press New turnaround.",
-          "Type the train number. Böyük Kəsik opens even numbers, Tbilisi odd ones — the last digit decides.",
+          "Type the train number.",
           "The turnaround date defaults to today; change it when recording for a shift that started earlier.",
           "Press Create. If the train is already on an unfinished turnaround, the app refuses and says so."
         ]

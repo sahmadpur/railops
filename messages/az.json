@@ -30,8 +30,7 @@
     "border": "Dövlət sərhədi",
     "stops": {
       "bk": "Böyük Kəsik",
-      "grd": "Qardabani",
-      "tbs": "Tbilisi"
+      "grd": "Qardabani"
     }
   },
   "common": {
@@ -124,7 +123,6 @@
   },
   "errors": {
     "wrong_station": "Yalnız öz stansiyanızın əməliyyatlarını qeyd edə bilərsiniz.",
-    "wrong_parity": "Cüt qatar nömrələrini Böyük Kəsik, təkləri Tbilisi açır — bu nömrə sizin stansiyaya uyğun deyil.",
     "before_earlier_operation": "Vaxt artıq qeyd olunmuş {seq} nömrəli əməliyyatdan əvvəldir.",
     "after_later_operation": "Vaxt artıq qeyd olunmuş {seq} nömrəli əməliyyatdan sonradır.",
     "missing_field": "{seq} nömrəli əməliyyat üçün «{field}» sahəsi tələb olunur.",
@@ -248,10 +246,10 @@
       },
       "open": {
         "title": "Dövriyyənin açılması",
-        "body": "Cüt qatar nömrələrini Böyük Kəsik, təkləri Tbilisi açır: nömrənin cütlüyü istiqaməti müəyyən edir. Qardabani dövriyyə açmır — yalnız qəbul edir.",
+        "body": "Dövriyyəni hər iki stansiya aça bilər — Böyük Kəsik də, Qardabani də, istənilən qatar nömrəsi ilə.",
         "steps": [
           "«Yeni dövriyyə» düyməsini basın.",
-          "Qatar nömrəsini yazın. Cüt nömrələri Böyük Kəsik, təkləri Tbilisi açır — son rəqəm həll edir.",
+          "Qatar nömrəsini yazın.",
           "Dövriyyə tarixi standart olaraq bugünkü gündür; daha əvvəl başlamış növbə üçün yazırsınızsa, tarixi dəyişin.",
           "«Yarat» düyməsini basın. Qatar artıq bitməmiş dövriyyədədirsə, proqram imtina edib bunu bildirəcək."
         ]

@@ -3,7 +3,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { deleteRow, saveOperationType } from "@/actions/registry";
 import ActionForm from "@/components/ActionForm";
 import DeleteButton from "@/components/DeleteButton";
-import { getCatalogue, getStations } from "@/lib/catalogue";
+import { getAllStations, getCatalogue } from "@/lib/catalogue";
 import { label } from "@/lib/format";
 import { locales } from "@/i18n/config";
 
@@ -12,7 +12,8 @@ export default async function AdminOperationsPage() {
     getTranslations(),
     getLocale(),
     getCatalogue(),
-    getStations(),
+    // Retired stations too: a retired operation still has to show the station it belonged to.
+    getAllStations(),
   ]);
 
   const messages = { saved: t("common.saved"), duplicate: t("errors.duplicate"), generic: t("errors.generic") };

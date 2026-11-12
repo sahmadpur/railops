@@ -64,13 +64,12 @@ function eachDay(from: string, to: string): string[] {
 
 /* ---------- timing ---------------------------------------------------------------------------
  * Minutes between one recorded step and the next. Dwell inside a station is short; the three
- * long gaps are the train actually moving, and the two ТОИР gaps are the work itself. */
-const DWELL = { BK: [15, 45], GRD: [10, 30], TBS: [20, 55] } as const;
+ * long gaps are the train actually moving, and the ТОИР gap is the work itself. */
+const DWELL = { BK: [15, 45], GRD: [10, 30] } as const;
 const TRANSIT = {
   11: [35, 70], // Böyük Kəsik -> Gardabani
-  17: [100, 170], // Gardabani -> Tbilisi
-  23: [100, 170], // Tbilisi -> Gardabani
-  25: [35, 70], // Gardabani -> Böyük Kəsik
+  18: [200, 340], // away from Gardabani until it comes back for the return leg
+  20: [35, 70], // Gardabani -> Böyük Kəsik
 } as const;
 /** Gap after the send step: how long the locomotive is in the workshop. */
 const MAINTENANCE_MINUTES = [90, 320] as const;
@@ -78,7 +77,7 @@ const MAINTENANCE_MINUTES = [90, 320] as const;
 async function main() {
   const [stationRows, catalogue, locomotiveRows, userRows] = await Promise.all([
     db.select().from(stations),
-    db.select().from(operationTypes).orderBy(asc(operationTypes.seq)),
+    db.select().from(operationTypes).where(eq(operationTypes.isActive, true)).orderBy(asc(operationTypes.seq)),
     db.select().from(locomotives).where(eq(locomotives.isActive, true)).orderBy(asc(locomotives.id)),
     db.select().from(users),
   ]);
@@ -93,8 +92,7 @@ async function main() {
     stationRows.map((s) => [s.id, userRows.find((u) => u.stationId === s.id && u.isActive)?.id ?? admin.id]),
   );
 
-  // Böyük Kəsik opens the outbound leg, so a turnaround that walks this catalogue is an even train.
-  const evenTrains = ["2602", "2604", "2606", "2608", "2610", "2682", "2684", "2686", "2688", "2690"];
+  const trains = ["2602", "2604", "2606", "2608", "2610", "2682", "2684", "2686", "2688", "2690"];
 
   const bySeq = new Map(catalogue.map((o) => [o.seq, o]));
   const lastSeq = Math.max(...catalogue.map((o) => o.seq));
@@ -122,7 +120,7 @@ async function main() {
 
   for (const [dayIndex, cycleDate] of days.entries()) {
     for (let slot = 0; slot < PER_DAY; slot++) {
-      const train = evenTrains[(dayIndex * PER_DAY + slot) % evenTrains.length];
+      const train = trains[(dayIndex * PER_DAY + slot) % trains.length];
       const locomotive = locomotiveRows[(dayIndex * PER_DAY + slot) % locomotiveRows.length];
 
       // A part-filled turnaround stops at a random step; a cancelled one stops early and stays.
@@ -136,7 +134,7 @@ async function main() {
       const stopAfter = justArrived
         ? 1
         : inWorkshop
-          ? 27
+          ? 22
           : unfinished
             ? between(2, lastSeq - 1)
             : cancelled
@@ -145,17 +143,12 @@ async function main() {
 
       // Which optional and conditional steps this run recorded.
       const detach = chance(0.15);
-      const tbilisiMaintenance = chance(0.12);
-      // The return step is what lets the turnaround close, so an unfinished one may still be open.
-      const tbilisiReturn = tbilisiMaintenance && (!unfinished || chance(0.6));
-      const reattach = chance(0.35);
+      const wagonInspection = chance(0.25);
       const skipped = new Set<number>();
       if (!detach) skipped.add(6);
-      if (!tbilisiMaintenance) skipped.add(19);
-      if (!tbilisiReturn) skipped.add(20);
-      if (!reattach) skipped.add(21);
+      if (!wagonInspection) skipped.add(17);
       // Closing needs the ТОИР return at Böyük Kəsik; leave it off only while still in progress.
-      if (unfinished) skipped.add(28);
+      if (unfinished) skipped.add(23);
 
       const [openedBy] = [operatorByStation.get(bySeq.get(1)!.stationId) ?? admin.id];
       await db.execute(sql`select set_config('railops.actor_id', ${String(openedBy)}, true)`);
