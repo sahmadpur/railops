@@ -88,36 +88,50 @@ export type OperationField =
  * The operation catalogue — seeded from docs/Operations.xlsx, editable at /admin/operations.
  * The 23-step turnaround is data, not code: reordering or adding a step is a row change.
  */
-export const operationTypes = pgTable("operation_types", {
-  id: serial("id").primaryKey(),
-  seq: integer("seq").notNull().unique(),
-  /**
-   * The number docs/Operations.xlsx prints for this step ("16.1" for one inserted between 16
-   * and 17). Shown wherever an operator reads an operation number; `seq` stays the ordering key
-   * and the target of `conditionalOnSeq` / `parallelWithSeq`.
-   */
-  displayNo: text("display_no"),
-  code: text("code").notNull().unique(),
-  label: jsonb("label").$type<Localized>().notNull(),
-  stationId: integer("station_id")
-    .notNull()
-    .references(() => stations.id),
-  obligation: obligationEnum("obligation").notNull(),
-  /** For `conditional`: this operation is required only once operation `conditionalOnSeq` is filled. */
-  conditionalOnSeq: integer("conditional_on_seq"),
-  /** Runs simultaneously with this operation — the pair is exempt from chronological ordering. */
-  parallelWithSeq: integer("parallel_with_seq"),
-  fields: jsonb("fields").$type<OperationField[]>().notNull().default([]),
-  /**
-   * Set on the two ТОИР step pairs so recording them maintains the technical work
-   * registry instead of the operator having to enter it twice.
-   */
-  maintenanceEffect: maintenanceEffectEnum("maintenance_effect"),
-  isActive: boolean("is_active").notNull().default(true),
-});
+/**
+ * A route is named by the station a turnaround starts from: `BK` runs Böyük Kəsik → Gardabani →
+ * Böyük Kəsik, `GRD` the mirror image. Each route carries its own operation sequence.
+ */
+export const ROUTES = ["BK", "GRD"] as const;
+export type Route = (typeof ROUTES)[number];
+
+export const operationTypes = pgTable(
+  "operation_types",
+  {
+    id: serial("id").primaryKey(),
+    /** Which route's sequence this step belongs to. `seq` is unique within a route. */
+    route: text("route").$type<Route>().notNull().default("BK"),
+    seq: integer("seq").notNull(),
+    /**
+     * The number docs/Operations.xlsx prints for this step ("16.1" for one inserted between 16
+     * and 17). Shown wherever an operator reads an operation number; `seq` stays the ordering key
+     * and the target of `conditionalOnSeq` / `parallelWithSeq`.
+     */
+    displayNo: text("display_no"),
+    code: text("code").notNull().unique(),
+    label: jsonb("label").$type<Localized>().notNull(),
+    stationId: integer("station_id")
+      .notNull()
+      .references(() => stations.id),
+    obligation: obligationEnum("obligation").notNull(),
+    /** For `conditional`: this operation is required only once operation `conditionalOnSeq` is filled. */
+    conditionalOnSeq: integer("conditional_on_seq"),
+    /** Runs simultaneously with this operation — the pair is exempt from chronological ordering. */
+    parallelWithSeq: integer("parallel_with_seq"),
+    fields: jsonb("fields").$type<OperationField[]>().notNull().default([]),
+    /**
+     * Set on the two ТОИР step pairs so recording them maintains the technical work
+     * registry instead of the operator having to enter it twice.
+     */
+    maintenanceEffect: maintenanceEffectEnum("maintenance_effect"),
+    isActive: boolean("is_active").notNull().default(true),
+  },
+  (t) => [unique("operation_types_route_seq_unique").on(t.route, t.seq)],
+);
 
 /**
- * One train turnaround: Böyük Kəsik → Gardabani → Böyük Kəsik.
+ * One train turnaround, on the route of the station that opened it: Böyük Kəsik → Gardabani →
+ * Böyük Kəsik, or Gardabani → Böyük Kəsik → Gardabani.
  * A turnaround opens when the train arrives; the locomotive is null until an operation
  * that carries a `locomotive` field records the attachment.
  */
@@ -127,6 +141,8 @@ export const turnarounds = pgTable(
     id: serial("id").primaryKey(),
     /** Free text, as the operator types it. */
     trainNumber: text("train_number").notNull(),
+    /** The route it runs, fixed when it is opened — picks its operation sequence. */
+    route: text("route").$type<Route>().notNull().default("BK"),
     locomotiveId: integer("locomotive_id").references(() => locomotives.id),
     cycleDate: date("cycle_date").notNull(),
     statusCode: text("status_code").notNull().default("open"),

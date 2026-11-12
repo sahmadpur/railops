@@ -1,9 +1,11 @@
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { getActiveLocomotives, getStations } from "@/lib/catalogue";
+import { ROUTES, type Route } from "@/db/schema";
+import { getActiveLocomotives, getAllStations } from "@/lib/catalogue";
 import { buildJournal } from "@/lib/journal";
-import { label, monthLabel } from "@/lib/format";
+import { label, monthLabel, routeLabel } from "@/lib/format";
 import { requireAdmin } from "@/lib/session";
+import { isRoute } from "@/lib/turnaround-rules";
 
 import PrintButton from "./PrintButton";
 
@@ -19,15 +21,17 @@ export default async function JournalPage({ searchParams }: PageProps<"/reports/
   const [year, month] = monthValue.split("-").map(Number);
   const locomotiveId = typeof query.locomotiveId === "string" && query.locomotiveId ? Number(query.locomotiveId) : undefined;
 
+  const route: Route = isRoute(query.route) ? query.route : "BK";
+
   const [journal, stationRows, locomotiveRows] = await Promise.all([
-    buildJournal(year, month, locomotiveId),
-    getStations(),
+    buildJournal(year, month, route, locomotiveId),
+    getAllStations(),
     getActiveLocomotives(),
   ]);
 
   const stationName = new Map(stationRows.map((s) => [s.id, label(s.name, locale)]));
-  const corridor = stationRows.map((s) => label(s.name, locale)).join(" → ");
-  const exportParams = new URLSearchParams({ month: monthValue, ...(locomotiveId ? { locomotiveId: String(locomotiveId) } : {}) });
+  const corridor = routeLabel(route, stationRows, locale);
+  const exportParams = new URLSearchParams({ month: monthValue, route, ...(locomotiveId ? { locomotiveId: String(locomotiveId) } : {}) });
 
   return (
     <div className="space-y-5">
@@ -35,6 +39,16 @@ export default async function JournalPage({ searchParams }: PageProps<"/reports/
         <label className="flex flex-col gap-1">
           <span className="text-muted">{t("common.month")}</span>
           <input type="month" name="month" defaultValue={monthValue} className="field w-auto" />
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-muted">{t("turnarounds.route")}</span>
+          <select name="route" defaultValue={route} className="field w-auto">
+            {ROUTES.map((r) => (
+              <option key={r} value={r}>
+                {routeLabel(r, stationRows, locale)}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-muted">{t("common.locomotive")}</span>

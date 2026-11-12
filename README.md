@@ -27,8 +27,10 @@ database port, and disables demo seed data.
 
 ## Concepts
 
-**One record = one locomotive turnaround.** A turnaround carries the 23 ordered operations that run
-from Böyük Kəsik out to Gardabani and back. Either station can open one. The train number is typed
+**One record = one locomotive turnaround.** Either station can open one, and the station that opens
+it fixes its route: Böyük Kəsik → Gardabani → Böyük Kəsik, or the mirror image Gardabani → Böyük
+Kəsik → Gardabani. Each route has its own 23 ordered operations (`operation_types.route`); an
+operator opens on their own station's route, an admin picks it. The train number is typed
 free-form and follows the renumbering along the route.
 
 **The operation sequence is data, not code.** `operation_types` is seeded from `docs/Operations.xlsx`

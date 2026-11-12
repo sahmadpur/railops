@@ -4,8 +4,10 @@ import { cache } from "react";
 import { db } from "@/db";
 import { locomotives, operationTypes, referenceValues, stations } from "@/db/schema";
 
-/** The turnaround sequence, ordered. Cached per request. */
-export const getCatalogue = cache(async () => db.select().from(operationTypes).orderBy(asc(operationTypes.seq)));
+/** Both routes' sequences, ordered by route then step. Narrow with `forRoute`. Cached per request. */
+export const getCatalogue = cache(async () =>
+  db.select().from(operationTypes).orderBy(asc(operationTypes.route), asc(operationTypes.seq)),
+);
 
 /** The stations on the route today — what every picker and the corridor heading show. */
 export const getStations = cache(async () =>

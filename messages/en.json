@@ -106,6 +106,7 @@
     "new": "New turnaround",
     "createTitle": "Open a new turnaround",
     "cycleDate": "Turnaround date",
+    "route": "Route",
     "openedBy": "Opened by",
     "progress": "Progress",
     "detail": "Turnaround {id}",

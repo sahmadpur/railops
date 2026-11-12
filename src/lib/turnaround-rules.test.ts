@@ -13,6 +13,8 @@ import {
   formatElapsed,
   missingForClose,
   nextStationId,
+  forRoute,
+  openingRoute,
   openingRule,
   unlockedIds,
   validateEntry,
@@ -61,15 +63,40 @@ test("operator may only write operations at their own station", () => {
   assert.equal(error?.code, "wrong_station");
 });
 
-test("Böyük Kəsik and Gardabani both open turnarounds", () => {
-  assert.deepEqual(openingRule("operator", "BK"), { allowed: true });
-  assert.deepEqual(openingRule("operator", "GRD"), { allowed: true });
+test("Böyük Kəsik and Gardabani both open turnarounds, each on its own route", () => {
+  assert.deepEqual(openingRule("operator", "BK"), { allowed: true, route: "BK" });
+  assert.deepEqual(openingRule("operator", "GRD"), { allowed: true, route: "GRD" });
   // Tbilisi left the route.
   assert.deepEqual(openingRule("operator", "TBS"), { allowed: false });
   assert.deepEqual(openingRule("operator", "ZZZ"), { allowed: false });
   assert.deepEqual(openingRule("operator", null), { allowed: false });
-  // Admins have no station and are never blocked.
-  assert.deepEqual(openingRule("admin", null), { allowed: true });
+  // Admins have no station and are never blocked; they pick the route.
+  assert.deepEqual(openingRule("admin", null), { allowed: true, route: null });
+});
+
+test("the opening route is the operator's station, or the admin's pick", () => {
+  // An operator cannot open on the other station's route by tampering with the form.
+  assert.equal(openingRoute(openingRule("operator", "GRD"), "BK"), "GRD");
+  assert.equal(openingRoute(openingRule("operator", "BK"), undefined), "BK");
+  assert.equal(openingRoute(openingRule("admin", null), "GRD"), "GRD");
+  assert.equal(openingRoute(openingRule("admin", null), "TBS"), null);
+  assert.equal(openingRoute(openingRule("operator", null), "BK"), null);
+});
+
+test("a route's catalogue holds only its own steps", () => {
+  const mixed = [
+    { id: 1, route: "BK" as const },
+    { id: 2, route: "GRD" as const },
+    { id: 3, route: "BK" as const },
+  ];
+  assert.deepEqual(
+    forRoute(mixed, "BK").map((o) => o.id),
+    [1, 3],
+  );
+  assert.deepEqual(
+    forRoute(mixed, "GRD").map((o) => o.id),
+    [2],
+  );
 });
 
 test("an operation cannot be timed before an earlier recorded operation", () => {

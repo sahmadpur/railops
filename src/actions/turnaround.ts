@@ -15,6 +15,7 @@ import {
   checkUnlocked,
   currentTrainNumber,
   missingForClose,
+  openingRoute,
   openingRule,
   validateEntry,
   type EntryInput,
@@ -39,8 +40,9 @@ async function loadContext(turnaroundId: number) {
   const [turnaround] = await db.select().from(turnarounds).where(eq(turnarounds.id, turnaroundId)).limit(1);
   if (!turnaround) return null;
 
+  // Only the turnaround's own route: every rule assumes one sequence.
   const [catalogue, entries] = await Promise.all([
-    db.select().from(operationTypes).orderBy(asc(operationTypes.seq)),
+    db.select().from(operationTypes).where(eq(operationTypes.route, turnaround.route)).orderBy(asc(operationTypes.seq)),
     db.select().from(turnaroundOperations).where(eq(turnaroundOperations.turnaroundId, turnaroundId)),
   ]);
 
@@ -57,11 +59,14 @@ export async function createTurnaround(_prev: ActionResult | undefined, formData
   const stationCode = stations.find((s) => s.id === session.stationId)?.code ?? null;
   const opening = openingRule(session.role, stationCode);
   if (!opening.allowed) return { ok: false, error: "forbidden" };
+  // Operators open on their own station's route; the form's choice only counts for admins.
+  const route = openingRoute(opening, formData.get("route"));
+  if (!route) return { ok: false, error: "generic" };
 
   const created = await withActor(session.userId, async (tx) => {
     const [row] = await tx
       .insert(turnarounds)
-      .values({ trainNumber, cycleDate, openedBy: session.userId, statusCode: "open" })
+      .values({ trainNumber, cycleDate, route, openedBy: session.userId, statusCode: "open" })
       .returning({ id: turnarounds.id });
 
     // The first step is the arrival that opens the turnaround, so it is recorded here rather
@@ -70,7 +75,7 @@ export async function createTurnaround(_prev: ActionResult | undefined, formData
     const [first] = await tx
       .select()
       .from(operationTypes)
-      .where(eq(operationTypes.isActive, true))
+      .where(and(eq(operationTypes.route, route), eq(operationTypes.isActive, true)))
       .orderBy(asc(operationTypes.seq))
       .limit(1);
 

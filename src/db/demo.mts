@@ -77,7 +77,13 @@ const MAINTENANCE_MINUTES = [90, 320] as const;
 async function main() {
   const [stationRows, catalogue, locomotiveRows, userRows] = await Promise.all([
     db.select().from(stations),
-    db.select().from(operationTypes).where(eq(operationTypes.isActive, true)).orderBy(asc(operationTypes.seq)),
+    // ponytail: demo history runs the Böyük Kəsik route only; its timings below are keyed to that
+    // sequence. Add Gardabani-route runs if the dashboard ever needs to show both.
+    db
+      .select()
+      .from(operationTypes)
+      .where(and(eq(operationTypes.route, "BK"), eq(operationTypes.isActive, true)))
+      .orderBy(asc(operationTypes.seq)),
     db.select().from(locomotives).where(eq(locomotives.isActive, true)).orderBy(asc(locomotives.id)),
     db.select().from(users),
   ]);

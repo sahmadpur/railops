@@ -6,12 +6,12 @@ import AutoRefresh from "@/components/AutoRefresh";
 import RowLink from "@/components/RowLink";
 import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
-import { locomotives, turnaroundOperations, turnarounds, users } from "@/db/schema";
+import { locomotives, ROUTES, turnaroundOperations, turnarounds, users, type Route } from "@/db/schema";
 import { getFormOptions } from "@/lib/catalogue";
-import { formatDate, label } from "@/lib/format";
+import { formatDate, label, routeLabel } from "@/lib/format";
 import { requireSession } from "@/lib/session";
 import { turnaroundFilters } from "@/lib/turnaround-filters";
-import { nextStationId, type EntryLike } from "@/lib/turnaround-rules";
+import { forRoute, nextStationId, type EntryLike } from "@/lib/turnaround-rules";
 
 export default async function TurnaroundsPage({ searchParams }: PageProps<"/turnarounds">) {
   const session = await requireSession();
@@ -38,6 +38,7 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
       statusCode: turnarounds.statusCode,
       closedAt: turnarounds.closedAt,
       trainNumber: turnarounds.trainNumber,
+      route: turnarounds.route,
       // Null until an attachment step records the locomotive.
       locomotiveNumber: locomotives.number,
       openedByName: users.fullName,
@@ -53,6 +54,10 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
     .groupBy(turnarounds.id, locomotives.number, users.fullName)
     .orderBy(desc(turnarounds.cycleDate), desc(turnarounds.id))
     .limit(200);
+
+  // Each turnaround is read against its own route's sequence.
+  const routeCatalogue = new Map(ROUTES.map((route) => [route, forRoute(options.catalogue, route)]));
+  const totalOperations = (route: Route) => (routeCatalogue.get(route) ?? []).filter((o) => o.isActive).length;
 
   // An operator's list is the station's inbox: only records whose next unfilled mandatory step
   // is at their station — arrived from the previous station, gone again once their part is done.
@@ -76,18 +81,17 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
       if (list) list.push(entry);
       else entriesByTurnaround.set(entry.turnaroundId, [entry]);
     }
-    // The route's final station: a fully filled but still-open turnaround stays on its list
-    // until someone closes it, so finishing the last operation cannot strand the record.
-    const lastStationId =
-      options.catalogue.filter((o) => o.isActive).sort((a, b) => a.seq - b.seq).at(-1)?.stationId ?? null;
     rows = rows.filter((row) => {
-      const next = nextStationId(options.catalogue, entriesByTurnaround.get(row.id) ?? []);
+      const catalogue = routeCatalogue.get(row.route) ?? [];
+      const next = nextStationId(catalogue, entriesByTurnaround.get(row.id) ?? []);
       if (next !== null) return next === session.stationId;
+      // The route's final station: a fully filled but still-open turnaround stays on its list
+      // until someone closes it, so finishing the last operation cannot strand the record.
+      const lastStationId = catalogue.filter((o) => o.isActive).at(-1)?.stationId ?? null;
       return row.closedAt === null && lastStationId === session.stationId;
     });
   }
 
-  const totalOperations = options.catalogue.filter((o) => o.isActive).length;
   const statusLabel = new Map(options.statuses.map((s) => [s.code, label(s.label, locale)]));
   const exportParams = new URLSearchParams(
     Object.entries({ from, to, status, locomotiveId, q }).filter(([, v]) => v) as [string, string][],
@@ -171,6 +175,7 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
               <th>#</th>
               <th>{t("turnarounds.cycleDate")}</th>
               <th>{t("common.trainNumber")}</th>
+              <th>{t("turnarounds.route")}</th>
               <th>{t("common.locomotive")}</th>
               <th>{t("common.status")}</th>
               <th>{t("turnarounds.progress")}</th>
@@ -181,7 +186,7 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
           <tbody>
             {rows.length === 0 && (
               <tr>
-                <td colSpan={8} className="text-muted text-center">
+                <td colSpan={9} className="text-muted text-center">
                   {t("common.empty")}
                 </td>
               </tr>
@@ -200,6 +205,7 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
                   </td>
                   <td className="whitespace-nowrap">{formatDate(row.cycleDate, locale)}</td>
                   <td className="font-medium">{row.trainNumber}</td>
+                  <td className="text-muted whitespace-nowrap text-xs">{routeLabel(row.route, options.stations, locale)}</td>
                   <td>{row.locomotiveNumber ?? "—"}</td>
                   <td>
                     <StatusBadge code={row.statusCode} text={statusLabel.get(row.statusCode) ?? row.statusCode} />
@@ -209,11 +215,13 @@ export default async function TurnaroundsPage({ searchParams }: PageProps<"/turn
                       <span className="bg-surface-muted h-1.5 w-16 overflow-hidden rounded-full">
                         <span
                           className={`block h-full rounded-full ${row.closedAt ? "bg-success" : "bg-accent"}`}
-                          style={{ width: `${Math.min(100, Math.round((row.filled / totalOperations) * 100))}%` }}
+                          style={{
+                            width: `${Math.min(100, Math.round((row.filled / Math.max(1, totalOperations(row.route))) * 100))}%`,
+                          }}
                         />
                       </span>
                       <span className="tabular-nums">
-                        {row.filled}/{totalOperations}
+                        {row.filled}/{totalOperations(row.route)}
                       </span>
                     </div>
                   </td>

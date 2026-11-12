@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, lte } from "drizzle-orm";
 
 import { db } from "@/db";
-import { locomotives, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
+import { locomotives, operationTypes, turnaroundOperations, turnarounds, type Route } from "@/db/schema";
 import { formatTime, operationNo } from "@/lib/format";
 import { elapsedMinutes, formatElapsed } from "@/lib/turnaround-rules";
 
@@ -25,6 +25,7 @@ export type JournalColumn = {
 export type Journal = {
   year: number;
   month: number;
+  route: Route;
   operations: { id: number; no: string; label: Record<string, string>; stationId: number }[];
   columns: JournalColumn[];
 };
@@ -35,14 +36,23 @@ function monthBounds(year: number, month: number) {
   return { first: `${year}-${pad(month)}-01`, last: `${year}-${pad(month)}-${pad(lastDay)}` };
 }
 
-export async function buildJournal(year: number, month: number, locomotiveId?: number): Promise<Journal> {
+/** One route per grid: the two routes run different sequences, so they cannot share the rows. */
+export async function buildJournal(year: number, month: number, route: Route, locomotiveId?: number): Promise<Journal> {
   const { first, last } = monthBounds(year, month);
 
-  const conditions = [gte(turnarounds.cycleDate, first), lte(turnarounds.cycleDate, last)];
+  const conditions = [
+    gte(turnarounds.cycleDate, first),
+    lte(turnarounds.cycleDate, last),
+    eq(turnarounds.route, route),
+  ];
   if (locomotiveId) conditions.push(eq(turnarounds.locomotiveId, locomotiveId));
 
   const [operations, columnRows] = await Promise.all([
-    db.select().from(operationTypes).where(eq(operationTypes.isActive, true)).orderBy(asc(operationTypes.seq)),
+    db
+      .select()
+      .from(operationTypes)
+      .where(and(eq(operationTypes.route, route), eq(operationTypes.isActive, true)))
+      .orderBy(asc(operationTypes.seq)),
     db
       .select({
         id: turnarounds.id,
@@ -95,6 +105,7 @@ export async function buildJournal(year: number, month: number, locomotiveId?: n
   return {
     year,
     month,
+    route,
     operations: operations.map((o) => ({ id: o.id, no: operationNo(o), label: o.label, stationId: o.stationId })),
     columns,
   };

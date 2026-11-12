@@ -6,10 +6,14 @@ import { createTurnaround } from "@/actions/turnaround";
 
 export default function NewTurnaroundForm({
   today,
+  routes,
   labels,
 }: {
   today: string;
+  /** Offered only to admins — an operator's route is their own station's, set on the server. */
+  routes: { value: string; text: string }[] | null;
   labels: {
+    route: string;
     trainNumber: string;
     cycleDate: string;
     submit: string;
@@ -22,6 +26,19 @@ export default function NewTurnaroundForm({
 
   return (
     <form action={action} className="card space-y-4 p-6">
+      {routes && (
+        <label className="block">
+          <span className="text-muted mb-1.5 block text-xs font-medium">{labels.route}</span>
+          <select name="route" required defaultValue={routes[0]?.value} className="field">
+            {routes.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.text}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
       <label className="block">
         <span className="text-muted mb-1.5 block text-xs font-medium">{labels.trainNumber}</span>
         <input name="trainNumber" required autoFocus autoComplete="off" inputMode="numeric" className="field" />

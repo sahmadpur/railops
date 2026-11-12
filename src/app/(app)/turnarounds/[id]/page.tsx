@@ -8,9 +8,9 @@ import StatusBadge from "@/components/StatusBadge";
 import { db } from "@/db";
 import { locomotives, turnaroundOperations, turnarounds, users, type OperationField } from "@/db/schema";
 import { getFormOptions } from "@/lib/catalogue";
-import { formatDate, label, operationNo, toLocalInputValue } from "@/lib/format";
+import { formatDate, label, operationNo, routeLabel, toLocalInputValue } from "@/lib/format";
 import { requireSession } from "@/lib/session";
-import { canEdit, editableWindow, elapsedMinutes, formatElapsed, missingForClose, unlockedIds } from "@/lib/turnaround-rules";
+import { canEdit, editableWindow, forRoute, elapsedMinutes, formatElapsed, missingForClose, unlockedIds } from "@/lib/turnaround-rules";
 
 import CloseControls from "./CloseControls";
 import CollapsedRows from "./CollapsedRows";
@@ -34,6 +34,9 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
     db.select().from(turnaroundOperations).where(eq(turnaroundOperations.turnaroundId, id)),
     getFormOptions(),
   ]);
+
+  // Every rule and the page itself read the turnaround's own route only.
+  const catalogue = forRoute(options.catalogue, turnaround.route);
 
   const recorderIds = [...new Set(entries.map((e) => e.recordedBy))];
   const recorders = recorderIds.length
@@ -60,7 +63,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
   } satisfies Record<OperationField, string>;
 
   // The server reports rule failures by `seq`; operators read the sheet numbers.
-  const displayNos: Record<number, string> = Object.fromEntries(options.catalogue.map((o) => [o.seq, operationNo(o)]));
+  const displayNos: Record<number, string> = Object.fromEntries(catalogue.map((o) => [o.seq, operationNo(o)]));
 
   const labels: RowLabels = {
     save: t("common.save"),
@@ -89,14 +92,14 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
   const isClosed = Boolean(turnaround.closedAt);
   // Anything recorded stays on the page, even a step since disabled in the catalogue — dropping
   // it would hide history and leave the counter describing rows that are not there.
-  const belongs = options.catalogue.filter((o) => o.isActive || entryByOperation.has(o.id));
+  const belongs = catalogue.filter((o) => o.isActive || entryByOperation.has(o.id));
   // The turnaround is filled in order, so the form shows what is recorded plus the next step —
   // everything beyond it is not enterable yet and would only be noise.
   const entriesLike = entries.map((e) => ({ operationTypeId: e.operationTypeId, occurredAt: e.occurredAt }));
-  const unlocked = unlockedIds(options.catalogue, entriesLike);
+  const unlocked = unlockedIds(catalogue, entriesLike);
   // The leg the turnaround is on now. Earlier legs are collapsed and, for operators, read-only —
   // a Böyük Kəsik operator receiving the return leg must not touch the outbound one.
-  const editWindow = editableWindow(options.catalogue, entriesLike);
+  const editWindow = editableWindow(catalogue, entriesLike);
   const rows: RowData[] = belongs
     .filter((o) => unlocked.has(o.id) || entryByOperation.has(o.id))
     .map((operation) => {
@@ -158,7 +161,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
       />
     ));
 
-  const missing = missingForClose(options.catalogue, entriesLike);
+  const missing = missingForClose(catalogue, entriesLike);
   const elapsed = elapsedMinutes(entriesLike);
   const statusLabel = options.statuses.find((s) => s.code === turnaround.statusCode);
 
@@ -177,6 +180,10 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
           <div>
             <dt className="text-muted text-xs">{t("common.trainNumber")}</dt>
             <dd className="mt-0.5 font-medium">{turnaround.trainNumber}</dd>
+          </div>
+          <div>
+            <dt className="text-muted text-xs">{t("turnarounds.route")}</dt>
+            <dd className="mt-0.5 font-medium">{routeLabel(turnaround.route, options.stations, locale)}</dd>
           </div>
           <div>
             <dt className="text-muted text-xs">{t("common.locomotive")}</dt>

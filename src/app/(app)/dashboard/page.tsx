@@ -10,14 +10,16 @@ import {
   locomotives,
   maintenanceRecords,
   operationTypes,
+  ROUTES,
   turnaroundOperations,
   turnarounds,
+  type Route,
 } from "@/db/schema";
 import { getActiveLocomotives, getCatalogue, getReference, getStations } from "@/lib/catalogue";
-import { formatDate, label, operationNo, todayIso } from "@/lib/format";
+import { formatDate, label, operationNo, routeLabel, todayIso } from "@/lib/format";
 import { downtimeMinutes, operationStats, routeSegments, segmentStats, transitStats, type Interval } from "@/lib/timeline";
 import { requireAdmin } from "@/lib/session";
-import { formatElapsed } from "@/lib/turnaround-rules";
+import { forRoute, formatElapsed, isRoute } from "@/lib/turnaround-rules";
 
 /** Default window: the trailing month, matching the average the tile used to hardcode. */
 function defaultRange(): { from: string; to: string } {
@@ -69,6 +71,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const from = typeof query.from === "string" && query.from ? query.from : fallback.from;
   const to = typeof query.to === "string" && query.to ? query.to : fallback.to;
   const selected = typeof query.station === "string" ? Number(query.station) : null;
+  // The timeline follows one route's sequence at a time; the tiles cover the whole corridor.
+  const route: Route = isRoute(query.route) ? query.route : "BK";
+  const routeQuery = `from=${from}&to=${to}&route=${route}`;
 
   const inRange = and(gte(turnarounds.cycleDate, from), lte(turnarounds.cycleDate, to));
   const { from: windowFrom, to: windowTo } = downtimeWindow(from, to);
@@ -80,9 +85,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     [completed],
     [openMaintenance],
     [activeLocomotives],
-    [turnaroundsInRange],
     recent,
-    rows,
+    allRows,
     locomotiveRows,
     turnaroundSpans,
     maintenanceSpans,
@@ -94,7 +98,6 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         .where(and(isNotNull(turnarounds.closedAt), inRange)),
       db.select({ value: count() }).from(maintenanceRecords).where(isNull(maintenanceRecords.returnedAt)),
       db.select({ value: count() }).from(locomotives).where(eq(locomotives.isActive, true)),
-      db.select({ value: count() }).from(turnarounds).where(inRange),
       db
         .select({
           id: turnarounds.id,
@@ -113,6 +116,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           operationTypeId: turnaroundOperations.operationTypeId,
           seq: operationTypes.seq,
           occurredAt: turnaroundOperations.occurredAt,
+          route: turnarounds.route,
         })
         .from(turnaroundOperations)
         .innerJoin(operationTypes, eq(operationTypes.id, turnaroundOperations.operationTypeId))
@@ -169,7 +173,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     }))
     .sort((a, b) => b.minutes - a.minutes);
 
-  const segments = routeSegments(catalogue);
+  const rows = allRows.filter((r) => r.route === route);
+  const segments = routeSegments(forRoute(catalogue, route));
   const stats = segmentStats(segments, rows);
   const transit = transitStats(segments, rows);
   const detail = selected !== null ? stats[selected] : undefined;
@@ -177,9 +182,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const operationName = new Map(catalogue.map((o) => [o.id, label(o.label, locale)]));
   const operationNumber = new Map(catalogue.map((o) => [o.id, operationNo(o)]));
 
-  // Whole-route average: first to last operation of each turnaround.
-  const spans = [...new Set(rows.map((r) => r.turnaroundId))]
-    .map((id) => rows.filter((r) => r.turnaroundId === id))
+  // Whole-route average: first to last operation of each turnaround, on either route.
+  const spans = [...new Set(allRows.map((r) => r.turnaroundId))]
+    .map((id) => allRows.filter((r) => r.turnaroundId === id))
     .filter((entries) => entries.length > 1)
     .map((entries) => (entries.at(-1)!.occurredAt.getTime() - entries[0].occurredAt.getTime()) / 60000);
   const avgMinutes = spans.length ? Math.round(spans.reduce((sum, v) => sum + v, 0) / spans.length) : null;
@@ -262,9 +267,21 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       <div className="card">
         <div className="card-head">
           <h2 className="card-title">{t("dashboard.timeline.title")}</h2>
-          <span className="text-muted text-xs">
-            {t("dashboard.timeline.basedOn", { count: turnaroundsInRange.value })}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {ROUTES.map((r) => (
+              <Link
+                key={r}
+                href={`/dashboard?from=${from}&to=${to}&route=${r}`}
+                scroll={false}
+                className={`btn px-3 py-1.5 text-xs ${r === route ? "btn-primary" : ""}`}
+              >
+                {routeLabel(r, stationRows, locale)}
+              </Link>
+            ))}
+            <span className="text-muted text-xs">
+              {t("dashboard.timeline.basedOn", { count: new Set(rows.map((r) => r.turnaroundId)).size })}
+            </span>
+          </div>
         </div>
 
         {/* The corridor drawn as the line it is: stops on a continuous track, time on the move
@@ -277,7 +294,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
               return (
                 <Fragment key={row.segment.index}>
                   <Link
-                    href={`/dashboard?from=${from}&to=${to}&station=${row.segment.index}`}
+                    href={`/dashboard?${routeQuery}&station=${row.segment.index}`}
                     scroll={false}
                     className="group flex w-28 shrink-0 flex-col items-center"
                   >
@@ -339,7 +356,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           {stats.map((row) => (
             <li key={row.segment.index}>
               <Link
-                href={`/dashboard?from=${from}&to=${to}&station=${row.segment.index}`}
+                href={`/dashboard?${routeQuery}&station=${row.segment.index}`}
                 scroll={false}
                 className={`hover:bg-surface-muted flex items-center gap-4 px-5 py-3.5 ${
                   selected === row.segment.index ? "bg-surface-muted" : ""
@@ -402,7 +419,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         <div className="card">
           <div className="card-head">
             <h2 className="card-title">{segmentTitle(detail.segment)}</h2>
-            <Link href={`/dashboard?from=${from}&to=${to}`} className="btn px-3 py-1.5 text-xs">
+            <Link href={`/dashboard?${routeQuery}`} className="btn px-3 py-1.5 text-xs">
               {t("common.back")}
             </Link>
           </div>

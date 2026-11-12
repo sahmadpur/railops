@@ -49,3 +49,19 @@ export function todayIso(): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
+
+/**
+ * A route read out as the stations it runs through — "Böyük Kəsik → Gardabani → Böyük Kəsik".
+ * The two routes are mirror images, so the far end is whichever corridor station is not the start.
+ */
+export function routeLabel(
+  route: string,
+  stations: { code: string; name: Localized; isActive: boolean }[],
+  locale: string,
+): string {
+  const origin = stations.find((s) => s.code === route);
+  const far = stations.find((s) => s.isActive && s.code !== route);
+  if (!origin || !far) return route;
+  const [a, b] = [label(origin.name, locale), label(far.name, locale)];
+  return `${a} → ${b} → ${a}`;
+}

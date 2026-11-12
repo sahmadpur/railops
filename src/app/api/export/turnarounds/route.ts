@@ -4,8 +4,8 @@ import { getLocale, getTranslations } from "next-intl/server";
 
 import { db } from "@/db";
 import { locomotives, turnaroundOperations, turnarounds, users } from "@/db/schema";
-import { getReference } from "@/lib/catalogue";
-import { formatDate, label } from "@/lib/format";
+import { getAllStations, getReference } from "@/lib/catalogue";
+import { formatDate, label, routeLabel } from "@/lib/format";
 import { getSession } from "@/lib/session";
 import { turnaroundFilters } from "@/lib/turnaround-filters";
 import { formatElapsed } from "@/lib/turnaround-rules";
@@ -26,16 +26,18 @@ export async function GET(request: Request) {
     q: params.get("q")?.trim(),
   });
 
-  const [t, locale, statuses, rows] = await Promise.all([
+  const [t, locale, statuses, stationRows, rows] = await Promise.all([
     getTranslations(),
     getLocale(),
     getReference("turnaround_status"),
+    getAllStations(),
     db
       .select({
         id: turnarounds.id,
         cycleDate: turnarounds.cycleDate,
         statusCode: turnarounds.statusCode,
         trainNumber: turnarounds.trainNumber,
+        route: turnarounds.route,
         locomotiveNumber: locomotives.number,
         openedByName: users.fullName,
         filled: count(turnaroundOperations.id),
@@ -59,6 +61,7 @@ export async function GET(request: Request) {
     { header: "#", key: "id", width: 8 },
     { header: t("turnarounds.cycleDate"), key: "date", width: 14 },
     { header: t("common.trainNumber"), key: "train", width: 14 },
+    { header: t("turnarounds.route"), key: "route", width: 36 },
     { header: t("common.locomotive"), key: "loco", width: 16 },
     { header: t("common.status"), key: "status", width: 16 },
     { header: t("turnarounds.progress"), key: "filled", width: 12 },
@@ -76,6 +79,7 @@ export async function GET(request: Request) {
       id: row.id,
       date: formatDate(row.cycleDate, locale),
       train: row.trainNumber,
+      route: routeLabel(row.route, stationRows, locale),
       loco: row.locomotiveNumber ?? "—",
       status: statusLabel.get(row.statusCode) ?? row.statusCode,
       filled: row.filled,

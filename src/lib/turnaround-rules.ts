@@ -4,7 +4,7 @@
  * usable from both the write path (src/actions/turnaround.ts) and the read path
  * (the detail page, which greys out what the current user may not touch).
  */
-import type { OperationField } from "@/db/schema";
+import { ROUTES, type OperationField, type Route } from "@/db/schema";
 
 export type OperationTypeLike = {
   id: number;
@@ -61,16 +61,34 @@ export function canEdit(actor: ActorLike, operation: OperationTypeLike): boolean
 }
 
 /**
- * The stations that may open a turnaround: both ends of the corridor, with any train number.
- * An operator without a station, or at a station that has left the route, opens nothing.
+ * The stations that may open a turnaround — both ends of the corridor, with any train number.
+ * Each starts its own route: a turnaround runs the sequence named after the station that opened
+ * it. An operator without a station, or at a station that has left the route, opens nothing.
+ * Admins have no station, so they pick the route.
  */
-const OPENING_STATIONS = new Set(["BK", "GRD"]);
+export type Opening = { allowed: false } | { allowed: true; route: Route | null };
 
-export type Opening = { allowed: boolean };
+export function isRoute(value: unknown): value is Route {
+  return typeof value === "string" && (ROUTES as readonly string[]).includes(value);
+}
 
 export function openingRule(role: ActorLike["role"], stationCode: string | null): Opening {
-  if (role === "admin") return { allowed: true };
-  return { allowed: stationCode !== null && OPENING_STATIONS.has(stationCode) };
+  if (role === "admin") return { allowed: true, route: null };
+  return isRoute(stationCode) ? { allowed: true, route: stationCode } : { allowed: false };
+}
+
+/** The route a new turnaround runs: the operator's own station, or the admin's choice. */
+export function openingRoute(opening: Opening, requested: unknown): Route | null {
+  if (!opening.allowed) return null;
+  return opening.route ?? (isRoute(requested) ? requested : null);
+}
+
+/**
+ * One route's sequence out of the whole catalogue. Every rule below assumes a single sequence,
+ * so callers narrow the catalogue to the turnaround's route before passing it in.
+ */
+export function forRoute<T extends { route: Route }>(catalogue: T[], route: Route): T[] {
+  return catalogue.filter((o) => o.route === route);
 }
 
 /**

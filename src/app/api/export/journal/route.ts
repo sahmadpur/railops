@@ -1,10 +1,12 @@
 import ExcelJS from "exceljs";
 import { getLocale, getTranslations } from "next-intl/server";
 
-import { getStations } from "@/lib/catalogue";
+import type { Route } from "@/db/schema";
+import { getAllStations } from "@/lib/catalogue";
 import { buildJournal } from "@/lib/journal";
-import { label, monthLabel } from "@/lib/format";
+import { label, monthLabel, routeLabel } from "@/lib/format";
 import { getSession } from "@/lib/session";
+import { isRoute } from "@/lib/turnaround-rules";
 
 /** Reproduces the source workbook's layout: operations down the side, one column per turnaround. */
 export async function GET(request: Request) {
@@ -19,12 +21,14 @@ export async function GET(request: Request) {
     ? monthParam.split("-").map(Number)
     : [now.getFullYear(), now.getMonth() + 1];
   const locomotiveId = url.searchParams.get("locomotiveId");
+  const routeParam = url.searchParams.get("route");
+  const route: Route = isRoute(routeParam) ? routeParam : "BK";
 
   const [t, locale, journal, stationRows] = await Promise.all([
     getTranslations(),
     getLocale(),
-    buildJournal(year, month, locomotiveId ? Number(locomotiveId) : undefined),
-    getStations(),
+    buildJournal(year, month, route, locomotiveId ? Number(locomotiveId) : undefined),
+    getAllStations(),
   ]);
   const stationName = new Map(stationRows.map((s) => [s.id, label(s.name, locale)]));
 
@@ -37,7 +41,7 @@ export async function GET(request: Request) {
   sheet.getCell(1, 1).font = { bold: true };
   sheet.mergeCells(2, 1, 2, width);
   sheet.getCell(2, 1).value = t("journal.subheading", {
-    station: stationRows.map((s) => label(s.name, locale)).join(" → "),
+    station: routeLabel(route, stationRows, locale),
     month: monthLabel(year, month, locale),
   });
 
@@ -75,7 +79,7 @@ export async function GET(request: Request) {
   return new Response(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="railops-journal-${year}-${String(month).padStart(2, "0")}.xlsx"`,
+      "Content-Disposition": `attachment; filename="railops-journal-${route.toLowerCase()}-${year}-${String(month).padStart(2, "0")}.xlsx"`,
     },
   });
 }

@@ -373,6 +373,115 @@ const OPERATIONS: OpSeed[] = [
   },
 ];
 
+/** Wording shared with the Böyük Kəsik route, so the two never drift apart. */
+const labelOf = (code: string): Localized => {
+  const found = OPERATIONS.find((o) => o.code === code);
+  if (!found) throw new Error(`no operation ${code}`);
+  return found.label;
+};
+
+/**
+ * The Gardabani route: the Böyük Kəsik sequence mirrored, for a train that starts its turnaround
+ * at Gardabani — Gardabani → Böyük Kəsik → Gardabani. docs/Operations.xlsx only describes the
+ * Böyük Kəsik direction, so this is drafted from it step for step (each border/customs step at
+ * the other side's authorities, the train renumbered for Azerbaijan at Böyük Kəsik) and is
+ * numbered 1–23 straight through. Confirm it with the operations team; the wording, station,
+ * obligation and links are editable at /admin/operations.
+ */
+const GRD_ROUTE: OpSeed[] = [
+  { seq: 1, code: "grd_route_arrival_gardabani", station: "GRD", obligation: "required", fields: ["train_number"], label: labelOf("arrival_gardabani_1") },
+  { seq: 2, code: "grd_route_receive_documents_gardabani", station: "GRD", obligation: "required", label: labelOf("receive_documents_bk") },
+  { seq: 3, code: "grd_route_commercial_technical_inspection_gardabani", station: "GRD", obligation: "required", parallelWithSeq: 2, label: labelOf("commercial_technical_inspection_bk") },
+  { seq: 4, code: "grd_route_process_documents_gardabani", station: "GRD", obligation: "required", label: labelOf("process_documents_bk") },
+  { seq: 5, code: "grd_route_customs_document_check_gardabani", station: "GRD", obligation: "required", label: labelOf("customs_document_check_bk") },
+  { seq: 6, code: "grd_route_detach_wagons_gardabani", station: "GRD", obligation: "optional", fields: ["detach_reason"], label: labelOf("detach_wagons_bk") },
+  { seq: 7, code: "grd_route_brake_test_vu45_gardabani", station: "GRD", obligation: "required", label: labelOf("brake_test_vu45_bk") },
+  { seq: 8, code: "grd_route_customs_inspection_gr", station: "GRD", obligation: "required", label: labelOf("customs_inspection_gr") },
+  {
+    seq: 9,
+    code: "grd_route_border_inspection_gr",
+    station: "GRD",
+    obligation: "required",
+    label: {
+      az: "GR sərhəd xidmətinin müayinəsi",
+      ru: "Осмотр поезда пограничной службой GR",
+      en: "Inspection by GR border service",
+      ka: "საქართველოს სასაზღვრო სამსახურის შემოწმება",
+    },
+  },
+  { seq: 10, code: "grd_route_attach_locomotive_gardabani", station: "GRD", obligation: "required", fields: ["locomotive"], label: labelOf("attach_locomotive_bk") },
+  { seq: 11, code: "grd_route_departure_gardabani", station: "GRD", obligation: "required", label: labelOf("departure_gardabani_1") },
+  { seq: 12, code: "grd_route_arrival_bk", station: "BK", obligation: "required", label: labelOf("arrival_bk") },
+  {
+    seq: 13,
+    code: "grd_route_assign_train_number_az",
+    station: "BK",
+    obligation: "required",
+    fields: ["train_number"],
+    label: {
+      az: "AZ qatar nömrəsinin verilməsi",
+      ru: "Присвоение номера поезда AZ",
+      en: "Assignment of AZ train number",
+      ka: "AZ მატარებლის ნომრის მინიჭება",
+    },
+  },
+  {
+    seq: 14,
+    code: "grd_route_passport_control_az",
+    station: "BK",
+    obligation: "required",
+    label: {
+      az: "AZ sərhəd xidmətinin pasport nəzarəti",
+      ru: "Паспортный контроль пограничной службы AZ",
+      en: "Passport control by AZ border service",
+      ka: "აზერბაიჯანის სასაზღვრო სამსახურის პასპორტის კონტროლი",
+    },
+  },
+  { seq: 15, code: "grd_route_customs_inspection_az", station: "BK", obligation: "required", parallelWithSeq: 14, label: labelOf("customs_inspection_az") },
+  { seq: 16, code: "grd_route_process_documents_bk", station: "BK", obligation: "required", label: labelOf("process_documents_bk") },
+  { seq: 17, code: "grd_route_technical_inspection_wagons_bk", station: "BK", obligation: "optional", label: labelOf("technical_inspection_wagons_gardabani") },
+  { seq: 18, code: "grd_route_departure_bk", station: "BK", obligation: "required", label: labelOf("departure_bk") },
+  { seq: 19, code: "grd_route_arrival_bk_2", station: "BK", obligation: "required", label: labelOf("arrival_bk") },
+  {
+    seq: 20,
+    code: "grd_route_departure_bk_2",
+    station: "BK",
+    obligation: "required",
+    label: {
+      az: "Qatarın Böyük Kəsikdən yola düşməsi",
+      ru: "Отправление поезда из Беюк-Кясик",
+      en: "Train departure from Boyuk Kasik",
+      ka: "მატარებლის გასვლა ბოიუკ-კესიკიდან",
+    },
+  },
+  { seq: 21, code: "grd_route_arrival_gardabani_return", station: "GRD", obligation: "required", label: labelOf("arrival_gardabani_1") },
+  {
+    seq: 22,
+    code: "grd_route_locomotive_to_maintenance_gardabani",
+    maintenanceEffect: "send",
+    station: "GRD",
+    obligation: "required",
+    fields: ["maintenance_reason", "maintenance_type"],
+    label: labelOf("locomotive_to_maintenance_bk"),
+  },
+  {
+    seq: 23,
+    code: "grd_route_locomotive_from_maintenance_gardabani",
+    maintenanceEffect: "return",
+    station: "GRD",
+    obligation: "conditional",
+    conditionalOnSeq: 22,
+    fields: ["maintenance_type"],
+    label: labelOf("locomotive_from_maintenance_bk"),
+  },
+];
+
+/** Both routes, tagged. `code` is unique across them; `seq` only within a route. */
+const CATALOGUE: (OpSeed & { route: "BK" | "GRD" })[] = [
+  ...OPERATIONS.map((o) => ({ ...o, route: "BK" as const })),
+  ...GRD_ROUTE.map((o) => ({ ...o, route: "GRD" as const })),
+];
+
 const REFERENCE: { kind: string; code: string; label: Localized }[] = [
   { kind: "maintenance_type", code: "TO1", label: { az: "TO-1", ru: "ТО-1", en: "TO-1", ka: "TO-1" } },
   { kind: "maintenance_type", code: "TO2", label: { az: "TO-2", ru: "ТО-2", en: "TO-2", ka: "TO-2" } },
@@ -500,9 +609,9 @@ async function main() {
   // operations point at through the row id, so history keeps its labels.
   // One transaction: a failure between the two statements would otherwise leave the catalogue
   // parked at 1001+ and the sequence numbers meaningless.
-  const seeded = new Map(OPERATIONS.map((o) => [o.code, o.seq]));
+  const seeded = new Map(CATALOGUE.map((o) => [o.code, `${o.route}:${o.seq}`]));
   const existing = await db.select().from(operationTypes);
-  const renumbering = existing.some((row) => seeded.has(row.code) && seeded.get(row.code) !== row.seq);
+  const renumbering = existing.some((row) => seeded.has(row.code) && seeded.get(row.code) !== `${row.route}:${row.seq}`);
   // Steps that left the route. Same rule as the fleet: deactivated where recorded work still
   // points at them, deleted outright where nothing does.
   const retiredSteps = notInArray(operationTypes.code, [...seeded.keys()]);
@@ -532,7 +641,8 @@ async function main() {
     await tx
       .insert(operationTypes)
       .values(
-        OPERATIONS.map((o) => ({
+        CATALOGUE.map((o) => ({
+          route: o.route,
           seq: o.seq,
           displayNo: o.no ?? String(o.seq),
           code: o.code,
@@ -548,6 +658,7 @@ async function main() {
       .onConflictDoUpdate({
         target: operationTypes.code,
         set: {
+          route: sql`excluded.route`,
           seq: sql`excluded.seq`,
           displayNo: sql`excluded.display_no`,
           label: sql`excluded.label`,
@@ -624,7 +735,7 @@ async function main() {
   }
 
   console.log(
-    `seeded: ${STATIONS.length} stations, ${OPERATIONS.length} operations, ${LOCOMOTIVES.length} locomotives, ${REFERENCE.length} reference values, admin ${adminEmail}`,
+    `seeded: ${STATIONS.length} stations, ${OPERATIONS.length}+${GRD_ROUTE.length} operations, ${LOCOMOTIVES.length} locomotives, ${REFERENCE.length} reference values, admin ${adminEmail}`,
   );
 }
 
