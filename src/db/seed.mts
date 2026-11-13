@@ -300,7 +300,8 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   // Gardabani is the turnaround point: the train that came in is worked back to Böyük Kəsik.
-  // The sheet had these two return-train steps at Tbilisi (sheet 21–22); they keep its numbers.
+  // The sheet had the locomotive link at Tbilisi (sheet 21); it keeps that number. The return
+  // train keeps the GR number it got on arrival — no renumbering step.
   {
     seq: 19,
     no: "21",
@@ -317,20 +318,6 @@ const OPERATIONS: OpSeed[] = [
   },
   {
     seq: 20,
-    no: "22",
-    code: "assign_train_number_gr_odd_gardabani",
-    station: "GRD",
-    obligation: "required",
-    fields: ["train_number"],
-    label: {
-      az: "GR qatar nömrəsinin verilməsi (tək)",
-      ru: "Присвоение номера поезда GR (нечётный)",
-      en: "Assignment of GR train number (odd)",
-      ka: "GR მატარებლის ნომრის მინიჭება (კენტი)",
-    },
-  },
-  {
-    seq: 21,
     no: "25",
     code: "departure_gardabani_2",
     station: "GRD",
@@ -343,7 +330,7 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 22,
+    seq: 21,
     no: "26",
     code: "arrival_bk_return",
     station: "BK",
@@ -356,7 +343,7 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 23,
+    seq: 22,
     no: "27",
     code: "locomotive_to_maintenance_bk",
     maintenanceEffect: "send",
@@ -371,13 +358,13 @@ const OPERATIONS: OpSeed[] = [
     },
   },
   {
-    seq: 24,
+    seq: 23,
     no: "28",
     code: "locomotive_from_maintenance_bk",
     maintenanceEffect: "return",
     station: "BK",
     obligation: "conditional",
-    conditionalOnSeq: 23,
+    conditionalOnSeq: 22,
     fields: ["maintenance_type"],
     label: {
       az: "Lokomotiv TOİR-dən qaytarılıb",
@@ -423,7 +410,6 @@ const GRD_CODE: Record<string, string> = {
   departure_bk: "grd_route_departure_gardabani",
   arrival_gardabani_1: "grd_route_arrival_bk",
   assign_train_number_gr_even: "grd_route_assign_train_number_az",
-  assign_train_number_gr_odd_gardabani: "grd_route_assign_train_number_az_return",
 };
 
 /**
