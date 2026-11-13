@@ -61,9 +61,9 @@ const LOCOMOTIVES = [
 type OpSeed = {
   seq: number;
   /**
-   * The number the sheet prints, when it differs from `seq` — the "16.1" step and the six
-   * Tbilisi steps that left the route moved the later rows' ordering keys off their sheet
-   * numbers. Defaults to `seq`.
+   * The number the sheet prints, when it differs from `seq` — the "16.1" step, and the return
+   * leg, whose steps keep the sheet numbers they had when the route ran on to Tbilisi.
+   * Defaults to `seq`.
    */
   no?: string;
   code: string;
@@ -288,30 +288,34 @@ const OPERATIONS: OpSeed[] = [
       ka: "ვაგონების ტექნიკური შემოწმება (საჭიროების შემთხვევაში)",
     },
   },
+  // Gardabani is the turnaround point: the train that came in is worked back to Böyük Kəsik.
+  // The sheet had these two return-train steps at Tbilisi (sheet 21–22); they keep its numbers.
   {
     seq: 18,
-    no: "17",
-    code: "departure_gardabani_1",
+    no: "21",
+    code: "attach_locomotive_gardabani",
     station: "GRD",
-    obligation: "required",
+    obligation: "optional",
+    fields: ["locomotive"],
     label: {
-      az: "Qardabanidən yola düşmə",
-      ru: "Отправление из Гардабани",
-      en: "Departure from Gardabani",
-      ka: "გასვლა გარდაბანიდან",
+      az: "Lokomotivin bağlanması (qatar–lokomotiv əlaqəsi)",
+      ru: "Привязка локомотива (логическая связка поезда с локо)",
+      en: "Locomotive assignment (train–locomotive link)",
+      ka: "ლოკომოტივის მიბმა (მატარებელი–ლოკომოტივი)",
     },
   },
   {
     seq: 19,
-    no: "24",
-    code: "arrival_gardabani_2",
+    no: "22",
+    code: "assign_train_number_gr_odd_gardabani",
     station: "GRD",
     obligation: "required",
+    fields: ["train_number"],
     label: {
-      az: "Qardabaniyə gəliş",
-      ru: "Прибытие в Гардабани",
-      en: "Arrival at Gardabani",
-      ka: "ჩამოსვლა გარდაბანში",
+      az: "GR qatar nömrəsinin verilməsi (tək)",
+      ru: "Присвоение номера поезда GR (нечётный)",
+      en: "Assignment of GR train number (odd)",
+      ka: "GR მატარებლის ნომრის მინიჭება (კენტი)",
     },
   },
   {
@@ -410,7 +414,7 @@ const GRD_ROUTE: OpSeed[] = [
     },
   },
   { seq: 10, code: "grd_route_attach_locomotive_gardabani", station: "GRD", obligation: "required", fields: ["locomotive"], label: labelOf("attach_locomotive_bk") },
-  { seq: 11, code: "grd_route_departure_gardabani", station: "GRD", obligation: "required", label: labelOf("departure_gardabani_1") },
+  { seq: 11, code: "grd_route_departure_gardabani", station: "GRD", obligation: "required", label: labelOf("departure_gardabani_2") },
   { seq: 12, code: "grd_route_arrival_bk", station: "BK", obligation: "required", label: labelOf("arrival_bk") },
   {
     seq: 13,
@@ -440,10 +444,44 @@ const GRD_ROUTE: OpSeed[] = [
   { seq: 15, code: "grd_route_customs_inspection_az", station: "BK", obligation: "required", parallelWithSeq: 14, label: labelOf("customs_inspection_az") },
   { seq: 16, code: "grd_route_process_documents_bk", station: "BK", obligation: "required", label: labelOf("process_documents_bk") },
   { seq: 17, code: "grd_route_technical_inspection_wagons_bk", station: "BK", obligation: "optional", label: labelOf("technical_inspection_wagons_gardabani") },
-  { seq: 18, code: "grd_route_departure_bk", station: "BK", obligation: "required", label: labelOf("departure_bk") },
-  { seq: 19, code: "grd_route_arrival_bk_2", station: "BK", obligation: "required", label: labelOf("arrival_bk") },
+  // Böyük Kəsik is the turnaround point. The sheet's own turnaround station (Tbilisi, sheet
+  // 19–22) gives the pattern: optional ТОИР, the return required once sent, an optional
+  // locomotive change, the return train's number, departure.
   {
-    seq: 20,
+    seq: 18,
+    code: "grd_route_locomotive_to_maintenance_bk",
+    maintenanceEffect: "send",
+    station: "BK",
+    obligation: "optional",
+    fields: ["maintenance_reason", "maintenance_type"],
+    label: labelOf("locomotive_to_maintenance_bk"),
+  },
+  {
+    seq: 19,
+    code: "grd_route_locomotive_from_maintenance_bk",
+    maintenanceEffect: "return",
+    station: "BK",
+    obligation: "conditional",
+    conditionalOnSeq: 18,
+    fields: ["maintenance_type"],
+    label: labelOf("locomotive_from_maintenance_bk"),
+  },
+  { seq: 20, code: "grd_route_attach_locomotive_bk", station: "BK", obligation: "optional", fields: ["locomotive"], label: labelOf("attach_locomotive_gardabani") },
+  {
+    seq: 21,
+    code: "grd_route_assign_train_number_az_return",
+    station: "BK",
+    obligation: "required",
+    fields: ["train_number"],
+    label: {
+      az: "AZ qatar nömrəsinin verilməsi (geri)",
+      ru: "Присвоение номера поезда AZ (обратный)",
+      en: "Assignment of AZ train number (return)",
+      ka: "AZ მატარებლის ნომრის მინიჭება (დაბრუნება)",
+    },
+  },
+  {
+    seq: 22,
     code: "grd_route_departure_bk_2",
     station: "BK",
     obligation: "required",
@@ -454,26 +492,7 @@ const GRD_ROUTE: OpSeed[] = [
       ka: "მატარებლის გასვლა ბოიუკ-კესიკიდან",
     },
   },
-  { seq: 21, code: "grd_route_arrival_gardabani_return", station: "GRD", obligation: "required", label: labelOf("arrival_gardabani_1") },
-  {
-    seq: 22,
-    code: "grd_route_locomotive_to_maintenance_gardabani",
-    maintenanceEffect: "send",
-    station: "GRD",
-    obligation: "required",
-    fields: ["maintenance_reason", "maintenance_type"],
-    label: labelOf("locomotive_to_maintenance_bk"),
-  },
-  {
-    seq: 23,
-    code: "grd_route_locomotive_from_maintenance_gardabani",
-    maintenanceEffect: "return",
-    station: "GRD",
-    obligation: "conditional",
-    conditionalOnSeq: 22,
-    fields: ["maintenance_type"],
-    label: labelOf("locomotive_from_maintenance_bk"),
-  },
+  { seq: 23, code: "grd_route_arrival_gardabani_return", station: "GRD", obligation: "required", label: labelOf("arrival_gardabani_1") },
 ];
 
 /** Both routes, tagged. `code` is unique across them; `seq` only within a route. */

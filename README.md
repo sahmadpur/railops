@@ -29,7 +29,8 @@ database port, and disables demo seed data.
 
 **One record = one locomotive turnaround.** Either station can open one, and the station that opens
 it fixes its route: Böyük Kəsik → Gardabani → Böyük Kəsik, or the mirror image Gardabani → Böyük
-Kəsik → Gardabani. Each route has its own 23 ordered operations (`operation_types.route`); an
+Kəsik → Gardabani. The train turns at the far station, where the return train gets its number and
+optionally a different locomotive; ТОИР happens at Böyük Kəsik. Each route has its own 23 ordered operations (`operation_types.route`); an
 operator opens on their own station's route, an admin picks it. The train number is typed
 free-form and follows the renumbering along the route.
 

@@ -68,7 +68,7 @@ function eachDay(from: string, to: string): string[] {
 const DWELL = { BK: [15, 45], GRD: [10, 30] } as const;
 const TRANSIT = {
   11: [35, 70], // Böyük Kəsik -> Gardabani
-  18: [200, 340], // away from Gardabani until it comes back for the return leg
+  18: [60, 180], // turnaround at Gardabani: waiting for the return working
   20: [35, 70], // Gardabani -> Böyük Kəsik
 } as const;
 /** Gap after the send step: how long the locomotive is in the workshop. */
@@ -153,6 +153,8 @@ async function main() {
       const skipped = new Set<number>();
       if (!detach) skipped.add(6);
       if (!wagonInspection) skipped.add(17);
+      // The return leg usually keeps the locomotive that brought the train in.
+      if (!chance(0.2)) skipped.add(18);
       // Closing needs the ТОИР return at Böyük Kəsik; leave it off only while still in progress.
       if (unfinished) skipped.add(23);
 
