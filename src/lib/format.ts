@@ -8,7 +8,7 @@ export function label(value: Localized | null | undefined, locale: string): stri
   return value[key] || value[defaultLocale] || Object.values(value).find(Boolean) || "—";
 }
 
-/** The operation number an operator reads ("16.1"), falling back to the ordering key. */
+/** The operation number an operator reads ("25"), falling back to the ordering key. */
 export function operationNo(operation: { seq: number; displayNo?: string | null }): string {
   return operation.displayNo || String(operation.seq);
 }
@@ -51,8 +51,8 @@ export function todayIso(): string {
 }
 
 /**
- * A route read out as the stations it runs through — "Böyük Kəsik → Gardabani → Böyük Kəsik".
- * The two routes are mirror images, so the far end is whichever corridor station is not the start.
+ * A route read out as its start and far station — "Böyük Kəsik → Gardabani". The return leg is
+ * implied. The two routes are mirror images, so the far end is whichever corridor station is not the start.
  */
 export function routeLabel(
   route: string,
@@ -63,5 +63,5 @@ export function routeLabel(
   const far = stations.find((s) => s.isActive && s.code !== route);
   if (!origin || !far) return route;
   const [a, b] = [label(origin.name, locale), label(far.name, locale)];
-  return `${a} → ${b} → ${a}`;
+  return `${a} → ${b}`;
 }

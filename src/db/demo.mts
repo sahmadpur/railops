@@ -68,8 +68,8 @@ function eachDay(from: string, to: string): string[] {
 const DWELL = { BK: [15, 45], GRD: [10, 30] } as const;
 const TRANSIT = {
   11: [35, 70], // Böyük Kəsik -> Gardabani
-  18: [60, 180], // turnaround at Gardabani: waiting for the return working
-  20: [35, 70], // Gardabani -> Böyük Kəsik
+  19: [60, 180], // turnaround at Gardabani: waiting for the return working
+  21: [35, 70], // Gardabani -> Böyük Kəsik
 } as const;
 /** Gap after the send step: how long the locomotive is in the workshop. */
 const MAINTENANCE_MINUTES = [90, 320] as const;
@@ -140,7 +140,7 @@ async function main() {
       const stopAfter = justArrived
         ? 1
         : inWorkshop
-          ? 22
+          ? 23
           : unfinished
             ? between(2, lastSeq - 1)
             : cancelled
@@ -152,11 +152,11 @@ async function main() {
       const wagonInspection = chance(0.25);
       const skipped = new Set<number>();
       if (!detach) skipped.add(6);
-      if (!wagonInspection) skipped.add(17);
+      if (!wagonInspection) skipped.add(18);
       // The return leg usually keeps the locomotive that brought the train in.
-      if (!chance(0.2)) skipped.add(18);
+      if (!chance(0.2)) skipped.add(19);
       // Closing needs the ТОИР return at Böyük Kəsik; leave it off only while still in progress.
-      if (unfinished) skipped.add(23);
+      if (unfinished) skipped.add(24);
 
       const [openedBy] = [operatorByStation.get(bySeq.get(1)!.stationId) ?? admin.id];
       await db.execute(sql`select set_config('railops.actor_id', ${String(openedBy)}, true)`);

@@ -86,7 +86,7 @@ export type OperationField =
 
 /**
  * The operation catalogue — seeded from docs/Operations.xlsx, editable at /admin/operations.
- * The 23-step turnaround is data, not code: reordering or adding a step is a row change.
+ * The turnaround sequence is data, not code: reordering or adding a step is a row change.
  */
 /**
  * A route is named by the station a turnaround starts from: `BK` runs Böyük Kəsik → Gardabani →
@@ -103,8 +103,8 @@ export const operationTypes = pgTable(
     route: text("route").$type<Route>().notNull().default("BK"),
     seq: integer("seq").notNull(),
     /**
-     * The number docs/Operations.xlsx prints for this step ("16.1" for one inserted between 16
-     * and 17). Shown wherever an operator reads an operation number; `seq` stays the ordering key
+     * The number docs/Operations.xlsx prints for this step ("25" on the return leg, where it
+     * differs from `seq`). Shown wherever an operator reads an operation number; `seq` stays the ordering key
      * and the target of `conditionalOnSeq` / `parallelWithSeq`.
      */
     displayNo: text("display_no"),
