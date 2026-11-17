@@ -168,7 +168,8 @@ export default function OperationRow({
           ].join("|")}
           action={save}
           id={`save-${row.operationTypeId}`}
-          className="flex flex-wrap items-center gap-1"
+          // Bottom-aligned: labelled inputs line up with the unlabelled time box beside them.
+          className="flex flex-wrap items-end gap-x-2 gap-y-1.5"
         >
           <input type="hidden" name="turnaroundId" value={row.turnaroundId} />
           <input type="hidden" name="operationTypeId" value={row.operationTypeId} />
@@ -213,7 +214,8 @@ export default function OperationRow({
             ) : field === "detach_reason" ? (
               // Free text: the reasons are whatever the inspection found, often more than one.
               // Only required when wagons were actually detached — the server checks that.
-              <label key={field} className="flex flex-col gap-0.5">
+              // As wide as the time and wagon-count boxes above it, so the block reads as one column.
+              <label key={field} className="flex w-[308px] flex-col gap-0.5">
                 <span className="text-muted text-[11px]">{labels.fieldNames[field]}</span>
                 <input
                   type="text"
@@ -222,7 +224,7 @@ export default function OperationRow({
                   placeholder="…"
                   disabled={!row.editable}
                   maxLength={500}
-                  className="field w-[260px]"
+                  className="field w-full"
                 />
               </label>
             ) : field === "locomotive" ? (

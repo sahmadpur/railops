@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 
-/** The corridor every turnaround runs. Codes and countries match the seeded stations;
+/** The corridor trains run, one way in either direction. Codes and countries match the seeded stations;
  *  the names live here rather than in a query so signing in never depends on the database. */
 const STOPS = [
   { code: "BK", country: "AZ", nameKey: "login.stops.bk" },
@@ -31,7 +31,7 @@ export default async function CorridorPanel() {
         </ol>
         <span className="corridor-return" aria-hidden />
       </div>
-      <p className="corridor-legend">{t("dashboard.timeline.returnLeg")}</p>
+      <p className="corridor-legend">{t("login.bothWays")}</p>
     </div>
   );
 }

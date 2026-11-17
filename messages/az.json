@@ -31,7 +31,8 @@
     "stops": {
       "bk": "Böyük Kəsik",
       "grd": "Qardabani"
-    }
+    },
+    "bothWays": "hər iki istiqamətdə"
   },
   "common": {
     "station": "Stansiya",
@@ -81,25 +82,28 @@
   },
   "dashboard": {
     "title": "İcmal",
-    "openTurnarounds": "Davam edən dövriyyələr",
+    "openTurnarounds": "Yolda olan qatarlar",
     "completedInRange": "Seçilmiş dövrdə tamamlanan",
     "openMaintenance": "TOİR-də olan lokomotivlər",
     "locomotivesActive": "Aktiv lokomotivlər",
-    "recent": "Son dövriyyələr",
-    "avgElapsed": "Orta dövriyyə vaxtı",
+    "recent": "Son qatarlar",
+    "avgElapsed": "Marşrutda orta vaxt",
     "timeline": {
       "title": "Stansiyalar üzrə sərf olunan vaxt",
-      "basedOn": "Seçilmiş dövrdə {count} dövriyyə",
+      "basedOn": "Seçilmiş dövrdə {count} qatar",
       "avgTime": "Stansiyada orta vaxt",
-      "turnarounds": "Ölçülən dövriyyələr",
+      "turnarounds": "Ölçülən qatarlar",
       "operations": "Qeyd olunan əməliyyatlar",
       "recorded": "Qeyd sayı",
       "stepTime": "Addım vaxtı",
-      "returnLeg": "qayıdış",
-      "inTransit": "yolda"
+      "inTransit": "yolda",
+      "routeAvg": "marşrutda orta vaxt: {time}"
     },
     "locomotiveDowntime": "Lokomotivlərin boş dayanması",
-    "downtime": "Boş dayanma"
+    "downtime": "Boş dayanma",
+    "wagonsDetached": "Ayrılan vaqonlar",
+    "wagonsDetachedTrains": "{count, plural, other {# qatarda}}",
+    "detachments": "Vaqonların ayrılması"
   },
   "turnarounds": {
     "title": "Dövriyyələr",
@@ -266,7 +270,7 @@
         "body": "Dövriyyənin əməliyyatları dəyişməz ardıcıllıqla gedir. Yalnız növbəti yazılmamış addımı və yalnız öz stansiyanızın sətirlərini doldurmaq olur; qalan sətirlər qatarın harada olduğunu görəsiniz deyə ancaq oxunuş üçün göstərilir.",
         "steps": [
           "«Vaxt» xanasına əməliyyatın tarixini və saatını yazın. Vaxt əvvəlki və sonrakı əməliyyatların arasına düşməlidir — ardıcıllığı pozan vaxt qəbul edilmir.",
-          "Bəzi addımlar əlavə dəyərlər istəyir: qatar nömrəsi, lokomotiv, ayrılan vaqonların sayı (ayrılmayıbsa, 0) və ayrılma səbəbləri (mətnlə yazılır, vaqon ayrılıbsa, mütləqdir) və ya texniki işin növü ilə səbəbi.",
+          "Bəzi addımlar əlavə dəyərlər istəyir: qatar nömrəsi, lokomotiv, ayrılan vaqonların sayı (ayrılmayıbsa, 0) və ayrılma səbəbləri (mətnlə yazılır, vaqon ayrılıbsa, mütləqdir).",
           "«Yadda saxla» düyməsini basın — sətirdə yaşıl işarə və qeydi aparanın adı görünəcək.",
           "«Təmizlə» qeydi silir, amma yalnız ən son qeydi: daha əvvəlki addımı düzəltmək üçün əvvəlcə sonrakıları təmizləyin.",
           "«Əvvəlki əməliyyatları göstər» marşrutun artıq keçilmiş hissəsini açır."
@@ -288,7 +292,8 @@
           "«Başlanğıc» və «Son» tarixlərini qeyd edib «Süzgəc» düyməsini basın — göstəricilər, vaxtlar və dayanmalar həmin aralıq üzrə hesablanır.",
           "«Stansiyalar üzrə sərf olunan vaxt» hər stansiyanın qatarı orta hesabla nə qədər saxladığını və stansiyalar arasındakı yol vaxtını göstərir.",
           "«Lokomotivlərin boş dayanması» dövr ərzində hər lokomotivin nə qədər boş dayandığını göstərir.",
-          "«Son dövriyyələr» birbaşa qeydlərin özünə aparır."
+          "«Ayrılan vaqonlar» dövr ərzində neçə vaqonun neçə qatarda ayrıldığını göstərir; «Vaqonların ayrılması» cədvəli son ayrılmaları səbəbləri ilə göstərir.",
+          "«Son qatarlar» birbaşa qeydlərin özünə aparır."
         ]
       },
       "journal": {

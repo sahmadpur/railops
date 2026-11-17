@@ -27,10 +27,10 @@ database port, and disables demo seed data.
 
 ## Concepts
 
-**One record = one locomotive turnaround.** Either station can open one, and the station that opens
-it fixes its route: Böyük Kəsik → Gardabani → Böyük Kəsik, or the mirror image Gardabani → Böyük
-Kəsik → Gardabani. The train turns at the far station, where the return train gets its number and
-optionally a different locomotive, and ТОИР closes the route back at the start station. Each route has its own 23 ordered operations (`operation_types.route`) — the Gardabani route is generated from the Böyük Kəsik one with stations, AZ/GR and even/odd swapped; an
+**One record = one train, one way.** Either station can open one, and the station that opens
+it fixes its route: Böyük Kəsik → Gardabani, or the mirror image Gardabani → Böyük Kəsik. At the
+far station the train gets its number, optionally a different locomotive, and its departure closes
+the route; ТОИР is kept in its own registry at `/admin/maintenance`. Each route has its own 20 ordered operations (`operation_types.route`) — the Gardabani route is generated from the Böyük Kəsik one with stations, AZ/GR and even/odd swapped; an
 operator opens on their own station's route, an admin picks it. The train number is typed
 free-form and follows the renumbering along the route.
 
@@ -58,7 +58,7 @@ interface — dashboard, journal and admin pages are admin-only. Admins are unre
 ```
 src/db/schema.ts              tables, enums, relations
 src/db/migrations/            generated SQL + 0001_audit_triggers.sql
-src/db/seed.mts               stations, the 23 operations, reference lists, admin user
+src/db/seed.mts               stations, the 20 operations, reference lists, admin user
 src/db/actor.ts               withActor() — the only sanctioned write path
 src/lib/turnaround-rules.ts   station scoping, chronology, close-completeness (pure, tested)
 src/lib/journal.ts            the monthly grid, shared by the print page and the Excel export

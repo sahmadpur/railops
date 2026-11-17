@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, count, countDistinct, desc, eq, gt, gte, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 import { Fragment } from "react";
@@ -16,7 +16,7 @@ import {
   type Route,
 } from "@/db/schema";
 import { getActiveLocomotives, getCatalogue, getReference, getStations } from "@/lib/catalogue";
-import { formatDate, label, operationNo, routeLabel, todayIso } from "@/lib/format";
+import { formatDate, formatDateTime, label, operationNo, routeLabel, todayIso } from "@/lib/format";
 import { downtimeMinutes, operationStats, routeSegments, segmentStats, transitStats, type Interval } from "@/lib/timeline";
 import { requireAdmin } from "@/lib/session";
 import { forRoute, formatElapsed, isRoute } from "@/lib/turnaround-rules";
@@ -90,6 +90,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     locomotiveRows,
     turnaroundSpans,
     maintenanceSpans,
+    [detachedTotal],
+    detachments,
   ] = await Promise.all([
       db.select({ value: count() }).from(turnarounds).where(isNull(turnarounds.closedAt)),
       db
@@ -117,6 +119,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           seq: operationTypes.seq,
           occurredAt: turnaroundOperations.occurredAt,
           route: turnarounds.route,
+          isActive: operationTypes.isActive,
         })
         .from(turnaroundOperations)
         .innerJoin(operationTypes, eq(operationTypes.id, turnaroundOperations.operationTypeId))
@@ -151,6 +154,32 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             or(isNull(maintenanceRecords.returnedAt), gte(maintenanceRecords.returnedAt, windowFrom)),
           ),
         ),
+      // Wagons detached in the period, and on how many trains.
+      db
+        .select({
+          wagons: sql<number>`coalesce(sum(${turnaroundOperations.wagonCount}), 0)::int`,
+          trains: countDistinct(turnaroundOperations.turnaroundId),
+        })
+        .from(turnaroundOperations)
+        .innerJoin(turnarounds, eq(turnarounds.id, turnaroundOperations.turnaroundId))
+        .where(and(inRange, gt(turnaroundOperations.wagonCount, 0))),
+      // The latest detachments themselves, with their reasons.
+      db
+        .select({
+          turnaroundId: turnarounds.id,
+          trainNumber: turnarounds.trainNumber,
+          route: turnarounds.route,
+          stationId: operationTypes.stationId,
+          occurredAt: turnaroundOperations.occurredAt,
+          wagons: turnaroundOperations.wagonCount,
+          reason: turnaroundOperations.detachReason,
+        })
+        .from(turnaroundOperations)
+        .innerJoin(turnarounds, eq(turnarounds.id, turnaroundOperations.turnaroundId))
+        .innerJoin(operationTypes, eq(operationTypes.id, turnaroundOperations.operationTypeId))
+        .where(and(inRange, gt(turnaroundOperations.wagonCount, 0)))
+        .orderBy(desc(turnaroundOperations.occurredAt))
+        .limit(10),
     ]);
 
   const busyByLocomotive = new Map<number, Interval[]>();
@@ -173,7 +202,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     }))
     .sort((a, b) => b.minutes - a.minutes);
 
-  const rows = allRows.filter((r) => r.route === route);
+  // Steps since taken off the route (the old return leg) stay recorded on older trains, but would
+  // stretch their times; every figure below measures the route as it runs now.
+  const liveRows = allRows.filter((r) => r.isActive);
+  const rows = liveRows.filter((r) => r.route === route);
   const segments = routeSegments(forRoute(catalogue, route));
   const stats = segmentStats(segments, rows);
   const transit = transitStats(segments, rows);
@@ -182,12 +214,16 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const operationName = new Map(catalogue.map((o) => [o.id, label(o.label, locale)]));
   const operationNumber = new Map(catalogue.map((o) => [o.id, operationNo(o)]));
 
-  // Whole-route average: first to last operation of each turnaround, on either route.
-  const spans = [...new Set(allRows.map((r) => r.turnaroundId))]
-    .map((id) => allRows.filter((r) => r.turnaroundId === id))
-    .filter((entries) => entries.length > 1)
-    .map((entries) => (entries.at(-1)!.occurredAt.getTime() - entries[0].occurredAt.getTime()) / 60000);
-  const avgMinutes = spans.length ? Math.round(spans.reduce((sum, v) => sum + v, 0) / spans.length) : null;
+  // Whole-route average: first to last operation of each train, from arrival to departure.
+  const averageSpan = (source: typeof liveRows): number | null => {
+    const spans = [...new Set(source.map((r) => r.turnaroundId))]
+      .map((id) => source.filter((r) => r.turnaroundId === id))
+      .filter((entries) => entries.length > 1)
+      .map((entries) => (entries.at(-1)!.occurredAt.getTime() - entries[0].occurredAt.getTime()) / 60000);
+    return spans.length ? Math.round(spans.reduce((sum, v) => sum + v, 0) / spans.length) : null;
+  };
+  const avgMinutes = averageSpan(liveRows);
+  const routeAvgMinutes = averageSpan(rows);
 
   const tiles = [
     {
@@ -196,6 +232,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       icon: "M4 8h11a4 4 0 0 1 0 8H7m0 0 3-3m-3 3 3 3",
     },
     { text: t("dashboard.completedInRange"), value: completed.value, icon: "m5 13 4 4L19 7" },
+    {
+      text: t("dashboard.wagonsDetached"),
+      value: detachedTotal.wagons,
+      hint: t("dashboard.wagonsDetachedTrains", { count: detachedTotal.trains }),
+      icon: "M3 15h7v-5H3zM14 15h7v-5h-7zM10 12.5h4M5 18h1M18 18h1",
+    },
     {
       text: t("dashboard.openMaintenance"),
       value: openMaintenance.value,
@@ -211,11 +253,11 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       value: formatElapsed(avgMinutes),
       icon: "M12 8v4l3 2M21 12a9 9 0 1 1-9-9",
     },
-  ];
+  ] as { text: string; value: number | string; hint?: string; icon: string }[];
 
   const longest = Math.max(1, ...stats.map((s) => s.avgMinutes ?? 0));
-  const segmentTitle = (segment: (typeof segments)[number]) =>
-    `${stationName.get(segment.stationId) ?? "—"}${segment.pass > 1 ? ` · ${t("dashboard.timeline.returnLeg")}` : ""}`;
+  // One-way routes visit each station once, so a station's name is enough to title its leg.
+  const segmentTitle = (segment: (typeof segments)[number]) => stationName.get(segment.stationId) ?? "—";
 
   return (
     <div className="space-y-6">
@@ -241,7 +283,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         </Link>
       </form>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         {tiles.map((tile) => (
           <div key={tile.text} className="card card-pad">
             <span className="bg-surface-muted text-muted grid size-11 place-items-center rounded-xl">
@@ -260,6 +302,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             </span>
             <div className="text-muted mt-4 text-sm">{tile.text}</div>
             <div className="mt-1 text-2xl font-semibold tabular-nums">{tile.value}</div>
+            {tile.hint && <div className="text-faint mt-0.5 text-xs">{tile.hint}</div>}
           </div>
         ))}
       </div>
@@ -280,6 +323,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             ))}
             <span className="text-muted text-xs">
               {t("dashboard.timeline.basedOn", { count: new Set(rows.map((r) => r.turnaroundId)).size })}
+              {" · "}
+              {t("dashboard.timeline.routeAvg", { time: formatElapsed(routeAvgMinutes) })}
             </span>
           </div>
         </div>
@@ -314,11 +359,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
                     >
                       {stationName.get(row.segment.stationId) ?? "—"}
                     </span>
-                    {/* Held even when empty so every dwell time sits on the same baseline. */}
-                    <span className="text-faint h-3.5 text-[10px]">
-                      {row.segment.pass > 1 ? t("dashboard.timeline.returnLeg") : ""}
-                    </span>
-                    <span className="mt-0.5 text-sm font-semibold tabular-nums">{formatElapsed(row.avgMinutes)}</span>
+                    <span className="mt-1 text-sm font-semibold tabular-nums">{formatElapsed(row.avgMinutes)}</span>
                   </Link>
 
                   {index < transit.length && (
@@ -410,6 +451,50 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
                 </td>
                 <td className="whitespace-nowrap tabular-nums">{formatDowntime(minutes, locale)}</td>
               </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card">
+        <div className="card-head">
+          <h2 className="card-title">{t("dashboard.detachments")}</h2>
+          <span className="text-muted text-xs">
+            {formatDate(from, locale)} – {formatDate(to, locale)}
+          </span>
+        </div>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t("common.trainNumber")}</th>
+              <th>{t("turnarounds.route")}</th>
+              <th>{t("common.time")}</th>
+              <th className="text-end">{t("journal.wagonsDetachedRow")}</th>
+              <th>{t("journal.detachReasonsRow")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {detachments.length === 0 && (
+              <tr>
+                <td colSpan={5} className="text-muted text-center">
+                  {t("common.empty")}
+                </td>
+              </tr>
+            )}
+            {detachments.map((row) => (
+              <RowLink key={`${row.turnaroundId}-${row.occurredAt.getTime()}`} href={`/turnarounds/${row.turnaroundId}`}>
+                <td className="font-medium">
+                  <Link href={`/turnarounds/${row.turnaroundId}`} className="text-accent hover:underline">
+                    {row.trainNumber}
+                  </Link>
+                </td>
+                <td className="text-muted whitespace-nowrap">{routeLabel(row.route, stationRows, locale)}</td>
+                <td className="text-muted whitespace-nowrap tabular-nums">
+                  {formatDateTime(row.occurredAt, locale)}
+                </td>
+                <td className="text-end font-medium tabular-nums">{row.wagons}</td>
+                <td className="text-muted">{row.reason ?? "—"}</td>
+              </RowLink>
             ))}
           </tbody>
         </table>

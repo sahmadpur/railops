@@ -60,11 +60,7 @@ const LOCOMOTIVES = [
 
 type OpSeed = {
   seq: number;
-  /**
-   * The number the sheet prints, when it differs from `seq` — the return
-   * leg, whose steps keep the sheet numbers they had when the route ran on to Tbilisi.
-   * Defaults to `seq`.
-   */
+  /** The number operators read, when it should differ from `seq`. Defaults to `seq`. */
   no?: string;
   code: string;
   station: "BK" | "GRD";
@@ -304,7 +300,6 @@ const OPERATIONS: OpSeed[] = [
   // train keeps the GR number it got on arrival — no renumbering step.
   {
     seq: 19,
-    no: "21",
     code: "attach_locomotive_gardabani",
     station: "GRD",
     obligation: "optional",
@@ -318,7 +313,6 @@ const OPERATIONS: OpSeed[] = [
   },
   {
     seq: 20,
-    no: "25",
     code: "departure_gardabani_2",
     station: "GRD",
     obligation: "required",
@@ -327,50 +321,6 @@ const OPERATIONS: OpSeed[] = [
       ru: "Отправление поезда из Гардабани",
       en: "Train departure from Gardabani",
       ka: "მატარებლის გასვლა გარდაბანიდან",
-    },
-  },
-  {
-    seq: 21,
-    no: "26",
-    code: "arrival_bk_return",
-    station: "BK",
-    obligation: "required",
-    label: {
-      az: "Böyük Kəsikə gəliş",
-      ru: "Прибытие в Беюк-Кясик",
-      en: "Arrival at Boyuk Kasik",
-      ka: "ჩამოსვლა ბოიუკ-კესიკში",
-    },
-  },
-  {
-    seq: 22,
-    no: "27",
-    code: "locomotive_to_maintenance_bk",
-    maintenanceEffect: "send",
-    station: "BK",
-    obligation: "required", // Sheet marks this one obligatory.
-    fields: ["maintenance_reason", "maintenance_type"],
-    label: {
-      az: "Lokomotiv TOİR-ə göndərilib",
-      ru: "Локомотив отправлен в ТОИР",
-      en: "Locomotive sent to maintenance (TOIR)",
-      ka: "ლოკომოტივი გაგზავნილია სარემონტო სამუშაოებზე",
-    },
-  },
-  {
-    seq: 23,
-    no: "28",
-    code: "locomotive_from_maintenance_bk",
-    maintenanceEffect: "return",
-    station: "BK",
-    obligation: "conditional",
-    conditionalOnSeq: 22,
-    fields: ["maintenance_type"],
-    label: {
-      az: "Lokomotiv TOİR-dən qaytarılıb",
-      ru: "Локомотив вернулся из ТОИР",
-      en: "Locomotive returned from maintenance (TOIR)",
-      ka: "ლოკომოტივი დაბრუნდა სარემონტო სამუშაოებიდან",
     },
   },
 ];

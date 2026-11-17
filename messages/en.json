@@ -31,7 +31,8 @@
     "stops": {
       "bk": "Boyuk Kasik",
       "grd": "Gardabani"
-    }
+    },
+    "bothWays": "in both directions"
   },
   "common": {
     "station": "Station",
@@ -81,25 +82,28 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "openTurnarounds": "Turnarounds in progress",
+    "openTurnarounds": "Trains in progress",
     "completedInRange": "Completed in this period",
     "openMaintenance": "Locomotives in technical work",
     "locomotivesActive": "Active locomotives",
-    "recent": "Recent turnarounds",
-    "avgElapsed": "Average turnaround time",
+    "recent": "Recent trains",
+    "avgElapsed": "Average time on route",
     "timeline": {
       "title": "Time spent per station",
-      "basedOn": "{count} turnaround(s) in this period",
+      "basedOn": "{count} train(s) in this period",
       "avgTime": "Average time at the station",
-      "turnarounds": "Turnarounds measured",
+      "turnarounds": "Trains measured",
       "operations": "Operations recorded",
       "recorded": "Recorded",
       "stepTime": "Step time",
-      "returnLeg": "return",
-      "inTransit": "on the move"
+      "inTransit": "on the move",
+      "routeAvg": "average time on route: {time}"
     },
     "locomotiveDowntime": "Locomotive downtime",
-    "downtime": "Downtime"
+    "downtime": "Downtime",
+    "wagonsDetached": "Wagons detached",
+    "wagonsDetachedTrains": "{count, plural, one {on # train} other {on # trains}}",
+    "detachments": "Wagon detachments"
   },
   "turnarounds": {
     "title": "Turnarounds",
@@ -266,7 +270,7 @@
         "body": "Operations follow a fixed sequence. You can enter only the next unrecorded step, and only on rows that belong to your station; everything else is shown read-only so you can see where the train is.",
         "steps": [
           "Enter the operation's date and time in the Time field. It has to fall between the neighbouring operations — anything out of sequence is rejected.",
-          "Some steps ask for extra values: a train number, a locomotive, the number of detached wagons (0 if none) and the detachment reasons (typed as text, required when any wagons were detached), or the type and reason of technical work.",
+          "Some steps ask for extra values: a train number, a locomotive, the number of detached wagons (0 if none) and the detachment reasons (typed as text, required when any wagons were detached).",
           "Press Save. The row gets a green tick and the name of whoever recorded it.",
           "Clear removes a record, but only the most recent one — to correct an earlier step, clear the later ones first.",
           "Show earlier operations expands the part of the route that is already behind the train."
@@ -288,7 +292,8 @@
           "Set From and To and press Filter; every counter, timing and downtime figure follows that range.",
           "Time spent per station shows the average time each station holds the train, and the running time between stations.",
           "Locomotive downtime shows how long each locomotive stood idle over the period.",
-          "Recent turnarounds links straight through to the records."
+          "Wagons detached counts the wagons detached over the period and on how many trains; the Wagon detachments table lists the latest detachments with their reasons.",
+          "Recent trains links straight through to the records."
         ]
       },
       "journal": {

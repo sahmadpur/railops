@@ -68,8 +68,7 @@ function eachDay(from: string, to: string): string[] {
 const DWELL = { BK: [15, 45], GRD: [10, 30] } as const;
 const TRANSIT = {
   11: [35, 70], // Böyük Kəsik -> Gardabani
-  19: [60, 180], // turnaround at Gardabani: waiting for the return working
-  20: [35, 70], // Gardabani -> Böyük Kəsik
+  19: [60, 180], // at Gardabani: waiting for the onward locomotive
 } as const;
 /** Gap after the send step: how long the locomotive is in the workshop. */
 const MAINTENANCE_MINUTES = [90, 320] as const;
@@ -132,16 +131,11 @@ async function main() {
       // A part-filled turnaround stops at a random step; a cancelled one stops early and stays.
       const unfinished = cycleDate >= openFrom;
       const cancelled = !unfinished && chance(0.02);
-      // Half of the unfinished ones stop on the ТОИР send at Böyük Kəsik, which is what an open
-      // technical work record means: that locomotive is in the workshop right now.
-      const inWorkshop = unfinished && chance(0.5);
       // One train has only just pulled in, so it is still `open` rather than `in_progress`.
       const justArrived = unfinished && dayIndex === days.length - 1 && slot === 0;
       const stopAfter = justArrived
         ? 1
-        : inWorkshop
-          ? 22
-          : unfinished
+        : unfinished
             ? between(2, lastSeq - 1)
             : cancelled
               ? between(4, 12)
@@ -151,10 +145,8 @@ async function main() {
       const wagonInspection = chance(0.25);
       const skipped = new Set<number>();
       if (!wagonInspection) skipped.add(18);
-      // The return leg usually keeps the locomotive that brought the train in.
+      // The train usually leaves Gardabani behind the locomotive that brought it in.
       if (!chance(0.2)) skipped.add(19);
-      // Closing needs the ТОИР return at Böyük Kəsik; leave it off only while still in progress.
-      if (unfinished) skipped.add(23);
 
       const [openedBy] = [operatorByStation.get(bySeq.get(1)!.stationId) ?? admin.id];
       await db.execute(sql`select set_config('railops.actor_id', ${String(openedBy)}, true)`);
