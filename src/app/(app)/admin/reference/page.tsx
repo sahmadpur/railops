@@ -9,7 +9,7 @@ import { db } from "@/db";
 import { referenceValues } from "@/db/schema";
 import { locales } from "@/i18n/config";
 
-const KINDS = ["maintenance_type", "maintenance_reason", "detach_reason", "turnaround_status"] as const;
+const KINDS = ["maintenance_type", "maintenance_reason", "turnaround_status"] as const;
 
 export default async function AdminReferencePage() {
   const [t, rows] = await Promise.all([

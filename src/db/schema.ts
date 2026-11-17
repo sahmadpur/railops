@@ -58,7 +58,7 @@ export const locomotives = pgTable("locomotives", {
  * Small controlled vocabularies in one table, discriminated by `kind`:
  *   maintenance_type    TO1 TO2 TO3 TR1 TR3   (ТОИР)
  *   maintenance_reason  why a locomotive went to ТОИР
- *   detach_reason       why wagons were detached
+ *   detach_reason       retired: detachment reasons are free text on the operation now
  *   turnaround_status   turnaround lifecycle
  * ponytail: single table for four flat lists. Promote a kind to its own table when it
  * grows real attributes (durations, cost, required-by rules).
@@ -80,6 +80,7 @@ export const referenceValues = pgTable(
 export type OperationField =
   | "train_number"
   | "locomotive"
+  | "wagon_count"
   | "detach_reason"
   | "maintenance_reason"
   | "maintenance_type";
@@ -176,7 +177,10 @@ export const turnaroundOperations = pgTable(
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
     trainNumber: text("train_number"),
     locomotiveId: integer("locomotive_id").references(() => locomotives.id),
-    detachReasonCode: text("detach_reason_code"),
+    /** How many wagons a detachment step took off the train. */
+    wagonCount: integer("wagon_count"),
+    /** Why they were detached, in the operator's own words. */
+    detachReason: text("detach_reason"),
     maintenanceReasonCode: text("maintenance_reason_code"),
     maintenanceTypeCode: text("maintenance_type_code"),
     note: text("note"),

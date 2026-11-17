@@ -20,6 +20,10 @@ export type JournalColumn = {
   /** operationTypeId -> hh:mm */
   times: Map<number, string>;
   elapsed: string;
+  /** Wagons detached on this turnaround; null when no detachment step is recorded. */
+  wagonsDetached: number | null;
+  /** The detachment reasons as typed, joined when more than one step recorded some. */
+  detachReasons: string | null;
 };
 
 export type Journal = {
@@ -28,6 +32,8 @@ export type Journal = {
   route: Route;
   operations: { id: number; no: string; label: Record<string, string>; stationId: number }[];
   columns: JournalColumn[];
+  /** Sum of `wagonsDetached` over the month's columns. */
+  totalWagonsDetached: number;
 };
 
 function monthBounds(year: number, month: number) {
@@ -89,6 +95,7 @@ export async function buildJournal(year: number, month: number, route: Route, lo
 
   const columns: JournalColumn[] = columnRows.map((column) => {
     const rows = byTurnaround.get(column.id) ?? [];
+    const detachments = rows.filter((r) => r.wagonCount !== null || r.detachReason);
     return {
       turnaroundId: column.id,
       cycleDate: column.cycleDate,
@@ -99,6 +106,8 @@ export async function buildJournal(year: number, month: number, route: Route, lo
       elapsed: formatElapsed(
         elapsedMinutes(rows.map((r) => ({ operationTypeId: r.operationTypeId, occurredAt: r.occurredAt }))),
       ),
+      wagonsDetached: detachments.length ? detachments.reduce((sum, r) => sum + (r.wagonCount ?? 0), 0) : null,
+      detachReasons: detachments.map((r) => r.detachReason).filter(Boolean).join("; ") || null,
     };
   });
 
@@ -108,5 +117,6 @@ export async function buildJournal(year: number, month: number, route: Route, lo
     route,
     operations: operations.map((o) => ({ id: o.id, no: operationNo(o), label: o.label, stationId: o.stationId })),
     columns,
+    totalWagonsDetached: columns.reduce((sum, c) => sum + (c.wagonsDetached ?? 0), 0),
   };
 }

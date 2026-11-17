@@ -136,12 +136,14 @@
     "notFound": "Record not found.",
     "duplicate": "A record with these values already exists.",
     "generic": "The change could not be saved.",
+    "invalid_wagon_count": "Operation {seq}: enter the number of detached wagons — a whole number of at least 1.",
     "past_leg": "This part of the route is already completed and can no longer be edited."
   },
   "fields": {
     "train_number": "Train number",
     "locomotive": "Locomotive",
-    "detach_reason": "Detachment reason",
+    "wagon_count": "Wagon count",
+    "detach_reason": "Detachment reasons",
     "maintenance_reason": "Technical work reason",
     "maintenance_type": "Technical work type"
   },
@@ -151,6 +153,9 @@
     "subheading": "{station} corridor — {month}",
     "operationColumn": "Operation / Time",
     "totalRow": "Total elapsed time",
+    "wagonsDetachedRow": "Wagons detached",
+    "wagonsDetachedTotal": "month total: {count}",
+    "detachReasonsRow": "Detachment reasons",
     "footnote": "Times are shown as hh:mm. Cells marked — have no record."
   },
   "admin": {
@@ -260,7 +265,7 @@
         "body": "Operations follow a fixed sequence. You can enter only the next unrecorded step, and only on rows that belong to your station; everything else is shown read-only so you can see where the train is.",
         "steps": [
           "Enter the operation's date and time in the Time field. It has to fall between the neighbouring operations — anything out of sequence is rejected.",
-          "Some steps ask for one extra value: a train number, a locomotive, a detachment reason, or the type and reason of technical work.",
+          "Some steps ask for extra values: a train number, a locomotive, the number of detached wagons and the detachment reasons (typed as text), or the type and reason of technical work.",
           "Press Save. The row gets a green tick and the name of whoever recorded it.",
           "Clear removes a record, but only the most recent one — to correct an earlier step, clear the later ones first.",
           "Show earlier operations expands the part of the route that is already behind the train."
@@ -310,7 +315,7 @@
         "body": "The registries behind the app's drop-downs live under Administration.",
         "steps": [
           "Add a locomotive with its number, owner and depot.",
-          "Reference lists hold the technical work types, technical work reasons and detachment reasons offered on the turnaround form.",
+          "Reference lists hold the technical work types and technical work reasons offered on the turnaround form.",
           "A record already used by a turnaround cannot be deleted. Deactivate it instead: it leaves the drop-downs while the history stays intact."
         ]
       },

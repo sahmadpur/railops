@@ -64,6 +64,13 @@
       "when": 1794486300438,
       "tag": "0008_route",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794890759817,
+      "tag": "0009_wagon_detachment",
+      "breakpoints": true
     }
   ]
 }

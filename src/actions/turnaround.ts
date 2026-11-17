@@ -31,6 +31,12 @@ function optionalInt(value: FormDataEntryValue | null): number | null {
   return Number.isInteger(parsed) ? parsed : null;
 }
 
+/** A blank input is null; anything else is passed on as a number (NaN included) for the rules to judge. */
+function optionalNumber(value: FormDataEntryValue | null): number | null {
+  const text = String(value ?? "").trim();
+  return text === "" ? null : Number(text);
+}
+
 function optionalText(value: FormDataEntryValue | null): string | null {
   const text = String(value ?? "").trim();
   return text === "" ? null : text;
@@ -119,7 +125,8 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
     occurredAt: occurredAtRaw ? new Date(occurredAtRaw) : new Date(),
     trainNumber: optionalText(formData.get("trainNumber")),
     locomotiveId: optionalInt(formData.get("locomotiveId")),
-    detachReasonCode: optionalText(formData.get("detachReasonCode")),
+    wagonCount: optionalNumber(formData.get("wagonCount")),
+    detachReason: optionalText(formData.get("detachReason")),
     maintenanceReasonCode: optionalText(formData.get("maintenanceReasonCode")),
     maintenanceTypeCode: optionalText(formData.get("maintenanceTypeCode")),
   };
@@ -161,7 +168,8 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
         occurredAt: input.occurredAt,
         trainNumber: input.trainNumber ?? null,
         locomotiveId: input.locomotiveId ?? null,
-        detachReasonCode: input.detachReasonCode ?? null,
+        wagonCount: operation.fields.includes("wagon_count") ? (input.wagonCount ?? null) : null,
+        detachReason: input.detachReason ?? null,
         maintenanceReasonCode: input.maintenanceReasonCode ?? null,
         maintenanceTypeCode: input.maintenanceTypeCode ?? null,
         note,
@@ -173,7 +181,8 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
           occurredAt: input.occurredAt,
           trainNumber: input.trainNumber ?? null,
           locomotiveId: input.locomotiveId ?? null,
-          detachReasonCode: input.detachReasonCode ?? null,
+          wagonCount: operation.fields.includes("wagon_count") ? (input.wagonCount ?? null) : null,
+          detachReason: input.detachReason ?? null,
           maintenanceReasonCode: input.maintenanceReasonCode ?? null,
           maintenanceTypeCode: input.maintenanceTypeCode ?? null,
           note,

@@ -148,10 +148,8 @@ async function main() {
               : lastSeq;
 
       // Which optional and conditional steps this run recorded.
-      const detach = chance(0.15);
       const wagonInspection = chance(0.25);
       const skipped = new Set<number>();
-      if (!detach) skipped.add(6);
       if (!wagonInspection) skipped.add(18);
       // The return leg usually keeps the locomotive that brought the train in.
       if (!chance(0.2)) skipped.add(19);
@@ -209,8 +207,9 @@ async function main() {
           // Only the fields the operation declares — the same set the form would demand.
           trainNumber: operation.fields.includes("train_number") ? train : null,
           locomotiveId: operation.fields.includes("locomotive") ? locomotive.id : null,
-          detachReasonCode: operation.fields.includes("detach_reason")
-            ? pick(["technical", "commercial", "customs", "other"])
+          wagonCount: operation.fields.includes("wagon_count") ? between(1, 4) : null,
+          detachReason: operation.fields.includes("detach_reason")
+            ? pick(["Неисправность буксы", "Повреждение кузова", "Требование таможни", "Течь груза", "Неисправность тормозов"])
             : null,
           maintenanceReasonCode: operation.fields.includes("maintenance_reason")
             ? pick(["scheduled", "scheduled", "malfunction", "other"])

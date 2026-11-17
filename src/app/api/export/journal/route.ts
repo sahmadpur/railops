@@ -69,6 +69,17 @@ export async function GET(request: Request) {
   totalRow.values = ["", t("journal.totalRow"), "", ...journal.columns.map((c) => c.elapsed)];
   totalRow.font = { bold: true };
 
+  const wagonsRow = sheet.getRow(6 + journal.operations.length);
+  wagonsRow.values = [
+    "",
+    `${t("journal.wagonsDetachedRow")} (${t("journal.wagonsDetachedTotal", { count: journal.totalWagonsDetached })})`,
+    "",
+    ...journal.columns.map((c) => c.wagonsDetached ?? ""),
+  ];
+  const reasonsRow = sheet.getRow(7 + journal.operations.length);
+  reasonsRow.values = ["", t("journal.detachReasonsRow"), "", ...journal.columns.map((c) => c.detachReasons ?? "")];
+  reasonsRow.alignment = { wrapText: true, vertical: "top" };
+
   sheet.getColumn(1).width = 5;
   sheet.getColumn(2).width = 52;
   sheet.getColumn(3).width = 16;

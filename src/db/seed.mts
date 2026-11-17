@@ -143,8 +143,8 @@ const OPERATIONS: OpSeed[] = [
     seq: 6,
     code: "detach_wagons_bk",
     station: "BK",
-    obligation: "optional",
-    fields: ["detach_reason"],
+    obligation: "required",
+    fields: ["wagon_count", "detach_reason"],
     label: {
       az: "Vaqonların ayrılması (zərurət olduqda)",
       ru: "Отцепка вагонов (при необходимости)",
@@ -450,32 +450,6 @@ const REFERENCE: { kind: string; code: string; label: Localized }[] = [
   },
   {
     kind: "maintenance_reason",
-    code: "other",
-    label: { az: "Digər", ru: "Другое", en: "Other", ka: "სხვა" },
-  },
-
-  {
-    kind: "detach_reason",
-    code: "technical",
-    label: { az: "Texniki nasazlıq", ru: "Техническая неисправность", en: "Technical fault", ka: "ტექნიკური ხარვეზი" },
-  },
-  {
-    kind: "detach_reason",
-    code: "commercial",
-    label: {
-      az: "Kommersiya nasazlığı",
-      ru: "Коммерческая неисправность",
-      en: "Commercial fault",
-      ka: "კომერციული ხარვეზი",
-    },
-  },
-  {
-    kind: "detach_reason",
-    code: "customs",
-    label: { az: "Gümrüyün tələbi", ru: "Требование таможни", en: "Customs requirement", ka: "საბაჟოს მოთხოვნა" },
-  },
-  {
-    kind: "detach_reason",
     code: "other",
     label: { az: "Digər", ru: "Другое", en: "Other", ka: "სხვა" },
   },

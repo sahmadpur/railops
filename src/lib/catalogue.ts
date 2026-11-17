@@ -31,16 +31,15 @@ export const getActiveLocomotives = cache(async () =>
 
 /** Everything the turnaround form needs to render its selects, in one round of queries. */
 export async function getFormOptions() {
-  const [catalogue, stationRows, locos, maintenanceTypes, maintenanceReasons, detachReasons, statuses] =
+  const [catalogue, stationRows, locos, maintenanceTypes, maintenanceReasons, statuses] =
     await Promise.all([
       getCatalogue(),
       getAllStations(),
       getActiveLocomotives(),
       getReference("maintenance_type"),
       getReference("maintenance_reason"),
-      getReference("detach_reason"),
       getReference("turnaround_status"),
     ]);
 
-  return { catalogue, stations: stationRows, locomotives: locos, maintenanceTypes, maintenanceReasons, detachReasons, statuses };
+  return { catalogue, stations: stationRows, locomotives: locos, maintenanceTypes, maintenanceReasons, statuses };
 }

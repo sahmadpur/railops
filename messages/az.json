@@ -136,12 +136,14 @@
     "notFound": "Qeyd tapılmadı.",
     "duplicate": "Bu dəyərlərlə qeyd artıq mövcuddur.",
     "generic": "Dəyişiklik yadda saxlanılmadı.",
+    "invalid_wagon_count": "{seq} əməliyyatı üçün ayrılan vaqonların sayını göstərin — ən azı 1 olan tam ədəd.",
     "past_leg": "Marşrutun bu hissəsi artıq keçilib — redaktə mümkün deyil."
   },
   "fields": {
     "train_number": "Qatar nömrəsi",
     "locomotive": "Lokomotiv",
-    "detach_reason": "Ayrılma səbəbi",
+    "wagon_count": "Vaqonların sayı",
+    "detach_reason": "Ayrılma səbəbləri",
     "maintenance_reason": "TOİR səbəbi",
     "maintenance_type": "TOİR növü"
   },
@@ -151,6 +153,9 @@
     "subheading": "{station} istiqaməti — {month}",
     "operationColumn": "Əməliyyatın adı / Vaxt",
     "totalRow": "Ümumi sərf olunan vaxt",
+    "wagonsDetachedRow": "Ayrılan vaqonlar",
+    "wagonsDetachedTotal": "ay ərzində cəmi: {count}",
+    "detachReasonsRow": "Ayrılma səbəbləri",
     "footnote": "Vaxt ss:dd formatındadır. Tire — qeyd yoxdur."
   },
   "admin": {
@@ -260,7 +265,7 @@
         "body": "Dövriyyənin əməliyyatları dəyişməz ardıcıllıqla gedir. Yalnız növbəti yazılmamış addımı və yalnız öz stansiyanızın sətirlərini doldurmaq olur; qalan sətirlər qatarın harada olduğunu görəsiniz deyə ancaq oxunuş üçün göstərilir.",
         "steps": [
           "«Vaxt» xanasına əməliyyatın tarixini və saatını yazın. Vaxt əvvəlki və sonrakı əməliyyatların arasına düşməlidir — ardıcıllığı pozan vaxt qəbul edilmir.",
-          "Bəzi addımlar bir əlavə dəyər də istəyir: qatar nömrəsi, lokomotiv, ayrılma səbəbi və ya texniki işin növü ilə səbəbi.",
+          "Bəzi addımlar əlavə dəyərlər istəyir: qatar nömrəsi, lokomotiv, ayrılan vaqonların sayı və ayrılma səbəbləri (mətnlə yazılır) və ya texniki işin növü ilə səbəbi.",
           "«Yadda saxla» düyməsini basın — sətirdə yaşıl işarə və qeydi aparanın adı görünəcək.",
           "«Təmizlə» qeydi silir, amma yalnız ən son qeydi: daha əvvəlki addımı düzəltmək üçün əvvəlcə sonrakıları təmizləyin.",
           "«Əvvəlki əməliyyatları göstər» marşrutun artıq keçilmiş hissəsini açır."
@@ -310,7 +315,7 @@
         "body": "Açılan siyahıların arxasındakı reyestrlər «İdarəetmə» bölməsində aparılır.",
         "steps": [
           "Lokomotivi nömrəsi, mənsubiyyəti və deposu ilə əlavə edin.",
-          "Sorğu kitabçalarında dövriyyə formasının təklif etdiyi «TOİR növləri», «TOİR səbəbləri» və «Ayrılma səbəbləri» saxlanılır.",
+          "Sorğu kitabçalarında dövriyyə formasının təklif etdiyi «TOİR növləri» və «TOİR səbəbləri» saxlanılır.",
           "Dövriyyədə artıq istifadə olunmuş qeydi silmək olmur — onu deaktiv edin: açılan siyahılardan çıxır, tarixçə isə toxunulmaz qalır."
         ]
       },

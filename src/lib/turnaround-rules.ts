@@ -32,7 +32,9 @@ export type EntryInput = {
   occurredAt: Date;
   trainNumber?: string | null;
   locomotiveId?: number | null;
-  detachReasonCode?: string | null;
+  /** Whatever the operator typed; `checkWagonCount` decides whether it is a usable number. */
+  wagonCount?: number | null;
+  detachReason?: string | null;
   maintenanceReasonCode?: string | null;
   maintenanceTypeCode?: string | null;
 };
@@ -41,7 +43,8 @@ export type EntryInput = {
 const FIELD_INPUT: Record<OperationField, keyof EntryInput> = {
   train_number: "trainNumber",
   locomotive: "locomotiveId",
-  detach_reason: "detachReasonCode",
+  wagon_count: "wagonCount",
+  detach_reason: "detachReason",
   maintenance_reason: "maintenanceReasonCode",
   maintenance_type: "maintenanceTypeCode",
 };
@@ -139,6 +142,14 @@ export function checkRequiredFields(operation: OperationTypeLike, input: EntryIn
   return null;
 }
 
+/** A detachment takes off at least one whole wagon. */
+export function checkWagonCount(operation: OperationTypeLike, input: EntryInput): RuleError | null {
+  if (!operation.fields.includes("wagon_count") || input.wagonCount == null) return null;
+  return Number.isInteger(input.wagonCount) && input.wagonCount >= 1
+    ? null
+    : { code: "invalid_wagon_count", seq: operation.seq, field: "wagon_count" };
+}
+
 /** Full validation of one write. Returns null when the entry may be saved. */
 export function validateEntry(
   actor: ActorLike,
@@ -154,6 +165,7 @@ export function validateEntry(
   return (
     checkCurrentLeg(actor, operation, catalogue, entries) ??
     checkRequiredFields(operation, input) ??
+    checkWagonCount(operation, input) ??
     checkChronology(operation, input.occurredAt, catalogue, entries)
   );
 }

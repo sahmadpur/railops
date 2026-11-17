@@ -39,14 +39,14 @@ export type RowData = {
   occurredAtValue: string;
   trainNumber: string | null;
   locomotiveId: number | null;
-  detachReasonCode: string | null;
+  wagonCount: number | null;
+  detachReason: string | null;
   maintenanceReasonCode: string | null;
   maintenanceTypeCode: string | null;
   note: string | null;
   recordedByName: string | null;
   options: {
     locomotive: Option[];
-    detach_reason: Option[];
     maintenance_reason: Option[];
     maintenance_type: Option[];
   };
@@ -55,7 +55,8 @@ export type RowData = {
 const FIELD_TO_INPUT: Record<OperationField, string> = {
   train_number: "trainNumber",
   locomotive: "locomotiveId",
-  detach_reason: "detachReasonCode",
+  wagon_count: "wagonCount",
+  detach_reason: "detachReason",
   maintenance_reason: "maintenanceReasonCode",
   maintenance_type: "maintenanceTypeCode",
 };
@@ -66,8 +67,10 @@ function currentValue(row: RowData, field: OperationField): string {
       return row.trainNumber ?? "";
     case "locomotive":
       return row.locomotiveId?.toString() ?? "";
+    case "wagon_count":
+      return row.wagonCount?.toString() ?? "";
     case "detach_reason":
-      return row.detachReasonCode ?? "";
+      return row.detachReason ?? "";
     case "maintenance_reason":
       return row.maintenanceReasonCode ?? "";
     case "maintenance_type":
@@ -155,7 +158,8 @@ export default function OperationRow({
             row.occurredAtValue,
             row.trainNumber,
             row.locomotiveId,
-            row.detachReasonCode,
+            row.wagonCount,
+            row.detachReason,
             row.maintenanceReasonCode,
             row.maintenanceTypeCode,
             row.note,
@@ -188,6 +192,35 @@ export default function OperationRow({
                 autoComplete="off"
                 inputMode="numeric"
                 className="field w-[110px]"
+              />
+            ) : field === "wagon_count" ? (
+              <input
+                key={field}
+                type="number"
+                name={FIELD_TO_INPUT[field]}
+                defaultValue={currentValue(row, field)}
+                placeholder={labels.fieldNames[field]}
+                aria-label={labels.fieldNames[field]}
+                title={labels.fieldNames[field]}
+                disabled={!row.editable}
+                min={1}
+                step={1}
+                inputMode="numeric"
+                className="field w-[110px]"
+              />
+            ) : field === "detach_reason" ? (
+              // Free text: the reasons are whatever the inspection found, often more than one.
+              <input
+                key={field}
+                type="text"
+                name={FIELD_TO_INPUT[field]}
+                defaultValue={currentValue(row, field)}
+                placeholder={labels.fieldNames[field]}
+                aria-label={labels.fieldNames[field]}
+                title={labels.fieldNames[field]}
+                disabled={!row.editable}
+                maxLength={500}
+                className="field w-[260px]"
               />
             ) : field === "locomotive" ? (
               <SearchSelect

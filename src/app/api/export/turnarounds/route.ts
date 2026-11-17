@@ -43,6 +43,8 @@ export async function GET(request: Request) {
         filled: count(turnaroundOperations.id),
         firstAt: sql<Date | null>`min(${turnaroundOperations.occurredAt})`,
         lastAt: sql<Date | null>`max(${turnaroundOperations.occurredAt})`,
+        wagonsDetached: sql<number | null>`sum(${turnaroundOperations.wagonCount})::int`,
+        detachReasons: sql<string | null>`string_agg(${turnaroundOperations.detachReason}, '; ')`,
       })
       .from(turnarounds)
       .leftJoin(locomotives, eq(locomotives.id, turnarounds.locomotiveId))
@@ -66,6 +68,8 @@ export async function GET(request: Request) {
     { header: t("common.status"), key: "status", width: 16 },
     { header: t("turnarounds.progress"), key: "filled", width: 12 },
     { header: t("common.elapsed"), key: "elapsed", width: 12 },
+    { header: t("journal.wagonsDetachedRow"), key: "wagons", width: 14 },
+    { header: t("journal.detachReasonsRow"), key: "reasons", width: 40 },
     { header: t("turnarounds.openedBy"), key: "openedBy", width: 26 },
   ];
   sheet.getRow(1).font = { bold: true };
@@ -84,6 +88,8 @@ export async function GET(request: Request) {
       status: statusLabel.get(row.statusCode) ?? row.statusCode,
       filled: row.filled,
       elapsed: formatElapsed(minutes),
+      wagons: row.wagonsDetached ?? "",
+      reasons: row.detachReasons ?? "",
       openedBy: row.openedByName,
     });
   }

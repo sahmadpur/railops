@@ -116,6 +116,29 @@ export default async function JournalPage({ searchParams }: PageProps<"/reports/
                   </td>
                 ))}
               </tr>
+              <tr>
+                <td />
+                <td colSpan={2}>
+                  {t("journal.wagonsDetachedRow")}
+                  <div className="text-muted text-[11px]">
+                    {t("journal.wagonsDetachedTotal", { count: journal.totalWagonsDetached })}
+                  </div>
+                </td>
+                {journal.columns.map((column) => (
+                  <td key={column.turnaroundId} className="text-center tabular-nums">
+                    {column.wagonsDetached ?? "—"}
+                  </td>
+                ))}
+              </tr>
+              <tr>
+                <td />
+                <td colSpan={2}>{t("journal.detachReasonsRow")}</td>
+                {journal.columns.map((column) => (
+                  <td key={column.turnaroundId} className="max-w-[160px] align-top text-[11px] whitespace-normal">
+                    {column.detachReasons ?? "—"}
+                  </td>
+                ))}
+              </tr>
             </tbody>
           </table>
         </div>
