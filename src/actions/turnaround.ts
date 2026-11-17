@@ -1,13 +1,13 @@
 "use server";
 
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { db } from "@/db";
 import { withActor } from "@/db/actor";
-import { maintenanceRecords, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
-import { getStations } from "@/lib/catalogue";
+import { locomotives, maintenanceRecords, operationTypes, turnaroundOperations, turnarounds } from "@/db/schema";
+import { getAllStations, getStations } from "@/lib/catalogue";
 import {
   canEdit,
   checkClearable,
@@ -125,11 +125,28 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
     occurredAt: occurredAtRaw ? new Date(occurredAtRaw) : new Date(),
     trainNumber: optionalText(formData.get("trainNumber")),
     locomotiveId: optionalInt(formData.get("locomotiveId")),
+    locomotiveNumber: null,
     wagonCount: optionalNumber(formData.get("wagonCount")),
     detachReason: optionalText(formData.get("detachReason")),
     maintenanceReasonCode: optionalText(formData.get("maintenanceReasonCode")),
     maintenanceTypeCode: optionalText(formData.get("maintenanceTypeCode")),
   };
+
+  // A number typed into the locomotive box that matched nothing in the picker. It may still be a
+  // registry row the picker did not offer (retired, or typed in another case) — reuse that one.
+  const typedLocomotive = operation.fields.includes("locomotive") && !input.locomotiveId
+    ? normalizeLocomotiveNumber(formData.get("locomotiveNumber"))
+    : null;
+  let existingTyped: { id: number; isActive: boolean } | undefined;
+  if (typedLocomotive) {
+    [existingTyped] = await db
+      .select({ id: locomotives.id, isActive: locomotives.isActive })
+      .from(locomotives)
+      .where(sql`upper(${locomotives.number}) = ${typedLocomotive}`)
+      .limit(1);
+    if (existingTyped) input.locomotiveId = existingTyped.id;
+    else input.locomotiveNumber = typedLocomotive;
+  }
 
   const failure =
     validateEntry(session, operation, input, context.catalogue, context.entries) ??
@@ -150,16 +167,23 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
 
   // The turnaround itself carries no locomotive until one is attached, so ТОИР falls back to
   // whatever an earlier step recorded.
-  const maintenanceLocomotiveId =
-    input.locomotiveId ??
+  const fallbackLocomotiveId =
     context.turnaround.locomotiveId ??
     context.entries.find((e) => e.locomotiveId)?.locomotiveId ??
     null;
-  if (operation.maintenanceEffect && !maintenanceLocomotiveId) {
+  if (operation.maintenanceEffect && !input.locomotiveId && !input.locomotiveNumber && !fallbackLocomotiveId) {
     return { ok: false, error: "missing_field", seq: operation.seq, field: "locomotive" };
   }
 
   await withActor(session.userId, async (tx) => {
+    if (existingTyped && !existingTyped.isActive) {
+      await tx.update(locomotives).set({ isActive: true }).where(eq(locomotives.id, existingTyped.id));
+    }
+    if (input.locomotiveNumber) {
+      input.locomotiveId = await addTypedLocomotive(tx, input.locomotiveNumber, operation.stationId, session.userId);
+    }
+    const maintenanceLocomotiveId = input.locomotiveId ?? fallbackLocomotiveId;
+
     await tx
       .insert(turnaroundOperations)
       .values({
@@ -225,6 +249,29 @@ export async function saveOperation(_prev: ActionResult | undefined, formData: F
 }
 
 type Tx = Parameters<Parameters<typeof withActor>[1]>[0];
+
+/** Trimmed, inner whitespace collapsed, upper-cased — the fleet is written "VL10-494". */
+function normalizeLocomotiveNumber(value: FormDataEntryValue | null): string | null {
+  const text = String(value ?? "").trim().replace(/\s+/g, " ").toUpperCase();
+  return text === "" ? null : text.slice(0, 50);
+}
+
+/**
+ * Registers a locomotive an operator typed in. Its owner follows the railway of the station that
+ * recorded it and it is placed there; an admin corrects either at /admin/locomotives. Two
+ * stations typing the same new number at once end up on the same row.
+ */
+async function addTypedLocomotive(tx: Tx, number: string, stationId: number, actorId: number): Promise<number> {
+  const station = (await getAllStations()).find((s) => s.id === stationId);
+  const [created] = await tx
+    .insert(locomotives)
+    .values({ number, owner: station?.country === "GE" ? "GR" : "AZ", currentStationId: stationId, createdBy: actorId })
+    .onConflictDoNothing({ target: locomotives.number })
+    .returning({ id: locomotives.id });
+  if (created) return created.id;
+  const [existing] = await tx.select({ id: locomotives.id }).from(locomotives).where(eq(locomotives.number, number));
+  return existing.id;
+}
 
 /**
  * A `send` step opens the technical work record; the matching `return` step closes the

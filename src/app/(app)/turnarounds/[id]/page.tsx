@@ -72,6 +72,7 @@ export default async function TurnaroundDetailPage({ params }: PageProps<"/turna
     clear: t("common.clear"),
     saved: t("common.saved"),
     readOnly: t("turnarounds.notYourStation"),
+    newLocomotive: t("turnarounds.newLocomotive"),
     fieldNames,
     displayNos,
     errors: {

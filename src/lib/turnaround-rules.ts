@@ -32,6 +32,8 @@ export type EntryInput = {
   occurredAt: Date;
   trainNumber?: string | null;
   locomotiveId?: number | null;
+  /** A locomotive typed in that is not in the registry yet; the save adds it. */
+  locomotiveNumber?: string | null;
   /** Whatever the operator typed; `checkWagonCount` decides whether it is a usable number. */
   wagonCount?: number | null;
   detachReason?: string | null;
@@ -134,6 +136,10 @@ export function checkChronology(
 /** Every field the operation declares must be supplied. */
 export function checkRequiredFields(operation: OperationTypeLike, input: EntryInput): RuleError | null {
   for (const field of operation.fields) {
+    // Nothing detached means there is nothing to explain.
+    if (field === "detach_reason" && input.wagonCount === 0) continue;
+    // A number not in the registry yet counts: the save adds it.
+    if (field === "locomotive" && input.locomotiveNumber) continue;
     const value = input[FIELD_INPUT[field]];
     if (value === undefined || value === null || value === "") {
       return { code: "missing_field", seq: operation.seq, field };
@@ -142,10 +148,10 @@ export function checkRequiredFields(operation: OperationTypeLike, input: EntryIn
   return null;
 }
 
-/** A detachment takes off at least one whole wagon. */
+/** A whole number of wagons; 0 records that the step was done and nothing was detached. */
 export function checkWagonCount(operation: OperationTypeLike, input: EntryInput): RuleError | null {
   if (!operation.fields.includes("wagon_count") || input.wagonCount == null) return null;
-  return Number.isInteger(input.wagonCount) && input.wagonCount >= 1
+  return Number.isInteger(input.wagonCount) && input.wagonCount >= 0
     ? null
     : { code: "invalid_wagon_count", seq: operation.seq, field: "wagon_count" };
 }

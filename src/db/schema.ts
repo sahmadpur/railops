@@ -52,6 +52,11 @@ export const locomotives = pgTable("locomotives", {
   depot: text("depot"),
   currentStationId: integer("current_station_id").references(() => stations.id),
   isActive: boolean("is_active").notNull().default(true),
+  /**
+   * Who added it — an admin in the registry, or an operator typing an unknown number on an
+   * operation. Null for the seeded fleet; the seed only ever retires those rows.
+   */
+  createdBy: integer("created_by").references(() => users.id),
 });
 
 /**

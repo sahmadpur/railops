@@ -7,7 +7,7 @@
  * and marked below — confirm with the operations team and edit at /admin/operations.
  */
 import bcrypt from "bcryptjs";
-import { and, eq, inArray, lt, notInArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt, notInArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
@@ -146,10 +146,10 @@ const OPERATIONS: OpSeed[] = [
     obligation: "required",
     fields: ["wagon_count", "detach_reason"],
     label: {
-      az: "Vaqonların ayrılması (zərurət olduqda)",
-      ru: "Отцепка вагонов (при необходимости)",
-      en: "Detachment of wagons (if required)",
-      ka: "ვაგონების მოხსნა (საჭიროების შემთხვევაში)",
+      az: "Vaqonların ayrılması",
+      ru: "Отцепка вагонов",
+      en: "Detachment of wagons",
+      ka: "ვაგონების მოხსნა",
     },
   },
   {
@@ -513,10 +513,14 @@ async function main() {
   // deleted without destroying history, so those are deactivated instead — they disappear from
   // every picker but stay readable on the turnarounds that used them. On a fresh database
   // nothing is referenced, so this deletes outright and the fleet is exactly the list above.
-  const retired = notInArray(
-    locomotives.number,
-    LOCOMOTIVES.map((l) => l.number),
-  );
+  // Only the seeded fleet: locomotives an admin or operator added (`created_by` set) are theirs.
+  const retired = and(
+    notInArray(
+      locomotives.number,
+      LOCOMOTIVES.map((l) => l.number),
+    ),
+    isNull(locomotives.createdBy),
+  )!;
   await db.update(locomotives).set({ isActive: false }).where(retired);
   await db.delete(locomotives).where(
     sql`${retired}

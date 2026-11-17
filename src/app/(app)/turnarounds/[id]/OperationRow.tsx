@@ -15,6 +15,8 @@ export type RowLabels = {
   clear: string;
   saved: string;
   readOnly: string;
+  /** Hint under the locomotive box while the typed number is not in the registry. */
+  newLocomotive: string;
   fieldNames: Record<OperationField, string>;
   /** Ordering key -> the number the sheet prints, for errors that name another operation. */
   displayNos: Record<number, string>;
@@ -194,43 +196,48 @@ export default function OperationRow({
                 className="field w-[110px]"
               />
             ) : field === "wagon_count" ? (
-              <input
-                key={field}
-                type="number"
-                name={FIELD_TO_INPUT[field]}
-                defaultValue={currentValue(row, field)}
-                placeholder={labels.fieldNames[field]}
-                aria-label={labels.fieldNames[field]}
-                title={labels.fieldNames[field]}
-                disabled={!row.editable}
-                min={1}
-                step={1}
-                inputMode="numeric"
-                className="field w-[110px]"
-              />
+              <label key={field} className="flex flex-col gap-0.5">
+                <span className="text-muted text-[11px]">{labels.fieldNames[field]}</span>
+                <input
+                  type="number"
+                  name={FIELD_TO_INPUT[field]}
+                  defaultValue={currentValue(row, field)}
+                  placeholder="0"
+                  disabled={!row.editable}
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  className="field w-[110px]"
+                />
+              </label>
             ) : field === "detach_reason" ? (
               // Free text: the reasons are whatever the inspection found, often more than one.
-              <input
-                key={field}
-                type="text"
-                name={FIELD_TO_INPUT[field]}
-                defaultValue={currentValue(row, field)}
-                placeholder={labels.fieldNames[field]}
-                aria-label={labels.fieldNames[field]}
-                title={labels.fieldNames[field]}
-                disabled={!row.editable}
-                maxLength={500}
-                className="field w-[260px]"
-              />
+              // Only required when wagons were actually detached — the server checks that.
+              <label key={field} className="flex flex-col gap-0.5">
+                <span className="text-muted text-[11px]">{labels.fieldNames[field]}</span>
+                <input
+                  type="text"
+                  name={FIELD_TO_INPUT[field]}
+                  defaultValue={currentValue(row, field)}
+                  placeholder="…"
+                  disabled={!row.editable}
+                  maxLength={500}
+                  className="field w-[260px]"
+                />
+              </label>
             ) : field === "locomotive" ? (
-              <SearchSelect
-                key={field}
-                name={FIELD_TO_INPUT[field]}
-                options={row.options[field]}
-                defaultId={currentValue(row, field)}
-                placeholder={labels.fieldNames[field]}
-                disabled={!row.editable}
-              />
+              <span key={field} className="flex flex-col">
+                <SearchSelect
+                  name={FIELD_TO_INPUT[field]}
+                  options={row.options[field]}
+                  defaultId={currentValue(row, field)}
+                  placeholder={labels.fieldNames[field]}
+                  disabled={!row.editable}
+                  // Not every locomotive that turns up is in the registry; a typed number is added on save.
+                  customName="locomotiveNumber"
+                  customText={labels.newLocomotive}
+                />
+              </span>
             ) : (
               <select
                 key={field}

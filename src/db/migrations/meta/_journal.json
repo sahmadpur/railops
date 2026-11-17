@@ -71,6 +71,13 @@
       "when": 1794890759817,
       "tag": "0009_wagon_detachment",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794891469111,
+      "tag": "0010_locomotive_created_by",
+      "breakpoints": true
     }
   ]
 }

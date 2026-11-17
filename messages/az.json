@@ -115,6 +115,7 @@
     "closed": "Bağlanıb",
     "missingOperations": "Bağlamaq mümkün deyil: {count} mütləq əməliyyat qeyd olunmayıb.",
     "closeSuccess": "Dövriyyə bağlandı.",
+    "newLocomotive": "Bu lokomotiv sorğu kitabçasında yoxdur — yadda saxlayanda əlavə olunacaq.",
     "notYourStation": "Başqa stansiyanın əməliyyatı — yalnız oxumaq üçün.",
     "cannotOpenHere": "Sizin stansiyanızda dövriyyə açılmır.",
     "operationsFilled": "{total} əməliyyatdan {filled} qeyd olunub",
@@ -136,7 +137,7 @@
     "notFound": "Qeyd tapılmadı.",
     "duplicate": "Bu dəyərlərlə qeyd artıq mövcuddur.",
     "generic": "Dəyişiklik yadda saxlanılmadı.",
-    "invalid_wagon_count": "{seq} əməliyyatı üçün ayrılan vaqonların sayını göstərin — ən azı 1 olan tam ədəd.",
+    "invalid_wagon_count": "{seq} əməliyyatı üçün ayrılan vaqonların sayını göstərin — tam ədəd; vaqon ayrılmayıbsa, 0.",
     "past_leg": "Marşrutun bu hissəsi artıq keçilib — redaktə mümkün deyil."
   },
   "fields": {
@@ -265,7 +266,7 @@
         "body": "Dövriyyənin əməliyyatları dəyişməz ardıcıllıqla gedir. Yalnız növbəti yazılmamış addımı və yalnız öz stansiyanızın sətirlərini doldurmaq olur; qalan sətirlər qatarın harada olduğunu görəsiniz deyə ancaq oxunuş üçün göstərilir.",
         "steps": [
           "«Vaxt» xanasına əməliyyatın tarixini və saatını yazın. Vaxt əvvəlki və sonrakı əməliyyatların arasına düşməlidir — ardıcıllığı pozan vaxt qəbul edilmir.",
-          "Bəzi addımlar əlavə dəyərlər istəyir: qatar nömrəsi, lokomotiv, ayrılan vaqonların sayı və ayrılma səbəbləri (mətnlə yazılır) və ya texniki işin növü ilə səbəbi.",
+          "Bəzi addımlar əlavə dəyərlər istəyir: qatar nömrəsi, lokomotiv, ayrılan vaqonların sayı (ayrılmayıbsa, 0) və ayrılma səbəbləri (mətnlə yazılır, vaqon ayrılıbsa, mütləqdir) və ya texniki işin növü ilə səbəbi.",
           "«Yadda saxla» düyməsini basın — sətirdə yaşıl işarə və qeydi aparanın adı görünəcək.",
           "«Təmizlə» qeydi silir, amma yalnız ən son qeydi: daha əvvəlki addımı düzəltmək üçün əvvəlcə sonrakıları təmizləyin.",
           "«Əvvəlki əməliyyatları göstər» marşrutun artıq keçilmiş hissəsini açır."

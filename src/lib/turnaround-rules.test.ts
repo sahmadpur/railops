@@ -328,7 +328,7 @@ test("a step retired from the route no longer orders or blocks the live ones", (
   assert.equal(checkClearable(bkOperator, retired[2], retired, entries), null);
 });
 
-test("detachment needs a positive whole wagon count and a reason", () => {
+test("detachment needs a whole wagon count, and a reason once any wagon is detached", () => {
   const detach = op({ id: 70, seq: 1, fields: ["wagon_count", "detach_reason"] });
   const cat = [detach];
   const base = { occurredAt: at("2026-11-17T08:00:00Z") };
@@ -337,11 +337,20 @@ test("detachment needs a positive whole wagon count and a reason", () => {
   assert.equal(check({ wagonCount: 3, detachReason: "Неисправность буксы; требование таможни" }), null);
   assert.deepEqual(check({ detachReason: "Течь груза" }), { code: "missing_field", seq: 1, field: "wagon_count" });
   assert.deepEqual(check({ wagonCount: 2, detachReason: null }), { code: "missing_field", seq: 1, field: "detach_reason" });
-  for (const wagonCount of [0, -1, 1.5, Number.NaN]) {
+  // Nothing detached: the step is recorded and no reason is asked for.
+  assert.equal(check({ wagonCount: 0, detachReason: null }), null);
+  for (const wagonCount of [-1, 1.5, Number.NaN]) {
     assert.deepEqual(check({ wagonCount, detachReason: "Течь груза" }), {
       code: "invalid_wagon_count",
       seq: 1,
       field: "wagon_count",
     });
   }
+});
+
+test("a locomotive typed in that is not in the registry satisfies the locomotive field", () => {
+  const attach = op({ id: 80, seq: 1, fields: ["locomotive"] });
+  const base = { occurredAt: at("2026-11-17T08:00:00Z") };
+  assert.equal(validateEntry(admin, attach, { ...base, locomotiveNumber: "VL80-123" }, [attach], []), null);
+  assert.deepEqual(validateEntry(admin, attach, base, [attach], []), { code: "missing_field", seq: 1, field: "locomotive" });
 });

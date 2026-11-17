@@ -161,7 +161,7 @@ export async function saveLocomotive(_prev: ActionResult | undefined, formData: 
     await withActor(actorId, (tx) =>
       id
         ? tx.update(locomotives).set({ number, owner, depot, currentStationId, isActive }).where(eq(locomotives.id, id))
-        : tx.insert(locomotives).values({ number, owner, depot, currentStationId, isActive }),
+        : tx.insert(locomotives).values({ number, owner, depot, currentStationId, isActive, createdBy: actorId }),
     );
   });
 }

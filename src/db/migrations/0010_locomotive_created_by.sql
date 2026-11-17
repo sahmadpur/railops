@@ -1,0 +1,2 @@
+ALTER TABLE "locomotives" ADD COLUMN "created_by" integer;--> statement-breakpoint
+ALTER TABLE "locomotives" ADD CONSTRAINT "locomotives_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;

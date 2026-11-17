@@ -200,6 +200,8 @@ async function main() {
           }
         }
 
+        // Most trains go through the detachment step with nothing to detach.
+        const wagons = chance(0.15) ? between(1, 4) : 0;
         entries.push({
           turnaroundId: turnaround.id,
           operationTypeId: operation.id,
@@ -207,10 +209,11 @@ async function main() {
           // Only the fields the operation declares — the same set the form would demand.
           trainNumber: operation.fields.includes("train_number") ? train : null,
           locomotiveId: operation.fields.includes("locomotive") ? locomotive.id : null,
-          wagonCount: operation.fields.includes("wagon_count") ? between(1, 4) : null,
-          detachReason: operation.fields.includes("detach_reason")
-            ? pick(["Неисправность буксы", "Повреждение кузова", "Требование таможни", "Течь груза", "Неисправность тормозов"])
-            : null,
+          wagonCount: operation.fields.includes("wagon_count") ? wagons : null,
+          detachReason:
+            operation.fields.includes("detach_reason") && wagons > 0
+              ? pick(["Неисправность буксы", "Повреждение кузова", "Требование таможни", "Течь груза", "Неисправность тормозов"])
+              : null,
           maintenanceReasonCode: operation.fields.includes("maintenance_reason")
             ? pick(["scheduled", "scheduled", "malfunction", "other"])
             : null,

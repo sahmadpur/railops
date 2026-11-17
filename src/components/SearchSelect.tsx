@@ -18,6 +18,8 @@ export default function SearchSelect({
   disabled = false,
   required = false,
   noMatchText,
+  customName,
+  customText,
   className = "field w-auto min-w-[130px]",
 }: {
   name: string;
@@ -29,6 +31,13 @@ export default function SearchSelect({
   required?: boolean;
   /** Shown when the typed text matches no option. */
   noMatchText?: string;
+  /**
+   * Accept a value that is not in the list: when the typed text matches no option it is submitted
+   * under this name (and the id stays empty), for the server to register.
+   */
+  customName?: string;
+  /** Shown while a custom value is typed, so it is clear it will be added rather than picked. */
+  customText?: string;
   className?: string;
 }) {
   const listId = useId();
@@ -64,7 +73,13 @@ export default function SearchSelect({
         ))}
       </datalist>
       <input type="hidden" name={name} value={selectedId} />
-      {noMatchText && trimmed !== "" && selectedId === "" && (
+      {customName && <input type="hidden" name={customName} value={selectedId === "" ? trimmed : ""} />}
+      {customName && customText && trimmed !== "" && selectedId === "" && (
+        <span role="status" className="text-warning mt-1 block text-[11px]">
+          {customText}
+        </span>
+      )}
+      {!customName && noMatchText && trimmed !== "" && selectedId === "" && (
         <span role="alert" className="text-danger mt-1 block text-xs">
           {noMatchText}
         </span>
