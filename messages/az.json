@@ -213,7 +213,9 @@
       "conditionalOn": "Şərt",
       "parallelWith": "Paralel",
       "fields": "Əlavə sahələr",
-      "hint": "Dövriyyə ardıcıllığı məlumatdır. Sətri dəyişmək bütün dövriyyə formalarını dərhal dəyişir."
+      "hint": "Dövriyyə ardıcıllığı məlumatdır. Sətri dəyişmək bütün dövriyyə formalarını dərhal dəyişir.",
+      "retired": "Marşrutdan çıxarılıb: {count}",
+      "retiredHint": "Bu əməliyyatlar artıq marşruta daxil deyil. Onlar yalnız artıq qeydə alınmış qatarlarda istifadə olunduğu üçün saxlanılır və yalnız həmin tarixçədə görünür. 10335 kimi nömrə çıxarılmış əməliyyatın daxili nömrəsidir."
     },
     "audit": {
       "title": "Dəyişiklik jurnalı",

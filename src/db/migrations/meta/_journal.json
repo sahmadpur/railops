@@ -78,6 +78,13 @@
       "when": 1794891469111,
       "tag": "0010_locomotive_created_by",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794893787459,
+      "tag": "0011_clear_train_history",
+      "breakpoints": true
     }
   ]
 }

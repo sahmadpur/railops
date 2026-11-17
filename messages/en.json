@@ -213,7 +213,9 @@
       "conditionalOn": "Required if",
       "parallelWith": "Parallel with",
       "fields": "Extra fields",
-      "hint": "The turnaround sequence is data. Editing a row changes every turnaround form immediately."
+      "hint": "The turnaround sequence is data. Editing a row changes every turnaround form immediately.",
+      "retired": "Taken off the route: {count}",
+      "retiredHint": "These steps are no longer part of the route. They are kept only because already-recorded trains used them, and appear only in that history. A number like 10335 is the internal number of a retired step."
     },
     "audit": {
       "title": "Audit trail",

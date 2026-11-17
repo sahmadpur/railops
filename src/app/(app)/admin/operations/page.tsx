@@ -5,7 +5,7 @@ import { deleteRow, saveOperationType } from "@/actions/registry";
 import ActionForm from "@/components/ActionForm";
 import DeleteButton from "@/components/DeleteButton";
 import { getAllStations, getCatalogue } from "@/lib/catalogue";
-import { label, routeLabel } from "@/lib/format";
+import { label, operationNo, routeLabel } from "@/lib/format";
 import { locales } from "@/i18n/config";
 
 export default async function AdminOperationsPage() {
@@ -16,6 +16,12 @@ export default async function AdminOperationsPage() {
     // Retired stations too: a retired operation still has to show the station it belonged to.
     getAllStations(),
   ]);
+
+  // Steps taken off the route keep their rows only because older trains recorded them; their
+  // number is parked at 10000+id. Listing them among the live steps reads as part of the route.
+  const live = catalogue.filter((o) => o.isActive);
+  const retired = catalogue.filter((o) => !o.isActive);
+  const stationName = new Map(stationRows.map((s) => [s.id, label(s.name, locale)]));
 
   const messages = { saved: t("common.saved"), duplicate: t("errors.duplicate"), generic: t("errors.generic") };
   const deleteLabels = {
@@ -43,11 +49,11 @@ export default async function AdminOperationsPage() {
             </tr>
           </thead>
           <tbody>
-            {catalogue.map((operation, index) => (
+            {live.map((operation, index) => (
               <Fragment key={operation.id}>
                 {/* Each route numbers its own sequence; the conditional/parallel inputs refer
                     to numbers within the same route. */}
-                {catalogue[index - 1]?.route !== operation.route && (
+                {live[index - 1]?.route !== operation.route && (
                   <tr>
                     <th colSpan={4} className="bg-surface-muted text-start">
                       {t("turnarounds.route")}: {routeLabel(operation.route, stationRows, locale)}
@@ -134,6 +140,27 @@ export default async function AdminOperationsPage() {
           </tbody>
         </table>
       </div>
+
+      {retired.length > 0 && (
+        <details className="table-card">
+          <summary className="text-muted cursor-pointer px-4 py-3 text-sm">
+            {t("admin.operations.retired", { count: retired.length })}
+          </summary>
+          <p className="text-faint px-4 pb-2 text-xs">{t("admin.operations.retiredHint")}</p>
+          <table className="data-table">
+            <tbody>
+              {retired.map((operation) => (
+                <tr key={operation.id}>
+                  <td className="text-faint w-12 text-center tabular-nums">{operationNo(operation)}</td>
+                  <td className="font-medium">{label(operation.label, locale)}</td>
+                  <td className="text-muted">{stationName.get(operation.stationId) ?? "—"}</td>
+                  <td className="text-muted whitespace-nowrap">{routeLabel(operation.route, stationRows, locale)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      )}
     </div>
   );
 }
