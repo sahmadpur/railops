@@ -14,6 +14,8 @@ export type OperationTypeLike = {
   conditionalOnSeq: number | null;
   parallelWithSeq: number | null;
   fields: OperationField[];
+  /** Recording this step ends the sequence: later steps lock and stop being required. */
+  endsRoute?: boolean;
   isActive: boolean;
 };
 
@@ -177,16 +179,29 @@ export function validateEntry(
 }
 
 /**
+ * Where the sequence was cut short: the number of the earliest recorded step that ends the route
+ * (the train was disbanded). Null while no such step is recorded — clearing it reopens the rest.
+ */
+export function endedAtSeq(catalogue: OperationTypeLike[], entries: EntryLike[]): number | null {
+  const filledIds = new Set(entries.map((e) => e.operationTypeId));
+  const ending = catalogue.filter((o) => o.isActive && o.endsRoute && filledIds.has(o.id)).map((o) => o.seq);
+  return ending.length ? Math.min(...ending) : null;
+}
+
+/**
  * Which operations still block closing the turnaround: all `required` ones, plus each
- * `conditional` one whose trigger operation has been recorded.
+ * `conditional` one whose trigger operation has been recorded. Nothing past a recorded
+ * route-ending step blocks anything.
  */
 export function missingForClose(catalogue: OperationTypeLike[], entries: EntryLike[]): OperationTypeLike[] {
   const filledIds = new Set(entries.map((e) => e.operationTypeId));
   const seqById = new Map(catalogue.map((o) => [o.id, o.seq]));
   const filledSeqs = new Set([...filledIds].map((id) => seqById.get(id)).filter((s): s is number => s !== undefined));
+  const endedAt = endedAtSeq(catalogue, entries);
 
   return catalogue.filter((o) => {
     if (!o.isActive || filledIds.has(o.id)) return false;
+    if (endedAt !== null && o.seq > endedAt) return false;
     if (o.obligation === "required") return true;
     if (o.obligation === "conditional") return o.conditionalOnSeq !== null && filledSeqs.has(o.conditionalOnSeq);
     return false;
@@ -247,15 +262,21 @@ export function checkCurrentLeg(
  * The turnaround is filled in order: nothing past the first unfilled mandatory step may be
  * recorded yet. An unfilled *optional* step never wedges the sequence — it stays open while
  * the steps after it proceed — and a step that runs parallel to the blocker opens with it.
- * Already-recorded steps stay editable wherever they sit.
+ * Already-recorded steps stay editable wherever they sit. Once a route-ending step is recorded,
+ * nothing after it opens.
  */
 export function unlockedIds(catalogue: OperationTypeLike[], entries: EntryLike[]): Set<number> {
   const filled = new Set(entries.map((e) => e.operationTypeId));
   const blocker = missingForClose(catalogue, entries).sort((a, b) => a.seq - b.seq)[0];
+  const endedAt = endedAtSeq(catalogue, entries);
 
   return new Set(
     catalogue
-      .filter((o) => !blocker || o.seq <= blocker.seq || areParallel(o, blocker) || filled.has(o.id))
+      .filter((o) => {
+        if (filled.has(o.id)) return true;
+        if (endedAt !== null && o.seq > endedAt) return false;
+        return !blocker || o.seq <= blocker.seq || areParallel(o, blocker);
+      })
       .map((o) => o.id),
   );
 }

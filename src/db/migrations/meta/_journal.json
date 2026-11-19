@@ -85,6 +85,13 @@
       "when": 1794893787459,
       "tag": "0011_clear_train_history",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795071845652,
+      "tag": "0012_ends_route",
+      "breakpoints": true
     }
   ]
 }

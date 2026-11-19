@@ -212,6 +212,7 @@
       "obligation": "Məcburilik",
       "conditionalOn": "Şərt",
       "parallelWith": "Paralel",
+      "endsRoute": "Marşrutu bitirir",
       "fields": "Əlavə sahələr",
       "hint": "Dövriyyə ardıcıllığı məlumatdır. Sətri dəyişmək bütün dövriyyə formalarını dərhal dəyişir.",
       "retired": "Marşrutdan çıxarılıb: {count}",

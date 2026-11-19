@@ -212,6 +212,7 @@
       "obligation": "Obligation",
       "conditionalOn": "Required if",
       "parallelWith": "Parallel with",
+      "endsRoute": "Ends the route",
       "fields": "Extra fields",
       "hint": "The turnaround sequence is data. Editing a row changes every turnaround form immediately.",
       "retired": "Taken off the route: {count}",

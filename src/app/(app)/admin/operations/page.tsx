@@ -119,6 +119,10 @@ export default async function AdminOperationsPage() {
                           className="field w-16"
                         />
                       </label>
+                      <label className="text-muted flex items-center gap-1">
+                        <input name="endsRoute" type="checkbox" defaultChecked={operation.endsRoute} />
+                        {t("admin.operations.endsRoute")}
+                      </label>
                       <select name="isActive" defaultValue={String(operation.isActive)} className="field w-auto">
                         <option value="true">{t("common.active")}</option>
                         <option value="false">{t("common.inactive")}</option>

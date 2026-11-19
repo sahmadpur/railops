@@ -354,3 +354,33 @@ test("a locomotive typed in that is not in the registry satisfies the locomotive
   assert.equal(validateEntry(admin, attach, { ...base, locomotiveNumber: "VL80-123" }, [attach], []), null);
   assert.deepEqual(validateEntry(admin, attach, base, [attach], []), { code: "missing_field", seq: 1, field: "locomotive" });
 });
+
+test("a recorded route-ending step closes off everything after it", () => {
+  // The Gardabani tail of the Böyük Kəsik route: disbanding (optional) ends the train there.
+  const cat = [
+    op({ id: 1, seq: 16, stationId: GRD }),
+    op({ id: 2, seq: 17, stationId: GRD, obligation: "optional", endsRoute: true }),
+    op({ id: 3, seq: 18, stationId: GRD }),
+    op({ id: 4, seq: 19, stationId: GRD, obligation: "optional" }),
+  ];
+  const entry = (operationTypeId: number, hour: number): EntryLike => ({
+    operationTypeId,
+    occurredAt: at(`2026-11-19T${String(hour).padStart(2, "0")}:00:00Z`),
+  });
+
+  // Not disbanded: the optional step does not wedge the sequence and 18 is still owed.
+  const running = [entry(1, 8)];
+  assert.deepEqual(missingForClose(cat, running).map((o) => o.seq), [18]);
+  assert.deepEqual([...unlockedIds(cat, running)].sort(), [1, 2, 3]);
+
+  // Disbanded: nothing is owed, the later steps are locked, and the leg stays editable.
+  const disbanded = [entry(1, 8), entry(2, 9)];
+  assert.deepEqual(missingForClose(cat, disbanded), []);
+  assert.deepEqual([...unlockedIds(cat, disbanded)].sort(), [1, 2]);
+  assert.deepEqual(checkUnlocked(cat[2], cat, disbanded), { code: "locked_operation", seq: 18 });
+  assert.equal(nextStationId(cat, disbanded), null);
+  assert.equal(checkCurrentLeg(grdOperator, cat[1], cat, disbanded), null);
+
+  // A step recorded before the train was disbanded stays editable.
+  assert.equal(checkUnlocked(cat[2], cat, [...disbanded, entry(3, 10)]), null);
+});

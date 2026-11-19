@@ -207,6 +207,7 @@ export async function saveOperationType(_prev: ActionResult | undefined, formDat
           obligation,
           conditionalOnSeq: obligation === "conditional" ? optionalNumber(formData, "conditionalOnSeq") : null,
           parallelWithSeq: optionalNumber(formData, "parallelWithSeq"),
+          endsRoute: formData.get("endsRoute") === "on",
           isActive: text(formData, "isActive") !== "false",
         })
         .where(eq(operationTypes.id, id)),

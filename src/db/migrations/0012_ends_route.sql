@@ -1,0 +1,1 @@
+ALTER TABLE "operation_types" ADD COLUMN "ends_route" boolean DEFAULT false NOT NULL;

@@ -91,7 +91,7 @@ export type OperationField =
   | "maintenance_type";
 
 /**
- * The operation catalogue — seeded from docs/Operations.xlsx, editable at /admin/operations.
+ * The operation catalogue — seeded from the two route sheets in docs/ (see src/db/seed.mts), editable at /admin/operations.
  * The turnaround sequence is data, not code: reordering or adding a step is a row change.
  */
 /**
@@ -130,6 +130,11 @@ export const operationTypes = pgTable(
      * registry instead of the operator having to enter it twice.
      */
     maintenanceEffect: maintenanceEffectEnum("maintenance_effect"),
+    /**
+     * Recording this step ends the train's sequence («Расформирование поезда»): the steps after
+     * it lock and no longer block closing.
+     */
+    endsRoute: boolean("ends_route").notNull().default(false),
     isActive: boolean("is_active").notNull().default(true),
   },
   (t) => [unique("operation_types_route_seq_unique").on(t.route, t.seq)],

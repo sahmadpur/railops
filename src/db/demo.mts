@@ -142,9 +142,8 @@ async function main() {
               : lastSeq;
 
       // Which optional and conditional steps this run recorded.
-      const wagonInspection = chance(0.25);
-      const skipped = new Set<number>();
-      if (!wagonInspection) skipped.add(18);
+      // Demo trains are never disbanded at Gardabani: that step would end the sequence there.
+      const skipped = new Set(catalogue.filter((o) => o.endsRoute).map((o) => o.seq));
       // The train usually leaves Gardabani behind the locomotive that brought it in.
       if (!chance(0.2)) skipped.add(19);
 

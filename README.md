@@ -34,7 +34,7 @@ the route; ТОИР is kept in its own registry at `/admin/maintenance`. Each ro
 operator opens on their own station's route, an admin picks it. The train number is typed
 free-form and follows the renumbering along the route.
 
-**The operation sequence is data, not code.** `operation_types` is seeded from `docs/Operations.xlsx`
+**The operation sequence is data, not code.** `operation_types` is seeded from the two route sheets in `docs/` («Операции БК-Гардабани.xlsx», sheet v2, and «Операции Гардабани-БК.xlsx»)
 and editable at `/admin/operations`. Each row declares its station, whether it is required, optional
 or conditional, which operation it runs in parallel with, and which extra fields it collects. Adding
 or reordering a step never requires a code change.

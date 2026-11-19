@@ -1,10 +1,9 @@
 /**
  * Idempotent seed. Safe to run on every `docker compose up`.
  *
- * Source of truth for the operation catalogue: docs/Operations.xlsx.
- * Two references in that sheet are internally inconsistent (some point at sheet rows,
- * others at operation numbers), so they are seeded with the semantically correct target
- * and marked below — confirm with the operations team and edit at /admin/operations.
+ * Source of truth for the operation catalogue: the two route sheets in docs/ —
+ * «Операции БК-Гардабани.xlsx» (sheet "v2") and «Операции Гардабани-БК.xlsx». docs/operations.md
+ * prints the same lists. Steps are also editable at /admin/operations.
  */
 import bcrypt from "bcryptjs";
 import { and, eq, inArray, isNull, lt, notInArray, sql } from "drizzle-orm";
@@ -69,6 +68,8 @@ type OpSeed = {
   parallelWithSeq?: number;
   fields?: OperationField[];
   maintenanceEffect?: "send" | "return";
+  /** Recording it ends the train's sequence; see `endedAtSeq` in src/lib/turnaround-rules.ts. */
+  endsRoute?: boolean;
   label: Localized;
 };
 
@@ -103,7 +104,7 @@ const OPERATIONS: OpSeed[] = [
     code: "commercial_technical_inspection_bk",
     station: "BK",
     obligation: "required",
-    parallelWithSeq: 2, // Sheet: "параллель с 3" — read as the document-receipt step.
+    parallelWithSeq: 2,
     label: {
       az: "Qatarın kommersiya və texniki müayinəsi",
       ru: "Коммерческий/Технический осмотры поезда",
@@ -223,81 +224,80 @@ const OPERATIONS: OpSeed[] = [
   },
   {
     seq: 13,
-    code: "assign_train_number_gr_even",
+    code: "preliminary_customs_inspection_gr",
     station: "GRD",
     obligation: "required",
-    fields: ["train_number"],
     label: {
-      az: "GR qatar nömrəsinin verilməsi (cüt)",
-      ru: "Присвоение номера поезда GR (чётный)",
-      en: "Assignment of GR train number (even)",
-      ka: "GR მატარებლის ნომრის მინიჭება (ლუწი)",
+      az: "GR gümrük xidməti tərəfindən qatarın və sənədlərin ilkin müayinəsi",
+      ru: "Предварительный осмотр поезда и документов таможенной службой GR",
+      en: "Preliminary inspection of the train and documents by GR customs service",
+      ka: "მატარებლისა და დოკუმენტების წინასწარი შემოწმება საქართველოს საბაჟო სამსახურის მიერ",
     },
   },
   {
     seq: 14,
-    code: "passport_control_gr",
+    code: "technical_inspection_wagons_gardabani",
     station: "GRD",
     obligation: "required",
     label: {
-      az: "GR sərhəd xidmətinin pasport nəzarəti",
-      ru: "Паспортный контроль пограничной службы GR",
-      en: "Passport control by GR border service",
-      ka: "საქართველოს სასაზღვრო სამსახურის პასპორტის კონტროლი",
+      az: "Vaqonların texniki müayinəsi",
+      ru: "Технический осмотр вагонов",
+      en: "Technical inspection of wagons",
+      ka: "ვაგონების ტექნიკური შემოწმება",
     },
   },
   {
     seq: 15,
-    code: "receive_documents_gardabani",
-    station: "GRD",
-    obligation: "required",
-    label: {
-      az: "Daşıma sənədlərinin alınması",
-      ru: "Получение перевозочных документов",
-      en: "Receipt of transport documents",
-      ka: "გადაზიდვის დოკუმენტების მიღება",
-    },
-  },
-  {
-    seq: 16,
-    code: "customs_inspection_gr",
-    station: "GRD",
-    obligation: "required",
-    parallelWithSeq: 14, // Sheet: "параллель с 13"; confirm whether it pairs with passport control or with arrival.
-    label: {
-      az: "GR gümrük xidmətinin müayinəsi",
-      ru: "Осмотр поезда таможенной службой GR",
-      en: "Inspection by GR customs service",
-      ka: "საქართველოს საბაჟო სამსახურის შემოწმება",
-    },
-  },
-  {
-    seq: 17,
     code: "process_documents_gardabani",
     station: "GRD",
     obligation: "required",
     label: {
-      az: "Daşıma sənədlərinin işlənməsi",
-      ru: "Обработка перевозочных документов",
-      en: "Processing of transport documents",
-      ka: "გადაზიდვის დოკუმენტების დამუშავება",
+      az: "Daşıma sənədlərinin dəmir yolu tərəfindən işlənməsi",
+      ru: "Обработка перевозочных документов со стороны ЖД",
+      en: "Processing of transport documents by the railway",
+      ka: "გადაზიდვის დოკუმენტების დამუშავება რკინიგზის მიერ",
+    },
+  },
+  {
+    seq: 16,
+    code: "customs_process_documents_gr",
+    station: "GRD",
+    obligation: "required",
+    label: {
+      az: "Daşıma sənədlərinin GR gümrük xidməti tərəfindən işlənməsi",
+      ru: "Обработка перевозочных документов таможенной службой GR",
+      en: "Processing of transport documents by GR customs service",
+      ka: "გადაზიდვის დოკუმენტების დამუშავება საქართველოს საბაჟო სამსახურის მიერ",
+    },
+  },
+  // Sheet: "если выбран то конец процессов" — a train disbanded at Gardabani goes no further, so
+  // recording this closes off 18–20.
+  {
+    seq: 17,
+    code: "disband_train_gardabani",
+    station: "GRD",
+    obligation: "optional",
+    endsRoute: true,
+    label: {
+      az: "Qatarın dağıdılması",
+      ru: "Расформирование поезда",
+      en: "Disbanding of the train",
+      ka: "მატარებლის დაშლა",
     },
   },
   {
     seq: 18,
-    code: "technical_inspection_wagons_gardabani",
+    code: "detach_attach_wagons_gardabani",
     station: "GRD",
-    obligation: "optional",
+    obligation: "required",
+    fields: ["wagon_count", "detach_reason"],
     label: {
-      az: "Vaqonların texniki müayinəsi (zərurət olduqda)",
-      ru: "Технический осмотр вагонов (по необходимости)",
-      en: "Technical inspection of wagons (if required)",
-      ka: "ვაგონების ტექნიკური შემოწმება (საჭიროების შემთხვევაში)",
+      az: "Vaqonların ayrılması/qoşulması",
+      ru: "Отцепка/прицепка вагонов",
+      en: "Detachment/attachment of wagons",
+      ka: "ვაგონების მოხსნა/მიბმა",
     },
   },
-  // Gardabani is the turnaround point: the train that came in is worked back to Böyük Kəsik.
-  // The sheet had the locomotive link at Tbilisi (sheet 21); it keeps that number. The return
-  // train keeps the GR number it got on arrival — no renumbering step.
   {
     seq: 19,
     code: "attach_locomotive_gardabani",
@@ -315,7 +315,7 @@ const OPERATIONS: OpSeed[] = [
     seq: 20,
     code: "departure_gardabani_2",
     station: "GRD",
-    obligation: "required",
+    obligation: "optional",
     label: {
       az: "Qatarın Qardabanidən yola düşməsi",
       ru: "Отправление поезда из Гардабани",
@@ -325,55 +325,216 @@ const OPERATIONS: OpSeed[] = [
   },
 ];
 
-/** Pairs swapped when a step is mirrored onto the other route, per language. Longest forms first. */
-const MIRROR_WORDS: Record<keyof Localized, [string, string][]> = {
-  ru: [["Беюк-Кясик", "Гардабани"], ["нечётный", "чётный"], ["Az", "GR"], ["AZ", "GR"]],
-  az: [["Böyük Kəsikdən", "Qardabanidən"], ["Böyük Kəsikə", "Qardabaniyə"], ["Böyük Kəsik", "Qardabani"], ["Azərbaycan", "Gürcüstan"], ["(cüt)", "(tək)"], ["AZ", "GR"]],
-  en: [["Boyuk Kasik", "Gardabani"], ["(even)", "(odd)"], ["AZ", "GR"]],
-  ka: [["ბოიუკ-კესიკ", "გარდაბან"], ["აზერბაიჯანის", "საქართველოს"], ["(ლუწი)", "(კენტი)"], ["AZ", "GR"]],
+/** Labels the Gardabani route shares between its steps. */
+const PROCESS_DOCUMENTS: Localized = {
+  az: "Daşıma sənədlərinin işlənməsi",
+  ru: "Обработка перевозочных документов",
+  en: "Processing of transport documents",
+  ka: "გადაზიდვის დოკუმენტების დამუშავება",
 };
-
-/** Swaps every pair in one pass, so "Беюк-Кясик → Гардабани" turns round instead of collapsing. */
-function mirrorText(text: string, pairs: [string, string][]): string {
-  const swap = new Map(pairs.flatMap(([a, b]) => [[a, b], [b, a]] as const));
-  const escaped = [...swap.keys()].sort((a, b) => b.length - a.length).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-  return text.replace(new RegExp(escaped.join("|"), "g"), (w) => swap.get(w)!);
-}
-
-const mirrorLabel = (label: Localized): Localized =>
-  Object.fromEntries(
-    Object.entries(label).map(([lang, text]) => [lang, mirrorText(text, MIRROR_WORDS[lang as keyof Localized])]),
-  ) as Localized;
-
-const mirrorCode = (code: string): string =>
-  code
-    .split("_")
-    .map((t) => ({ bk: "gardabani", gardabani: "bk", az: "gr", gr: "az", even: "odd", odd: "even" })[t] ?? t)
-    .join("_");
-
-/**
- * Codes the Gardabani route already used for the same step, kept so turnarounds recorded on it
- * stay attached to their steps. Everything else takes `grd_route_` + the mirrored code.
- */
-const GRD_CODE: Record<string, string> = {
-  arrival_bk: "grd_route_arrival_gardabani",
-  departure_bk: "grd_route_departure_gardabani",
-  arrival_gardabani_1: "grd_route_arrival_bk",
-  assign_train_number_gr_even: "grd_route_assign_train_number_az",
+const ATTACH_LOCOMOTIVE: Localized = {
+  az: "Lokomotivin bağlanması (qatar–lokomotiv əlaqəsi)",
+  ru: "Привязка локомотива (логическая связка поезда с локо)",
+  en: "Locomotive assignment (train–locomotive link)",
+  ka: "ლოკომოტივის მიბმა (მატარებელი–ლოკომოტივი)",
 };
 
 /**
- * The Gardabani route: the Böyük Kəsik sequence copied step for step for a train that starts its
- * turnaround at Gardabani — Gardabani → Böyük Kəsik → Gardabani. Same numbering, obligations,
- * fields and links; only the stations, the AZ/GR authorities and the even/odd train numbers are
- * swapped. Editable at /admin/operations.
+ * Gardabani → Böyük Kəsik, as «Операции Гардабани-БК.xlsx» lists it: 17 steps, its own sequence
+ * rather than a mirror of the other route. Codes are the ones this route has carried since it was
+ * generated from the Böyük Kəsik list, so recorded trains stay attached to their steps.
  */
-const GRD_ROUTE: OpSeed[] = OPERATIONS.map((o) => ({
-  ...o,
-  code: GRD_CODE[o.code] ?? `grd_route_${mirrorCode(o.code)}`,
-  station: o.station === "BK" ? "GRD" : "BK",
-  label: mirrorLabel(o.label),
-}));
+const GRD_ROUTE: OpSeed[] = [
+  {
+    seq: 1,
+    code: "grd_route_arrival_gardabani",
+    station: "GRD",
+    obligation: "required",
+    fields: ["train_number"],
+    label: {
+      az: "Qardabaniyə gəliş",
+      ru: "Прибытие в Гардабани",
+      en: "Arrival at Gardabani",
+      ka: "ჩამოსვლა გარდაბანში",
+    },
+  },
+  {
+    seq: 2,
+    code: "grd_route_process_documents_gardabani",
+    station: "GRD",
+    obligation: "required",
+    label: PROCESS_DOCUMENTS,
+  },
+  {
+    seq: 3,
+    code: "grd_route_commercial_technical_inspection_gardabani",
+    station: "GRD",
+    obligation: "required",
+    label: {
+      az: "Qatarın kommersiya və texniki müayinəsi",
+      ru: "Коммерческий/Технический осмотры поезда",
+      en: "Commercial and technical inspection of the train",
+      ka: "მატარებლის კომერციული და ტექნიკური შემოწმება",
+    },
+  },
+  {
+    seq: 4,
+    code: "grd_route_customs_document_check_gardabani",
+    station: "GRD",
+    obligation: "required",
+    label: {
+      az: "Daşıma sənədlərinin gümrük yoxlaması",
+      ru: "Проверка перевозочных документов таможней",
+      en: "Customs check of transport documents",
+      ka: "დოკუმენტების საბაჟო შემოწმება",
+    },
+  },
+  {
+    seq: 5,
+    code: "grd_route_detach_wagons_gardabani",
+    station: "GRD",
+    obligation: "required",
+    fields: ["wagon_count", "detach_reason"],
+    label: {
+      az: "Vaqonların ayrılması/qoşulması",
+      ru: "Отцепка/прицепка вагонов",
+      en: "Detachment/attachment of wagons",
+      ka: "ვაგონების მოხსნა/მიბმა",
+    },
+  },
+  {
+    seq: 6,
+    code: "grd_route_attach_locomotive_gardabani",
+    station: "GRD",
+    obligation: "required",
+    fields: ["locomotive"],
+    label: ATTACH_LOCOMOTIVE,
+  },
+  {
+    seq: 7,
+    code: "grd_route_brake_test_vu45_gardabani",
+    station: "GRD",
+    obligation: "required",
+    label: {
+      az: "Əyləclərin tam yoxlanılması və VU-45 arayışının verilməsi",
+      ru: "Полное опробование тормозов и вручение справки ВУ-45",
+      en: "Full brake test and issue of certificate VU-45",
+      ka: "სამუხრუჭე სისტემის სრული გამოცდა და ცნობა ВУ-45-ის გადაცემა",
+    },
+  },
+  {
+    seq: 8,
+    code: "grd_route_departure_gardabani",
+    station: "GRD",
+    obligation: "required",
+    label: {
+      az: "Qardabanidən yola düşmə",
+      ru: "Отправление из Гардабани",
+      en: "Departure from Gardabani",
+      ka: "გასვლა გარდაბანიდან",
+    },
+  },
+  {
+    seq: 9,
+    code: "grd_route_arrival_bk",
+    station: "BK",
+    obligation: "required",
+    label: {
+      az: "Böyük Kəsikə gəliş",
+      ru: "Прибытие в Беюк-Кясик",
+      en: "Arrival at Boyuk Kasik",
+      ka: "ჩამოსვლა ბოიუკ-კესიკში",
+    },
+  },
+  {
+    seq: 10,
+    code: "grd_route_assign_train_number_az",
+    station: "BK",
+    obligation: "required",
+    fields: ["train_number"],
+    label: {
+      az: "AZ qatar nömrəsinin verilməsi (tək)",
+      ru: "Присвоение номера поезда AZ (нечётный)",
+      en: "Assignment of AZ train number (odd)",
+      ka: "AZ მატარებლის ნომრის მინიჭება (კენტი)",
+    },
+  },
+  {
+    seq: 11,
+    code: "grd_route_passport_control_az",
+    station: "BK",
+    obligation: "required",
+    label: {
+      az: "AZ sərhəd xidmətinin pasport nəzarəti",
+      ru: "Паспортный контроль пограничной службы AZ",
+      en: "Passport control by AZ border service",
+      ka: "აზერბაიჯანის სასაზღვრო სამსახურის პასპორტის კონტროლი",
+    },
+  },
+  {
+    seq: 12,
+    code: "grd_route_receive_documents_bk",
+    station: "BK",
+    obligation: "required",
+    label: {
+      az: "Daşıma sənədlərinin alınması",
+      ru: "Получение перевозочных документов",
+      en: "Receipt of transport documents",
+      ka: "გადაზიდვის დოკუმენტების მიღება",
+    },
+  },
+  {
+    seq: 13,
+    code: "grd_route_customs_inspection_az",
+    station: "BK",
+    obligation: "required",
+    label: {
+      az: "AZ gümrük xidmətinin müayinəsi",
+      ru: "Осмотр поезда таможенной службой AZ",
+      en: "Inspection by AZ customs service",
+      ka: "აზერბაიჯანის საბაჟო სამსახურის შემოწმება",
+    },
+  },
+  {
+    seq: 14,
+    code: "grd_route_process_documents_bk",
+    station: "BK",
+    obligation: "required",
+    label: PROCESS_DOCUMENTS,
+  },
+  {
+    seq: 15,
+    code: "grd_route_technical_inspection_wagons_bk",
+    station: "BK",
+    obligation: "optional",
+    label: {
+      az: "Vaqonların texniki müayinəsi (zərurət olduqda)",
+      ru: "Технический осмотр вагонов (по необходимости)",
+      en: "Technical inspection of wagons (if required)",
+      ka: "ვაგონების ტექნიკური შემოწმება (საჭიროების შემთხვევაში)",
+    },
+  },
+  {
+    seq: 16,
+    code: "grd_route_attach_locomotive_bk",
+    station: "BK",
+    obligation: "optional",
+    fields: ["locomotive"],
+    label: ATTACH_LOCOMOTIVE,
+  },
+  {
+    seq: 17,
+    code: "grd_route_departure_bk_2",
+    station: "BK",
+    obligation: "required",
+    label: {
+      az: "Qatarın Böyük Kəsikdən yola düşməsi",
+      ru: "Отправление поезда из Беюк-Кясик",
+      en: "Train departure from Boyuk Kasik",
+      ka: "მატარებლის გასვლა ბოიუკ-კესიკიდან",
+    },
+  },
+];
 
 /** Both routes, tagged. `code` is unique across them; `seq` only within a route. */
 const CATALOGUE: (OpSeed & { route: "BK" | "GRD" })[] = [
@@ -530,6 +691,7 @@ async function main() {
           parallelWithSeq: o.parallelWithSeq ?? null,
           fields: o.fields ?? [],
           maintenanceEffect: o.maintenanceEffect ?? null,
+          endsRoute: o.endsRoute ?? false,
         })),
       )
       .onConflictDoUpdate({
@@ -545,6 +707,7 @@ async function main() {
           parallelWithSeq: sql`excluded.parallel_with_seq`,
           fields: sql`excluded.fields`,
           maintenanceEffect: sql`excluded.maintenance_effect`,
+          endsRoute: sql`excluded.ends_route`,
         },
       });
   });
